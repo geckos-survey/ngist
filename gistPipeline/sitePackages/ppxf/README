@@ -1,0 +1,2 @@
+If this subdirectory is empty, the GIST pipeline uses the system-wide installed version of pPXF in its analysis.  If a
+specific version of pPXF is placed in this subdirectory, it is use preferentially to the system-wide installed version. 

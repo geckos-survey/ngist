@@ -1,0 +1,12 @@
+MANIFEST
+releaseChecklist
+gitBranches
+
+__pycache__/
+*.py[cod]
+*.swp
+
+dist/
+build/
+*.egg-info/
+*.egg
