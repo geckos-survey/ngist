@@ -66,9 +66,9 @@ def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_t
         goodpixels, emission_setup = getGoodpixelsEmissionSetup\
                 ('GANDALF', emi_file, redshift, velscale, logLam_galaxy, logLam_template, npix, outdir)
     
-        ## Uncomment the following lines to use stellar velocities as initial guess on GANDALF fit
-        #for itm in np.arange(len(emission_setup)):
-        #    emission_setup[itm].v = stellar_kin[0] 
+        # Initial guess on velocity: Use value relative to stellar kinematics
+        for itm in np.arange(len(emission_setup)):
+            emission_setup[itm].v = emission_setup[itm].v + stellar_kin[0] 
     
         # Run GANDALF
         weights, emission_templates, bestfit, sol, esol = gandalf.gandalf\
