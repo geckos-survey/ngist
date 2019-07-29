@@ -87,7 +87,7 @@ def read_cube(DEBUG, filename, configs):
     x        = x[idx_good]
     y        = y[idx_good]
     logging.info("Removing all spaxels containing nan or having a negative median flux:\n"\
-            +loggingBlanks+"* Of "+str(nspec)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspaxel-len(idx_good))+" removed")
+            +loggingBlanks+"* Of "+str(nspec)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspec-len(idx_good))+" removed")
   
     # Computing the SNR per spaxel
     signal = np.nanmedian(spec,axis=0)
