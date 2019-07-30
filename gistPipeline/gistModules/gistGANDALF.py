@@ -84,7 +84,7 @@ def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_t
 
 def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, esol, nlines, sol_gas_AoN,\
         stellar_kin, offset, optimal_template, logLam_template, logLam_galaxy, goodpixels, cleaned_spectrum,\
-        nweights, emission_weights, for_errors, npix, n_templates, bestfit, emissionSpectra, residuals, reddening):
+        nweights, emission_weights, for_errors, npix, n_templates, bestfit, emissionSpectra, reddening):
     """ Saves all results to disk. """
     # ========================
     # PREPARE OUTPUT
@@ -211,28 +211,6 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     HDUList.writeto(outfits, overwrite=True)
 
     pipeline.prettyOutput_Done("Writing: "+rootname+'_gandalf-emission_'+LEVEL+'.fits')
-    logging.info("Wrote: "+outfits)
-
-
-    # ========================
-    # SAVE RESIDUALS
-    outfits = outdir+rootname+'_gandalf-residuals_'+LEVEL+'.fits'
-    pipeline.prettyOutput_Running("Writing: "+rootname+'_gandalf-residuals_'+LEVEL+'.fits')
-
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
-
-    # Extension 1: Table HDU with optimal templates
-    cols = []
-    cols.append( fits.Column(name='RESIDUALS', format=str(residuals.shape[1])+'D', array=residuals ) )
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = 'RESIDUALS'
-
-    # Create HDU list and write to file
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits, overwrite=True)
-
-    pipeline.prettyOutput_Done("Writing: "+rootname+'_gandalf-residuals_'+LEVEL+'.fits')
     logging.info("Wrote: "+outfits)
 
 
@@ -653,15 +631,14 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         sol_gas_AoN[i,:], cleaned_spectrum[i,:] = gandalf.remouve_detected_emission\
             (spectra[:,i], bestfit[i,:], emission_templates[i,:,:], sol_gas_A, AoN_thresholds, None)
 
-    # Calculate the best fitting emission and the residuals
+    # Calculate the best fitting emission
     emissionSpectrum          = np.sum( emission_templates, axis=2 )
     emissionSubtractedBestfit = bestfit - emissionSpectrum
-    residuals                 = spectra - emissionSubtractedBestfit.T
 
     # Save results to file
     save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, esol, nlines, sol_gas_AoN,\
             stellar_kin, offset, optimal_template, logLam_template, logLam_galaxy, goodpixels, cleaned_spectrum,\
-            nweights, weights[:,n_templates:], for_errors, npix, n_templates, bestfit, emissionSpectrum, residuals,\
+            nweights, weights[:,n_templates:], for_errors, npix, n_templates, bestfit, emissionSpectrum,\
             configs['REDDENING'])
 
     # Call plotting routines
