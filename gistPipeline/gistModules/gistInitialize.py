@@ -28,8 +28,12 @@ def setup_configs(galnumber, dirPath):
     configs = readConfig(dirPath.configFile, galnumber)
     
     rootname = str(configs['RUN_NAME']).split('_')[0]
-    datafile = dirPath.inputDir+rootname+'.fits'
     outdir   = dirPath.outputDir+str(configs['RUN_NAME'])+'/'
+
+    if os.path.isfile(dirPath.inputDir+rootname+'.txt') == True:
+        datafile = dirPath.inputDir+rootname+'.txt'
+    else:
+        datafile = dirPath.inputDir+rootname+'.fits'
 
     if os.path.isdir(outdir) == False: 
         os.mkdir(outdir)
