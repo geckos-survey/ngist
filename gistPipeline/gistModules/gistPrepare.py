@@ -261,7 +261,7 @@ def spectralMasking(outdir, logLam, module):
     goodPixels = np.arange( len(logLam) )
 
     # In case there is only one mask
-    if len( mask.shape ) == 1: 
+    if len( mask.shape ) == 1  and  mask.shape[0] != 0:
         mask = mask.reshape(1,2)
 
     for i in range( mask.shape[0] ):
