@@ -604,16 +604,24 @@ def create_templates(emission_setup, pars, npix, lstep_gal, int_disp_pix, log10,
         # desired relative strength, in terms of total flux, of
         # the satellite line w.r.t to that of their main line
         # (e.g.  F_Hb = 0.35 F_Ha without reddening).
-        a_sline = emission_setup[j].a * emission_setup[j_mline].a *(emission_setup[j_mline]._lambda/emission_setup[j]._lambda)
-        gaus_sline = create_gaussn(np.arange(npix, dtype='float'), 
+        f_sat_to_main_ratio = emission_setup[j].a*emission_setup[j_mline].a
+        lambda_main_to_sat_ratio = emission_setup[j_mline]._lambda / emission_setup[j]._lambda
+        obs_sigma_pix_main_to_sat_ratio = np.sqrt(pars[i_mline*2+1]**2+int_disp_pix[j_mline]**2) / np.sqrt(pars[i_mline*2+1]**2+int_disp_pix[j]**2)
+        a_sline = f_sat_to_main_ratio * lambda_main_to_sat_ratio * obs_sigma_pix_main_to_sat_ratio
+ 		
+        gaus_sline = create_gaussn(np.arange(npix, dtype='float64'), 
                                        [a_sline,pars[i_mline*2]-offset,pars[i_mline*2+1]], 
                                        int_disp_pix[j])
       else:
         # in this case take the current value for the amplitude of
         # the main line as a references, instead of the unity
         # value generally provided in the emission-line setup.
-        a_sline = emission_setup[j].a*pars[i_mline*3] *(emission_setup[j_mline]._lambda/emission_setup[j]._lambda)
-        gaus_sline = create_gaussn(np.arange(npix, dtype='float'), 
+        f_sat_to_main_ratio = pars[i_mline*3]*emission_setup[j].a*emission_setup[j_mline].a
+        lambda_main_to_sat_ratio = emission_setup[j_mline]._lambda / emission_setup[j]._lambda
+        obs_sigma_pix_main_to_sat_ratio = np.sqrt(pars[i_mline*3+2]**2+int_disp_pix[j_mline]**2) / np.sqrt(pars[i_mline*3+2]**2+int_disp_pix[j]**2)
+        a_sline = f_sat_to_main_ratio * lambda_main_to_sat_ratio * obs_sigma_pix_main_to_sat_ratio
+        
+        gaus_sline = create_gaussn(np.arange(npix, dtype='float64'), 
                                        [a_sline,pars[i_mline*3+1]-offset,pars[i_mline*3+2]], 
                                        int_disp_pix[j])
       gaus[i_mline] += gaus_sline 
