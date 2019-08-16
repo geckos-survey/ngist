@@ -18,11 +18,11 @@ C = np.float64(299792.458) # km/s
 
 """
 PURPOSE:
-  This module executes the emission-line analysis of the pipeline. Basically, it
-  acts as an interface between pipeline and the pyGandALF routine from Sarzi et
-  al. 2006 (ui.adsabs.harvard.edu/?#abs/2006MNRAS.366.1151S;
-  ???????????????????????????????????????????????) by implementing the
-  input/output as well as preparation of data and eventually calling pyGandALF. 
+  This module executes the emission-line analysis of the pipeline. Basically, it acts as an
+  interface between pipeline and the pyGandALF routine
+  (ui.adsabs.harvard.edu/?#abs/2006MNRAS.366.1151S; ui.adsabs.harvard.edu/abs/2006MNRAS.369..529F;
+  ui.adsabs.harvard.edu/abs/2019arXiv190604746B) by implementing the input/output as well as
+  preparation of data and eventually calling pyGandALF. 
 """
 
 
@@ -45,8 +45,8 @@ def workerGANDALF(inQueue, outQueue):
 def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_template, emi_file, redshift,\
                 velscale, int_disp, reddening, mdeg, for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL):
     """
-    Calls the pyGandALF routine from Sarzi et al. 2006 (ui.adsabs.harvard.edu/?#abs/2006MNRAS.366.1151S; 
-    ???????????????????????????????????????????????)
+    Calls the pyGandALF routine (ui.adsabs.harvard.edu/?#abs/2006MNRAS.366.1151S; 
+    ui.adsabs.harvard.edu/abs/2006MNRAS.369..529F; ui.adsabs.harvard.edu/abs/2019arXiv190604746B)
     """
     pipeline.printProgress( i, nbins, barLength=50 )
 
@@ -66,9 +66,9 @@ def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_t
         goodpixels, emission_setup = getGoodpixelsEmissionSetup\
                 ('GANDALF', emi_file, redshift, velscale, logLam_galaxy, logLam_template, npix, outdir)
     
-        ## Uncomment the following lines to use stellar velocities as initial guess on GANDALF fit
-        #for itm in np.arange(len(emission_setup)):
-        #    emission_setup[itm].v = stellar_kin[0] 
+        # Initial guess on velocity: Use value relative to stellar kinematics
+        for itm in np.arange(len(emission_setup)):
+            emission_setup[itm].v = emission_setup[itm].v + stellar_kin[0] 
     
         # Run GANDALF
         weights, emission_templates, bestfit, sol, esol = gandalf.gandalf\
@@ -84,7 +84,7 @@ def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_t
 
 def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, esol, nlines, sol_gas_AoN,\
         stellar_kin, offset, optimal_template, logLam_template, logLam_galaxy, goodpixels, cleaned_spectrum,\
-        nweights, emission_weights, for_errors, npix, n_templates, bestfit, emissionSpectra, residuals, reddening):
+        nweights, emission_weights, for_errors, npix, n_templates, bestfit, emissionSpectra, reddening):
     """ Saves all results to disk. """
     # ========================
     # PREPARE OUTPUT
@@ -211,28 +211,6 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     HDUList.writeto(outfits, overwrite=True)
 
     pipeline.prettyOutput_Done("Writing: "+rootname+'_gandalf-emission_'+LEVEL+'.fits')
-    logging.info("Wrote: "+outfits)
-
-
-    # ========================
-    # SAVE RESIDUALS
-    outfits = outdir+rootname+'_gandalf-residuals_'+LEVEL+'.fits'
-    pipeline.prettyOutput_Running("Writing: "+rootname+'_gandalf-residuals_'+LEVEL+'.fits')
-
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
-
-    # Extension 1: Table HDU with optimal templates
-    cols = []
-    cols.append( fits.Column(name='RESIDUALS', format=str(residuals.shape[1])+'D', array=residuals ) )
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = 'RESIDUALS'
-
-    # Create HDU list and write to file
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits, overwrite=True)
-
-    pipeline.prettyOutput_Done("Writing: "+rootname+'_gandalf-residuals_'+LEVEL+'.fits')
     logging.info("Wrote: "+outfits)
 
 
@@ -653,15 +631,14 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         sol_gas_AoN[i,:], cleaned_spectrum[i,:] = gandalf.remouve_detected_emission\
             (spectra[:,i], bestfit[i,:], emission_templates[i,:,:], sol_gas_A, AoN_thresholds, None)
 
-    # Calculate the best fitting emission and the residuals
+    # Calculate the best fitting emission
     emissionSpectrum          = np.sum( emission_templates, axis=2 )
     emissionSubtractedBestfit = bestfit - emissionSpectrum
-    residuals                 = spectra - emissionSubtractedBestfit.T
 
     # Save results to file
     save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, esol, nlines, sol_gas_AoN,\
             stellar_kin, offset, optimal_template, logLam_template, logLam_galaxy, goodpixels, cleaned_spectrum,\
-            nweights, weights[:,n_templates:], for_errors, npix, n_templates, bestfit, emissionSpectrum, residuals,\
+            nweights, weights[:,n_templates:], for_errors, npix, n_templates, bestfit, emissionSpectrum,\
             configs['REDDENING'])
 
     # Call plotting routines

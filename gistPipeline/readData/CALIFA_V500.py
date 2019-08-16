@@ -30,7 +30,7 @@ def set_debug(cube, xext, yext):
 def read_cube(DEBUG, filename, configs):
 
     loggingBlanks = (len( os.path.splitext(os.path.basename(__file__))[0] ) + 33) * " "
-   
+
     directory = os.path.dirname(filename)+'/'
     datafile  = os.path.basename(filename)
     rootname  = datafile.split('.')[0]
@@ -55,17 +55,17 @@ def read_cube(DEBUG, filename, configs):
     wave = hdr['CRVAL3']+(np.arange(s[0]))*hdr['CDELT3']
     
     # Getting the spatial coordinates
-    xaxis = np.arange(s[2])*hdr['CD2_2']*3600.0
-    yaxis = np.arange(s[1])*hdr['CD2_2']*3600.0
+    xaxis = (np.arange(s[2]) - configs['ORIGIN'][0]) * hdr['CD2_2']*3600.0
+    yaxis = (np.arange(s[1]) - configs['ORIGIN'][1]) * hdr['CD2_2']*3600.0
     x, y  = np.meshgrid(xaxis,yaxis)
-    x     = np.reshape(x,[s[1]*s[2]]) - hdr['CRPIX1'] - configs['ORIGIN'][0]
-    y     = np.reshape(y,[s[1]*s[2]]) - hdr['CRPIX2'] - configs['ORIGIN'][1]
+    x     = np.reshape(x,[s[1]*s[2]])
+    y     = np.reshape(y,[s[1]*s[2]])
     pixelsize = hdr['CD2_2']*3600.0
 
     logging.info("Extracting spatial information:\n"\
             +loggingBlanks+"* Spatial coordinates are centred to "+str(configs['ORIGIN'])+"\n"\
             +loggingBlanks+"* Spatial pixelsize is "+str(pixelsize))
-   
+  
     # Getting the wavelength information
     cvel      = 299792.458
     wave      = wave / (1+configs['REDSHIFT'])
@@ -87,8 +87,8 @@ def read_cube(DEBUG, filename, configs):
     x        = x[idx_good]
     y        = y[idx_good]
     logging.info("Removing all spaxels containing nan or having a negative median flux:\n"\
-            +loggingBlanks+"* Of "+str(nspec)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspaxel-len(idx_good))+" removed")
-  
+            +loggingBlanks+"* Of "+str(nspec)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspec-len(idx_good))+" removed")
+
     # Computing the SNR per spaxel
     signal = np.nanmedian(spec,axis=0)
     noise  = np.abs(np.nanmedian(espec,axis=0))

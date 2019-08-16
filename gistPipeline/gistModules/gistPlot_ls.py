@@ -196,6 +196,8 @@ def plot_maps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), co
 
     # Invert x-axis
     grid[0].invert_xaxis()
+    grid[1].invert_xaxis()
+    grid[2].invert_xaxis()
 
     # Set tick frequency and parameters
     for iterate in range(0,3):

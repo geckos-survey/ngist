@@ -228,7 +228,7 @@ def voronoi_binning( binNum, spec, error ):
            av_spec     = spec[:,k]
            av_err_spec = error[:,k]
         else:
-           av_spec     = np.nanmean(spec[:,k],axis=1)
+           av_spec     = np.nansum(spec[:,k],axis=1)
            av_err_spec = np.sqrt(np.sum(error[:,k],axis=1))
     
         bin_data[:,i]  = np.ravel(av_spec)

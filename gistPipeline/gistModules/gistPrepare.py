@@ -255,8 +255,14 @@ def spectralMasking(outdir, logLam, module):
     emission-line analysis with GandALF, as GandALF uses its own, specific
     emission-line setup file. 
     """
+
+    # Read file
     mask       = np.genfromtxt(outdir+"spectralMasking_"+module+".config", usecols=(0,1))
     goodPixels = np.arange( len(logLam) )
+
+    # In case there is only one mask
+    if len( mask.shape ) == 1  and  mask.shape[0] != 0:
+        mask = mask.reshape(1,2)
 
     for i in range( mask.shape[0] ):
 

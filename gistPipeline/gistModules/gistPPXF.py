@@ -4,6 +4,7 @@ from multiprocessing import Queue, Process
 
 import time
 import logging
+import os
 
 from gistPipeline.gistModules import util                as pipeline
 from gistPipeline.gistModules import gistPrepare         as util_prepare
@@ -271,9 +272,20 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
 
         # Last preparatory steps
         offset = (logLam_template[0] - logLam[0])*C
-        start  = [ 0.0, configs['SIGMA']]
         noise  = np.ones((npix,nbins))
-        nsims = configs['MC_PPXF']
+        nsims  = configs['MC_PPXF']
+
+        # Initial guesses 
+        start = np.zeros((nbins,2))
+        if os.path.isfile(outdir+rootname+'_ppxf-guess.fits') == True:
+            # Use a different initial guess for different bins, as provided in the *_ppxf-guess.fits file
+            guess      = fits.open(outdir+rootname+'_ppxf-guess.fits')[1].data
+            start[:,0] = guess.V
+            start[:,1] = guess.SIGMA
+        else: 
+            # Use the same initial guess for all bins, as stated in MasterConfig
+            start[:,0] = 0.0
+            start[:,1] = configs['SIGMA']
 
         # Define goodpixels
         goodPixels_ppxf = util_prepare.spectralMasking(outdir, logLam, 'PPXF')
@@ -305,7 +317,7 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
         
             # Fill the queue
             for i in range(nbins):
-                inQueue.put( ( templates, bin_data[:,i], noise[:,i], velscale, start, goodPixels_ppxf,\
+                inQueue.put( ( templates, bin_data[:,i], noise[:,i], velscale, start[i,:], goodPixels_ppxf,\
                                 configs['MOM'], configs['ADEG'], configs['MDEG'], offset, velscale_ratio,\
                                 nsims, nbins, i) )
         
@@ -343,7 +355,7 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
             for i in range(0, nbins):
                 ppxf_result[i,:configs['MOM']], ppxf_bestfit[i,:], optimal_template[i,:],\
                   mc_results[i,:configs['MOM']], formal_error[i,:configs['MOM']] = run_ppxf\
-                    (templates, bin_data[:,i], noise[:,i], velscale, start, goodPixels_ppxf,\
+                    (templates, bin_data[:,i], noise[:,i], velscale, start[i,:], goodPixels_ppxf,\
                     configs['MOM'], configs['ADEG'], configs['MDEG'], offset, velscale_ratio,\
                     nsims, nbins, i)
             pipeline.prettyOutput_Done("Running PPXF in serial mode", progressbar=True)

@@ -212,7 +212,8 @@ def plot_maps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_
     grid[0].yaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
 
     # Invert x-axis
-    grid[0].invert_xaxis()
+    for i in range( nplots ):
+        grid[i].invert_xaxis()
 
     # Set tick frequency and parameters
     for iterate in range(0,nplots):
