@@ -6,11 +6,11 @@
 #
 #
 #  NAME:       The GIST Pipeline
-#  VERSION:    1.0.0
+#  VERSION:    1.1
 #  PURPOSE:    A modular, general and parallelised pipeline for the analysis of integral-field spectroscopic data
 #
 #  AUTHOR:     Adrian Bittner
-#  CREDITS:    See MNRAS, ???, ???
+#  CREDITS:    See Bittner et al. 2019; A&A, 628, A117
 #  MAINTAINER: Adrian Bittner
 #  EMAIL:      adrian.bittner@eso.org
 #
@@ -23,8 +23,8 @@
 #
 #  STATUS:     Production
 #
-#  COMMENTS:   If you use this code for any publication, please cite the paper Bittner et al. 2019 (MNRAS, ???, ???; 
-#              https://arxiv.org/pdf/????.?????.pdf) and mention its webpage 
+#  COMMENTS:   If you use this code for any publication, please cite the paper Bittner et al. 2019 (A&A, 628, A117; 
+#              ui.adsabs.harvard.edu/abs/2019arXiv190604746B) and mention its webpage 
 #              (https://abittner.gitlab.io/thegistpipeline) in a footnote. 
 #              
 #              We remind the user to also cite the papers of the underlying analysis techniques and models, if these are
@@ -36,7 +36,8 @@
 #                   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C
 #               * pyGandALF routine: 
 #                   ui.adsabs.harvard.edu/?#abs/2006MNRAS.366.1151S
-#                   ???????????????????????????????????????????????
+#                   ui.adsabs.harvard.edu/abs/2006MNRAS.369..529F
+#                   ui.adsabs.harvard.edu/abs/2019arXiv190604746B
 #               * LS-Measurements routines: 
 #                   ui.adsabs.harvard.edu/?#abs/2006MNRAS.369..497K
 #                   ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M

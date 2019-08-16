@@ -2,8 +2,26 @@
 #                   M O D I F I C A T I O N   H I S T O R Y
 # ==============================================================================
 
-VERSION      DATE          DESCRIPTION
-V1.0.0       2019-06-11    Release of first version
+
+--------------------------------------------------------------------------------
+VERSION    DATE          DESCRIPTION
+--------------------------------------------------------------------------------
+
+V1.1       2019-08-16    ADDED:   
+			  * Allow different initial guesses for different bins in pPXF
+			  * Read-in routine for single spectra in txt-format "PLAINTXT.py"
+	      	   	 FIXED:   
+			  * spectralMasking_SFH.config to handle one or zero masks
+	      	   	  * Orientation of maps in plotting routines
+	      	   	  * GandALF taking into account the LSF in doublet lines
+	      	   	 CHANGED:
+			  * Use stellar kinematics as initial guess on GandALF fit
+	      	   	  * Use np.nansum instead of np.nanmean to co-add spectra into Voronoi-bins
+	      	   	  * Pass ORIGIN in units of pixels
+	      	   	 REMOVED:
+			  * *_gandalf-residuals_*.fits output
+
+V1.0       2019-06-11    Release of first version
 
 
 
