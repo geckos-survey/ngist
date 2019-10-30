@@ -32,7 +32,7 @@ def set_debug(cube, xext, yext):
 def read_cube(DEBUG, filename, configs):
 
     loggingBlanks = (len( os.path.splitext(os.path.basename(__file__))[0] ) + 33) * " "
- 
+
     directory = os.path.dirname(filename)+'/'
     datafile  = os.path.basename(filename)
     rootname  = datafile.split('.')[0]
@@ -74,10 +74,26 @@ def read_cube(DEBUG, filename, configs):
             +loggingBlanks+"* Spatial coordinates are centred to "+str(configs['ORIGIN'])+"\n"\
             +loggingBlanks+"* Spatial pixelsize is "+str(pixelsize))
   
-    # Getting the wavelength information
+    # De-redshift spectra and compute wavelength constraints
     cvel      = 299792.458
     wave      = wave / (1+configs['REDSHIFT'])
-    idx       = np.where( np.logical_and( wave >= configs['LMIN'], wave <= configs['LMAX'] ) )[0]
+    idx       = np.where( np.logical_and( wave >= configs['LMIN'],     wave <= configs['LMAX']     ) )[0]
+    idx_snr   = np.where( np.logical_and.reduce([ \
+            wave >= configs['LMIN_SNR'], \
+            wave <= configs['LMAX_SNR'], \
+            np.logical_or( wave < 5780/(1+configs['REDSHIFT']), wave > 6048/(1+configs['REDSHIFT'])) \
+            ]))[0]
+
+    # Computing the SNR per spaxel
+    signal = np.nanmedian(spec[idx_snr,:],axis=0)
+    if len(hdu) == 3:
+        noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
+    elif len(hdu) == 2:
+        noise = espec[0,:]    # DER_SNR returns constant error spectra
+    snr    = signal / noise
+    logging.info("Computing the signal-to-noise ratio per spaxel.")
+
+    # Shorten spectra to chosen wavelength range
     spec      = spec[idx,:]
     espec     = espec[idx,:]
     wave      = wave[idx]
@@ -101,21 +117,12 @@ def read_cube(DEBUG, filename, configs):
     y        = y[idx_good]
     logging.info("Removing all spaxels containing nan or having a negative median flux:\n"\
             +loggingBlanks+"* Of "+str(nspaxel)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspaxel-len(idx_good))+" removed")
-     
-    # Computing the SNR per spaxel
-    signal = np.nanmedian(spec[idx_nolaser,:], axis=0)
-    if len(hdu) == 3:
-        noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_nolaser,:]), axis=0))
-    elif len(hdu) == 2:
-        noise = espec[0,:]
-    snr    = signal / noise
-    logging.info("Computing the signal-to-noise ratio per spaxel.")
 
     # Replacing the np.nan in the laser region by the median of the spectrum
     spec[idx_laser,:]  = signal
     espec[idx_laser,:] = signal
 
-    # Storing eveything into a structure
+    # Storing everything into a structure
     cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr,\
             'signal':signal, 'noise':noise, 'velscale':velscale, 'pixelsize':pixelsize}
 

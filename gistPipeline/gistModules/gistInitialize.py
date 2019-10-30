@@ -51,6 +51,8 @@ def setup_configs(galnumber, dirPath):
     # GENERAL SETTINGS
     configs['LMIN']           = float(    configs['LMIN']          )
     configs['LMAX']           = float(    configs['LMAX']          )
+    configs['LMIN_SNR']       = float(    configs['LMIN_SNR']      )
+    configs['LMAX_SNR']       = float(    configs['LMAX_SNR']      )
     configs['ORIGIN']         = [ float(configs['ORIGIN'].split(',')[0]) , float(configs['ORIGIN'].split(',')[1]) ]
     configs['REDSHIFT']       = float(    configs['REDSHIFT']      )
     configs['SIGMA']          = float(    configs['SIGMA']         )
@@ -211,6 +213,14 @@ def parameter_checks(datafile, configs, dirPath, rootname, outdir):
         lmax = configs['LMIN']
         configs['LMIN'] = lmin
         configs['LMAX'] = lmax
+    if configs['LMIN_SNR'] > configs['LMAX_SNR']:
+        message = "The given minimum wavelength LMIN_SNR is larger than the maximum wavelength LMAX_SNR. I will swap them! Continue."
+        print(pipeline.prettyOutput_WarningPrefix()+message)
+        logging.warning(message)
+        lmin = configs['LMAX_SNR']
+        lmax = configs['LMIN_SNR']
+        configs['LMIN_SNR'] = lmin
+        configs['LMAX_SNR'] = lmax
 
     if configs['ORIGIN'] == [0.,0.]: 
         message = "If ORIGIN is not set to the coordinates of the galaxy centre, the calculation of lambda_r will be wrong! Continue."
@@ -338,7 +348,8 @@ def printConfigs_Configs(configs):
     "   * PARALLEL:           " + str(bool(int(configs['PARALLEL']))) + "\n"
     "   * NCPU:               "+str(int(configs['NCPU'])) + "\n"
     "\n"
-    "   * Wavelength Range:   " + str(configs['LMIN'])+" - "+str(configs['LMAX'])+" Angst." + "\n"
+    "   * Lambda Range:       " + str(configs['LMIN'])+    " - "+str(configs['LMAX'])    +" Angst." + "\n"
+    "   * Lambda Range SNR:   " + str(configs['LMIN_SNR'])+" - "+str(configs['LMAX_SNR'])+" Angst." + "\n"
     "   * Origin coord.:      " + str(configs['ORIGIN']) + "\n"
     "   * Redshift:           " + str(configs['REDSHIFT']) + "\n"
     "   * Init. sigma:        " + str(configs['SIGMA'])    + " km/s" + "\n"
