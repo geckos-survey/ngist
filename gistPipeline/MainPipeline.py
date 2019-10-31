@@ -8,7 +8,7 @@
 #
 #
 #  NAME:       The GIST Pipeline
-#  VERSION:    1.1
+#  VERSION:    1.1.1
 #  PURPOSE:    A modular, general and parallelised pipeline for the analysis of integral-field spectroscopic data
 #
 #  AUTHOR:     Adrian Bittner
