@@ -8,7 +8,7 @@
 #
 #
 #  NAME:       The GIST Pipeline
-#  VERSION:    1.1
+#  VERSION:    1.1.1
 #  PURPOSE:    A modular, general and parallelised pipeline for the analysis of integral-field spectroscopic data
 #
 #  AUTHOR:     Adrian Bittner
@@ -206,6 +206,7 @@ def runPipeline(galnumber, dirPath):
 
     # Read LSF of observation and templates and construct an interpolation function
     LSF           = np.genfromtxt(dirPath.configDir+'LSF-Config_'+configs['IFU'], comments='#')
+    LSF[:,0]      = LSF[:,0] / (1 + configs['REDSHIFT'])
     LSF[:,1]      = LSF[:,1] / (1 + configs['REDSHIFT'])
     LSF_Data      = interp1d(LSF[:,0], LSF[:,1], 'linear', fill_value = 'extrapolate')
     LSF           = np.genfromtxt(dirPath.configDir+'LSF-Config_'+configs['SSP_LIB'].split('/')[-2], comments='#')

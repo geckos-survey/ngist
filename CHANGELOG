@@ -7,6 +7,10 @@
 VERSION    DATE          DESCRIPTION
 --------------------------------------------------------------------------------
 
+V1.1.1     2019-10-31    FIXED: 
+                          * Apply de-redshifting to laser wavelength range in MUSE_NFM.py
+			  * Apply de-redshifting to LSF
+
 V1.1       2019-08-16    ADDED:   
 			  * Allow different initial guesses for different bins in pPXF
 			  * Read-in routine for single spectra in txt-format "PLAINTXT.py"

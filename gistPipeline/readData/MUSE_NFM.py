@@ -89,8 +89,8 @@ def read_cube(DEBUG, filename, configs):
 
 
     # Mask wavelength region of laser guide star
-    idx_nolaser = np.where( np.logical_or(  wave < 5780, wave > 6048 ) )[0]
-    idx_laser   = np.where( np.logical_and( wave > 5780, wave < 6048 ) )[0]
+    idx_nolaser = np.where( np.logical_or(  wave < 5780 / (1+configs['REDSHIFT']), wave > 6048 / (1+configs['REDSHIFT'])) )[0]
+    idx_laser   = np.where( np.logical_and( wave > 5780 / (1+configs['REDSHIFT']), wave < 6048 / (1+configs['REDSHIFT'])) )[0]
 
     # Removing obviously defective pixels: Remove spaxel with any nan or negative values
     nspaxel  = spec.shape[1]
