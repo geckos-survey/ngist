@@ -99,16 +99,6 @@ def read_cube(DEBUG, filename, configs):
             +loggingBlanks+"* Shortened spectra to wavelength range from "+str(configs['LMIN'])+" to "+str(configs['LMAX'])+" Angst.\n"\
             +loggingBlanks+"* Spectral pixelsize in velocity space is "+str(velscale)+" km/s")
 
-    # Removing obviously defective pixels: Remove spaxel with any nan or negative values
-    nspaxel  = spec.shape[1]
-    idx_good = np.where( np.median(spec, axis=0) > 0.0 )[0]
-    spec     = spec[:,idx_good]
-    espec    = espec[:,idx_good]
-    x        = x[idx_good]
-    y        = y[idx_good]
-    logging.info("Removing all spaxels containing nan or having a negative median flux:\n"\
-            +loggingBlanks+"* Of "+str(nspaxel)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspaxel-len(idx_good))+" removed")
-
     # Storing everything into a structure
     cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr,\
             'signal':signal, 'noise':noise, 'velscale':velscale, 'pixelsize':pixelsize}

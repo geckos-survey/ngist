@@ -32,18 +32,19 @@ def workerGANDALF(inQueue, outQueue):
     and multiprocessing.Process. 
     """
     for spectra, error, stellar_kin, templates, logLam_galaxy, logLam_template, emi_file, redshift, velscale, int_disp,\
-        reddening, mdeg, for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL\
+        reddening, mdeg, for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL, maskedSpaxel\
         in iter(inQueue.get, 'STOP'):
 
         weights, emission_templates, bestfit, sol, esol = run_gandalf(spectra, error, stellar_kin, templates,\
                 logLam_galaxy, logLam_template, emi_file, redshift, velscale, int_disp,\
-                reddening, mdeg, for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL)
+                reddening, mdeg, for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL, maskedSpaxel)
 
         outQueue.put(( i, weights, emission_templates, bestfit, sol, esol ))
 
 
 def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_template, emi_file, redshift,\
-                velscale, int_disp, reddening, mdeg, for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL):
+                velscale, int_disp, reddening, mdeg, for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL,\
+                maskedSpaxel):
     """
     Calls the pyGandALF routine (ui.adsabs.harvard.edu/?#abs/2006MNRAS.366.1151S; 
     ui.adsabs.harvard.edu/abs/2006MNRAS.369..529F; ui.adsabs.harvard.edu/abs/2019arXiv190604746B)
@@ -61,25 +62,28 @@ def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_t
         # Do not use multiplicative polynomials and REDDENING together
         mdegree = 0
 
-    try:
-        # Get goodpixels and emission_setup
-        goodpixels, emission_setup = getGoodpixelsEmissionSetup\
-                ('GANDALF', emi_file, redshift, velscale, logLam_galaxy, logLam_template, npix, outdir)
-    
-        # Initial guess on velocity: Use value relative to stellar kinematics
-        for itm in np.arange(len(emission_setup)):
-            emission_setup[itm].v = emission_setup[itm].v + stellar_kin[0] 
-    
-        # Run GANDALF
-        weights, emission_templates, bestfit, sol, esol = gandalf.gandalf\
-                ( templates, spectrum, error, velscale, stellar_kin, emission_setup, logLam_galaxy[0], \
-                  logLam_galaxy[1]-logLam_galaxy[0], goodpixels, degree, mdegree, int_disp, plot, quiet, log10, reddening,\
-                  logLam_template[0], for_errors, velscale_ratio, offset)
-    
-        return( [weights, emission_templates, bestfit, sol, esol] )
-    
-    except:
-        return( [-1, -1, -1, -1, -1] )
+    if maskedSpaxel == False: 
+        try:
+            # Get goodpixels and emission_setup
+            goodpixels, emission_setup = getGoodpixelsEmissionSetup\
+                    ('GANDALF', emi_file, redshift, velscale, logLam_galaxy, logLam_template, npix, outdir)
+        
+            # Initial guess on velocity: Use value relative to stellar kinematics
+            for itm in np.arange(len(emission_setup)):
+                emission_setup[itm].v = emission_setup[itm].v + stellar_kin[0] 
+        
+            # Run GANDALF
+            weights, emission_templates, bestfit, sol, esol = gandalf.gandalf\
+                    ( templates, spectrum, error, velscale, stellar_kin, emission_setup, logLam_galaxy[0], \
+                      logLam_galaxy[1]-logLam_galaxy[0], goodpixels, degree, mdegree, int_disp, plot, quiet, log10, reddening,\
+                      logLam_template[0], for_errors, velscale_ratio, offset)
+        
+            return( [weights, emission_templates, bestfit, sol, esol] )
+        
+        except:
+            return( [-1, -1, -1, -1, -1] )
+    else: 
+        return( [np.nan, np.nan, np.nan, np.nan, np.nan] )
 
 
 def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, esol, nlines, sol_gas_AoN,\
@@ -409,6 +413,10 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         logLam_galaxy = np.array( hdu[2].data.LOGLAM )
         npix          = spectra.shape[0]
         nbins         = spectra.shape[1]
+
+        # Create empty mask in bin-level run
+        maskedSpaxel    = np.zeros(nbins, dtype=bool)
+        maskedSpaxel[:] = False
     
         # Prepare templates
         logging.info("Using full spectral library for GANDALF on BIN level")
@@ -436,6 +444,11 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         logLam_galaxy = np.array( hdu[2].data.LOGLAM )
         npix          = spectra.shape[0]
         nbins         = spectra.shape[1]
+
+        # Construct mask for defunct spaxels
+        maskedSpaxel = np.zeros(nbins, dtype=bool)
+        idx_bad      = np.where( np.logical_or(  np.any(np.isnan(spectra), axis=0) == True,  np.nanmedian(spectra, axis=0) <= 0.0 ))[0]
+        maskedSpaxel[idx_bad] = True
 
         # Prepare templates
         if GANDALF == 2: 
@@ -539,12 +552,12 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
             for i in range(nbins):
                 inQueue.put( ( spectra[:,i], error[:,i], stellar_kin[i,:], templates, logLam_galaxy, logLam_template, \
                                configs['EMI_FILE'], 0.0, velscale, int_disp, configs['REDDENING'], configs['MDEG'],\
-                               for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL ) )
+                               for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL, maskedSpaxel[i] ) )
         elif n_templates == 1: 
             for i in range(nbins):
                 inQueue.put( ( spectra[:,i], error[:,i], stellar_kin[i,:], templates[[i],:].T, logLam_galaxy, logLam_template, \
                                configs['EMI_FILE'], 0.0, velscale, int_disp, configs['REDDENING'], configs['MDEG'],\
-                               for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL ) )
+                               for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL, maskedSpaxel[i] ) )
      
         # now get the results with indices
         gandalf_tmp = [outQueue.get() for _ in range(nbins)]
@@ -582,13 +595,13 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
                 weights[i,:], emission_templates[i,:,:], bestfit[i,:], sol[i,:], esol[i,:] = run_gandalf\
                   (spectra[:,i], error[:,i], stellar_kin[i,:], templates, logLam_galaxy, logLam_template, \
                   configs['EMI_FILE'], 0.0, velscale, int_disp, configs['REDDENING'], configs['MDEG'],\
-                  for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL )
+                  for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL, maskedSpaxel[i] )
         elif n_templates == 1: 
             for i in range(0, nbins):
                 weights[i,:], emission_templates[i,:,:], bestfit[i,:], sol[i,:], esol[i,:] = run_gandalf\
                   (spectra[:,i], error[:,i], stellar_kin[i,:], templates[[i],:].T, logLam_galaxy, logLam_template, \
                   configs['EMI_FILE'], 0.0, velscale, int_disp, configs['REDDENING'], configs['MDEG'],\
-                  for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL )
+                  for_errors, offset, velscale_ratio, i, nbins, npix, outdir, LEVEL, maskedSpaxel[i] )
 
         pipeline.prettyOutput_Done("Running GANDALF in serial mode", progressbar=True)
 

@@ -103,22 +103,8 @@ def read_cube(DEBUG, filename, configs):
             +loggingBlanks+"* Shortened spectra to wavelength range from "+str(configs['LMIN'])+" to "+str(configs['LMAX'])+" Angst.\n"\
             +loggingBlanks+"* Spectral pixelsize in velocity space is "+str(velscale)+" km/s")
 
-
-    # Mask wavelength region of laser guide star
-    idx_nolaser = np.where( np.logical_or(  wave < 5780 / (1+configs['REDSHIFT']), wave > 6048 / (1+configs['REDSHIFT'])) )[0]
-    idx_laser   = np.where( np.logical_and( wave > 5780 / (1+configs['REDSHIFT']), wave < 6048 / (1+configs['REDSHIFT'])) )[0]
-
-    # Removing obviously defective pixels: Remove spaxel with any nan or negative values
-    nspaxel  = spec.shape[1]
-    idx_good = np.where( np.median(spec[idx_nolaser,:], axis=0) > 0.0 )[0]
-    spec     = spec[:,idx_good]
-    espec    = espec[:,idx_good]
-    x        = x[idx_good]
-    y        = y[idx_good]
-    logging.info("Removing all spaxels containing nan or having a negative median flux:\n"\
-            +loggingBlanks+"* Of "+str(nspaxel)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspaxel-len(idx_good))+" removed")
-
     # Replacing the np.nan in the laser region by the median of the spectrum
+    idx_laser          = np.where( np.logical_and( wave > 5780 / (1+configs['REDSHIFT']), wave < 6048 / (1+configs['REDSHIFT'])) )[0]
     spec[idx_laser,:]  = signal
     espec[idx_laser,:] = signal
 

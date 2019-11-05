@@ -23,7 +23,27 @@ PURPOSE:
 """
 
 
-def apply_snr_threshold(snr, signal, min_snr):
+def rejectDefunctSpaxels_applySNRThreshold(cube, configs):
+    """
+    Select defunct spaxels, in particular those containing np.nan's or have a 
+    negative median. Further apply the minimum SNR threshold. Then mark those 
+    spaxels as outside of the analysis region. 
+    """
+    # Select defunct spaxels
+    idx_good = np.where( np.logical_and( np.any(np.isnan(cube['spec']), axis=0) == False, np.nanmedian(cube['spec'], axis=0) >  0.0 ))[0]
+    idx_bad  = np.where( np.logical_or(  np.any(np.isnan(cube['spec']), axis=0) == True,  np.nanmedian(cube['spec'], axis=0) <= 0.0 ))[0]
+
+    # Select spaxels with SNR above threshold
+    idx_inside, idx_outside = applySNRThreshold(cube['snr'][idx_good], cube['signal'][idx_good], configs['MIN_SNR'])
+
+    # Reject all selected spaxels
+    idx_outside = np.unique( np.concatenate((idx_bad, idx_good[idx_outside])) )
+    idx_inside  = idx_good[idx_inside]
+
+    return( idx_inside, idx_outside )
+
+
+def applySNRThreshold(snr, signal, min_snr):
     """ 
     Select those spaxels that are above the isophote level with a mean 
     signal-to-noise ratio of MIN_SNR. 
