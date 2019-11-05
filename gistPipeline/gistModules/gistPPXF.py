@@ -164,6 +164,8 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     dataHDU.name = 'PPXF_DATA'
     
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment(priHDU )
+    dataHDU = pipeline.createGISTHeaderComment(dataHDU)
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
     
@@ -187,6 +189,8 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     dataHDU.name = 'BESTFIT'
     
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment(priHDU )
+    dataHDU = pipeline.createGISTHeaderComment(dataHDU)
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
     
@@ -209,6 +213,8 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     goodpixHDU.name = 'GOODPIX'
     
     # Create HDU list and write to file
+    priHDU     = pipeline.createGISTHeaderComment(priHDU    )
+    goodpixHDU = pipeline.createGISTHeaderComment(goodpixHDU)
     HDUList = fits.HDUList([priHDU, goodpixHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
     
@@ -237,6 +243,9 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     logLamHDU.name = 'LOGLAM_TEMPLATE'
     
     # Create HDU list and write to file
+    priHDU    = pipeline.createGISTHeaderComment(priHDU   )
+    dataHDU   = pipeline.createGISTHeaderComment(dataHDU  )
+    logLamHDU = pipeline.createGISTHeaderComment(logLamHDU)
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits, overwrite=True)
     

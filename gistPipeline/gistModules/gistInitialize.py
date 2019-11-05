@@ -481,6 +481,8 @@ def saveConfig(configs, outdir, dirPath):
     dataHDU.name = 'LSF'
 
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment( priHDU )
+    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
 

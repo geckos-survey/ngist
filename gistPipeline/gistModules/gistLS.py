@@ -138,10 +138,16 @@ def save_ls(names, ls_indices, ls_errors, index_names, labels, RESOLUTION, MCMC,
         sspHDU.name = "SSP_DATA"
 
         # Create HDU list
+        prihdu = pipeline.createGISTHeaderComment( priHDU )
+        lshdu  = pipeline.createGISTHeaderComment( lsHDU  )
+        sspHDU = pipeline.createGISTHeaderComment( sspHDU )
+        
         HDUList = fits.HDUList([priHDU, lsHDU, sspHDU])
 
     if MCMC == False: 
         # Create HDU list
+        prihdu = pipeline.createGISTHeaderComment( priHDU )
+        lshdu  = pipeline.createGISTHeaderComment( lsHDU  )
         HDUList = fits.HDUList([priHDU, lsHDU])
 
     # Write HDU list to file

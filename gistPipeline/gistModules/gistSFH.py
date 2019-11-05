@@ -306,6 +306,9 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
     dataHDU.name = 'PPXF_SFH'
 
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment( priHDU  )
+    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
@@ -340,6 +343,10 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
     gridHDU.name = 'GRID'
 
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment( priHDU  )
+    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
+    gridHDU = pipeline.createGISTHeaderComment( gridHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU, gridHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
@@ -367,6 +374,9 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
     dataHDU.name = 'BESTFIT'
 
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment( priHDU  )
+    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
@@ -394,6 +404,9 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
     goodpixHDU.name = 'GOODPIX'
 
     # Create HDU list and write to file
+    priHDU     = pipeline.createGISTHeaderComment( priHDU     )
+    goodpixHDU = pipeline.createGISTHeaderComment( goodpixHDU )
+
     HDUList = fits.HDUList([priHDU, goodpixHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 

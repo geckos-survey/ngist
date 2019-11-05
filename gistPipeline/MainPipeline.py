@@ -123,6 +123,7 @@ def runPipeline(galnumber, dirPath):
                         datefmt = '%m/%d/%y %H:%M:%S' )
     logging.Formatter.converter = time.gmtime    
     logging.info("\n\n# ================================================\n"\
+            +"#   THE GIST PIPELINE, V1.1.1"\
             +"#   STARTUP OF PIPELINE\n# "+time.strftime("  %d-%b-%Y %H:%M:%S %Z", time.gmtime())+\
             "\n# ================================================")
 

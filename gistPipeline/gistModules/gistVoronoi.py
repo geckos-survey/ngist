@@ -177,6 +177,10 @@ def save_table(rootname, outdir, x, y, signal, snr, binNum_new, ubins, xNode, yN
         sn_new[idx] = sn[i]
         nPixels_new[idx] = nPixels[i]
 
+    # Primary HDU
+    priHDU = fits.PrimaryHDU()
+    
+    # Table HDU with output data
     cols = []
     cols.append(fits.Column(name='ID',        format='J',   array=np.arange(len(x)) ))
     cols.append(fits.Column(name='BIN_ID',    format='J',   array=binNum_new        ))
@@ -188,8 +192,15 @@ def save_table(rootname, outdir, x, y, signal, snr, binNum_new, ubins, xNode, yN
     cols.append(fits.Column(name='YBIN',      format='D',   array=yNode_new         ))
     cols.append(fits.Column(name='SNRBIN',    format='D',   array=sn_new            ))
     cols.append(fits.Column(name='NSPAX',     format='J',   array=nPixels_new       ))
+
     tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    tbhdu.writeto(outfits_table, overwrite=True)
+    tbhdu.name = "TABLE"
+
+    # Create HDU list and write to file
+    priHDU = pipeline.createGISTHeaderComment( priHDU )
+    tbhdu  = pipeline.createGISTHeaderComment( tbhdu  )
+    HDUList = fits.HDUList([priHDU, tbhdu])
+    HDUList.writeto(outfits_table, overwrite=True)
     fits.setval(outfits_table, "PIXSIZE", value=pixelsize)
 
     pipeline.prettyOutput_Done("Writing: "+rootname+'_table.fits')
@@ -267,6 +278,10 @@ def save_vorspectra(rootname, outdir, log_spec, log_error, velscale, logLam, fla
     loglamHDU.name = 'LOGLAM'
 
     # Create HDU list and save to file
+    priHDU    = pipeline.createGISTHeaderComment( priHDU    )
+    dataHDU   = pipeline.createGISTHeaderComment( dataHDU   )
+    loglamHDU = pipeline.createGISTHeaderComment( loglamHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU, loglamHDU])
     HDUList.writeto(outfits_spectra, overwrite=True)
 

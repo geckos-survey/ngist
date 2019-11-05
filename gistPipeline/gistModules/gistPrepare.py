@@ -137,6 +137,10 @@ def saveAllSpectra(rootname, outdir, log_spec, log_error, velscale, logLam):
     loglamHDU.name = 'LOGLAM'
     
     # Create HDU List and save to file
+    priHDU    = pipeline.createGISTHeaderComment( priHDU    )
+    dataHDU   = pipeline.createGISTHeaderComment( dataHDU   )
+    loglamHDU = pipeline.createGISTHeaderComment( loglamHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU, loglamHDU])
     HDUList.writeto(outfits_spectra, overwrite=True)
 

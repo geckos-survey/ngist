@@ -163,6 +163,10 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     dataHDU.name = 'GANDALF'
     
     # Create HDU list and write to file
+    priHDU             = pipeline.createGISTHeaderComment( priHDU             )
+    emission_setup_HDU = pipeline.createGISTHeaderComment( emission_setup_HDU )
+    dataHDU            = pipeline.createGISTHeaderComment( dataHDU            )
+
     HDUList = fits.HDUList([priHDU, emission_setup_HDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
     
@@ -185,6 +189,9 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     dataHDU.name = 'BESTFIT'
     
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment( priHDU  )
+    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
     
@@ -207,6 +214,9 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     dataHDU.name = 'EMISSION'
 
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment( priHDU  )
+    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
 
@@ -229,6 +239,9 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     dataHDU.name = 'GOODPIX'
     
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment( priHDU  )
+    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
     
@@ -257,6 +270,10 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     logLamHDU.name = 'LOGLAM'
      
     # Create HDU list and write to file
+    priHDU    = pipeline.createGISTHeaderComment( priHDU    )
+    dataHDU   = pipeline.createGISTHeaderComment( dataHDU   )
+    logLamHDU = pipeline.createGISTHeaderComment( logLamHDU )
+
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits, overwrite=True)
     
@@ -286,6 +303,10 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
         eweightsHDU.name = 'EWEIGHTS'
          
         # Create HDU list and write to file
+        priHDU      = pipeline.createGISTHeaderComment( priHDU      )
+        dataHDU     = pipeline.createGISTHeaderComment( dataHDU     )
+        eweightsHDU = pipeline.createGISTHeaderComment( eweightsHDU )
+
         HDUList = fits.HDUList([priHDU, dataHDU, eweightsHDU])
         HDUList.writeto(outfits, overwrite=True)
         
@@ -315,6 +336,10 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
         logLamHDU.name = 'LOGLAM_TEMPLATE'
         
         # Create HDU list and write to file
+        priHDU    = pipeline.createGISTHeaderComment( priHDU    )
+        dataHDU   = pipeline.createGISTHeaderComment( dataHDU   )
+        logLamHDU = pipeline.createGISTHeaderComment( logLamHDU )
+
         HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
         HDUList.writeto(outfits, overwrite=True)
         
