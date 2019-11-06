@@ -422,8 +422,9 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
 
         # Prepare template library
         velscale_ratio = 2
-        templates, lamRange_temp, logLam_template, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha = \
-                setup_spectral_library(configs, velscale/velscale_ratio, LSF_Data, LSF_Templates)
+        templates, lamRange_temp, logLam_template, ntemplates, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha = \
+                util_prepare.prepareSpectralTemplateLibrary(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)
+        # TODO: THIS MUST NOT WORK IF MILES NAMING CONVENTION IS NOT FULFILLED!!!
 
         # Read spectra
         if os.path.isfile(outdir+rootname+'_gandalf-cleaned_BIN.fits') == True:

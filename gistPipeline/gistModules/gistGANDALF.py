@@ -420,9 +420,10 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
     
         # Prepare templates
         logging.info("Using full spectral library for GANDALF on BIN level")
-        templates, lamRange_spmod, logLam_template = \
-                util_prepare.prepare_sp_templates(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)
-        n_templates  = templates.shape[1]
+        templates, lamRange_spmod, logLam_template, n_templates = \
+                util_prepare.prepareSpectralTemplateLibrary(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+        templates = templates.reshape( (templates.shape[0], n_templates) )
+        
         offset       = (logLam_template[0] - logLam_galaxy[0])*C # km/s
         error        = np.ones((npix,nbins))
    
@@ -453,9 +454,9 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         # Prepare templates
         if GANDALF == 2: 
             logging.info("Using full spectral library for GANDALF on SPAXEL level")
-            templates, lamRange_spmod, logLam_template = \
-                    util_prepare.prepare_sp_templates(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)
-            n_templates = templates.shape[1]
+            templates, lamRange_spmod, logLam_template, n_templates = \
+                    util_prepare.prepareSpectralTemplateLibrary(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+            templates = templates.reshape( (templates.shape[0], n_templates) )
         if GANDALF == 3: 
             logging.info("Using previously extracted optimal templates from the GANDALF BIN level on SPAXEL level")
             hdu             = fits.open(outdir+rootname+'_gandalf-optimalTemplate_BIN.fits')
