@@ -421,7 +421,7 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         # Prepare templates
         logging.info("Using full spectral library for GANDALF on BIN level")
         templates, lamRange_spmod, logLam_template, n_templates = \
-                util_prepare.prepareSpectralTemplateLibrary(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                util_prepare.prepareSpectralTemplateLibrary("GANDALF", configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
         templates = templates.reshape( (templates.shape[0], n_templates) )
         
         offset       = (logLam_template[0] - logLam_galaxy[0])*C # km/s
@@ -455,7 +455,7 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         if GANDALF == 2: 
             logging.info("Using full spectral library for GANDALF on SPAXEL level")
             templates, lamRange_spmod, logLam_template, n_templates = \
-                    util_prepare.prepareSpectralTemplateLibrary(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                    util_prepare.prepareSpectralTemplateLibrary("GANDALF", configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
             templates = templates.reshape( (templates.shape[0], n_templates) )
         if GANDALF == 3: 
             logging.info("Using previously extracted optimal templates from the GANDALF BIN level on SPAXEL level")

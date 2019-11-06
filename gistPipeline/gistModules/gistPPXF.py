@@ -268,7 +268,7 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
         velscale_ratio = 2
         logging.info("Using full spectral library for PPXF")
         templates, lamRange_spmod, logLam_template, ntemplates = util_prepare.prepareSpectralTemplateLibrary\
-                (configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                ("PPXF", configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
         templates = templates.reshape( (templates.shape[0], ntemplates) )
 
         # Last preparatory steps

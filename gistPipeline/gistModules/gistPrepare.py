@@ -179,12 +179,13 @@ def loadAllSpectra(rootname, outdir):
     return(log_spec, log_error, logLam)
 
 
-def prepareSpectralTemplateLibrary(configs, velscale, velscale_ratio, LSF_Data, LSF_Templates):
+def prepareSpectralTemplateLibrary(module, configs, velscale, velscale_ratio, LSF_Data, LSF_Templates):
     """
     Prepares the spectral template library. The templates are loaded from disk,
     shortened to meet the spectral range in consideration, convolved to meet the
     resolution of the observed spectra (according to the LSF), log-rebinned, and
-    normalised. 
+    normalised. In addition, they are sorted in a three-dimensional array
+    sampling the parameter space in age, metallicity and alpha-enhancement. 
     """
     pipeline.prettyOutput_Running("Preparing the stellar population templates")
     cvel  = 299792.458
@@ -201,6 +202,19 @@ def prepareSpectralTemplateLibrary(configs, velscale, velscale_ratio, LSF_Data, 
         MilesNamingConvention = True
     except: 
         # Without MILES naming convention
+        MilesNamingConvention = False
+
+    # Do SSP stuff only for SFH module
+    if   module == "SFH"  and  MilesNamingConvention == False: 
+        message = "The templates do not follow the MILES naming convention. "+\
+                  "In order to execute the SFH module, SPPs following the MILES naming convention must be supplied." 
+        pipeline.prettyOutput_Failed("Preparing the stellar population templates")
+        print("             "+message)
+        logging.critical(message)
+        exit(1)
+    elif module == "SFH"  and  MilesNamingConvention == True: 
+        MilesNamingConvention = True
+    else: 
         MilesNamingConvention = False
 
     # Read data
