@@ -299,7 +299,7 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
             start[:,1] = configs['SIGMA']
 
         # Define goodpixels
-        goodPixels_ppxf = util_prepare.spectralMasking(outdir, logLam, 'PPXF')
+        goodPixels_ppxf = util_prepare.spectralMasking(outdir, logLam, 'PPXF', configs['REDSHIFT'])
 
         # Array to store results of ppxf
         ppxf_result        = np.zeros((nbins,6))

@@ -399,7 +399,7 @@ def age_metal_alpha(passedFiles):
     return( np.log10(Age), Metal, Alpha, metal_str, alpha_str, nAges, nMetal, nAlpha, ncomb )
 
 
-def spectralMasking(outdir, logLam, module):
+def spectralMasking(outdir, logLam, module, redshift):
     """
     Construct a spectral mask, according to the information provided in the file
     spectralMasking_[module].config. Note that this is not considered in the
@@ -408,12 +408,17 @@ def spectralMasking(outdir, logLam, module):
     """
 
     # Read file
-    mask       = np.genfromtxt(outdir+"spectralMasking_"+module+".config", usecols=(0,1))
-    goodPixels = np.arange( len(logLam) )
+    mask        = np.genfromtxt( outdir+"spectralMasking_"+module+".config", usecols=(0,1)          )
+    maskComment = np.genfromtxt( outdir+"spectralMasking_"+module+".config", usecols=(2), dtype=str )
+    goodPixels  = np.arange( len(logLam) )
 
     # In case there is only one mask
     if len( mask.shape ) == 1  and  mask.shape[0] != 0:
         mask = mask.reshape(1,2)
+
+    # Check for sky-lines
+    idx_sky = np.where( np.logical_or.reduce( (maskComment == "sky", maskComment == "SKY", maskComment == "Sky") ) )[0]
+    mask[idx_sky,0] = mask[idx_sky,0] / (1+redshift)
 
     for i in range( mask.shape[0] ):
 

@@ -306,7 +306,7 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
                 start[i,:] = np.array( [0.0, configs['SIGMA']] )
 
         # Define goodpixels
-        goodPixels_sfh = util_prepare.spectralMasking(outdir, logLam_galaxy, 'SFH')
+        goodPixels_sfh = util_prepare.spectralMasking(outdir, logLam_galaxy, 'SFH', configs['REDSHIFT'])
 
         # Define output arrays
         kin          = np.zeros((nbins,6    ))
