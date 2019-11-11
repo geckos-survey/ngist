@@ -179,7 +179,7 @@ def loadAllSpectra(rootname, outdir):
     return(log_spec, log_error, logLam)
 
 
-def prepareSpectralTemplateLibrary(module, configs, velscale, velscale_ratio, LSF_Data, LSF_Templates):
+def prepareSpectralTemplateLibrary(module, configs, lmin, lmax, velscale, velscale_ratio, LSF_Data, LSF_Templates):
     """
     Prepares the spectral template library. The templates are loaded from disk,
     shortened to meet the spectral range in consideration, convolved to meet the
@@ -225,20 +225,20 @@ def prepareSpectralTemplateLibrary(module, configs, velscale, velscale_ratio, LS
 
     # Determine length of templates
     template_overhead = np.zeros(2)
-    if configs['LMIN'] - lamRange_spmod[0] > 150.:
+    if lmin - lamRange_spmod[0] > 150.:
         template_overhead[0] = 150.
     else: 
-        template_overhead[0] = configs['LMIN'] - lamRange_spmod[0] - 5
-    if lamRange_spmod[1] - configs['LMAX'] > 150.:
+        template_overhead[0] = lmin - lamRange_spmod[0] - 5
+    if lamRange_spmod[1] - lmax > 150.:
         template_overhead[1] = 150.
     else: 
-        template_overhead[1] = lamRange_spmod[1] - configs['LMAX'] - 5
+        template_overhead[1] = lamRange_spmod[1] - lmax - 5
 
     # Shorten templates to size of data
     # Reconstruct full original lamRange
     lamRange_lin = np.arange( lamRange_spmod[0], lamRange_spmod[-1]+ssp_head['CDELT1'], ssp_head['CDELT1'] )
-    # Create new lamRange according to LMIN and LMAX from config-file
-    constr = np.array([ configs['LMIN'] - template_overhead[0], configs['LMAX'] + template_overhead[1] ])
+    # Create new lamRange according to the provided LMIN and LMAX values, according to the module which calls
+    constr = np.array([ lmin - template_overhead[0], lmax + template_overhead[1] ])
     idx_lam = np.where( np.logical_and(lamRange_lin > constr[0], lamRange_lin < constr[1] ) )[0]
     lamRange_spmod = np.array([ lamRange_lin[idx_lam[0]], lamRange_lin[idx_lam[-1]] ])
     # Shorten data to size of new lamRange

@@ -98,6 +98,7 @@ def loadData(self):
 
         self.ppxf_results = ppxf[idxConvertShortToLong,:]
         self.ppxfBestfit  = fits.open(self.dirprefix+'_ppxf-bestfit.fits')[1].data.BESTFIT
+        self.ppxfLambda   = fits.open(self.dirprefix+'_ppxf-bestfit.fits')[2].data.LOGLAM
         self.ppxfGoodpix  = fits.open(self.dirprefix+'_ppxf-goodpix.fits')[1].data.GOODPIX
 
         median_V_stellar       = np.nanmedian( self.ppxf_results[:,0] )
@@ -115,6 +116,7 @@ def loadData(self):
         self.gandalf_setup   = fits.open(self.dirprefix+'_gandalf_'+self.GandalfLevel+'.fits')[1].data
         gandalf              = fits.open(self.dirprefix+'_gandalf_'+self.GandalfLevel+'.fits')[2].data
         self.gandalfBestfit  = fits.open(self.dirprefix+'_gandalf-bestfit_'+self.GandalfLevel+'.fits')[1].data.BESTFIT
+        self.gandalfLambda   = fits.open(self.dirprefix+'_gandalf-bestfit_'+self.GandalfLevel+'.fits')[2].data.LOGLAM
         self.gandalfGoodpix  = fits.open(self.dirprefix+'_gandalf-goodpix_'+self.GandalfLevel+'.fits')[1].data.GOODPIX
 
         liste = []
@@ -147,6 +149,7 @@ def loadData(self):
         self.sfh_results[:,3] = self.sfh_results[:,3] - median_V_stellar
 
         self.sfhBestfit  = fits.open(self.dirprefix+'_sfh-bestfit.fits')[1].data.BESTFIT
+        self.sfhLambda   = fits.open(self.dirprefix+'_sfh-bestfit.fits')[2].data.LOGLAM
         self.sfhGoodpix  = fits.open(self.dirprefix+'_sfh-goodpix.fits')[1].data.GOODPIX
     
         # Read the age, metallicity and [Mg/Fe] grid

@@ -187,9 +187,15 @@ def save_gandalf(GANDALF, LEVEL, outdir, rootname, emission_setup, idx_l, sol, e
     cols.append( fits.Column(name='BESTFIT', format=str(bestfit.shape[1])+'D', array=bestfit ) )
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = 'BESTFIT'
+
+    # Extension 2: Table HDU with logLam
+    cols = []
+    cols.append( fits.Column(name='LOGLAM', format='D', array=logLam_galaxy) )
+    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    logLamHDU.name = 'LOGLAM'
     
     # Create HDU list and write to file
-    HDUList = fits.HDUList([priHDU, dataHDU])
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits, overwrite=True)
     
     pipeline.prettyOutput_Done("Writing: "+rootname+'_gandalf-bestfit_'+LEVEL+'.fits')
@@ -411,6 +417,9 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         hdu           = fits.open(outdir+rootname+'_VorSpectra.fits')
         spectra       = np.array( hdu[1].data.SPEC.T )
         logLam_galaxy = np.array( hdu[2].data.LOGLAM )
+        idx_lam       = np.where( np.logical_and( np.exp(logLam_galaxy) > configs['LMIN_GANDALF'], np.exp(logLam_galaxy) < configs['LMAX_GANDALF'] ) )[0]
+        spectra       = spectra[idx_lam,:]
+        logLam_galaxy = logLam_galaxy[idx_lam]
         npix          = spectra.shape[0]
         nbins         = spectra.shape[1]
 
@@ -421,7 +430,7 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         # Prepare templates
         logging.info("Using full spectral library for GANDALF on BIN level")
         templates, lamRange_spmod, logLam_template, n_templates = \
-                util_prepare.prepareSpectralTemplateLibrary("GANDALF", configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                util_prepare.prepareSpectralTemplateLibrary("GANDALF", configs, configs['LMIN_GANDALF'], configs['LMAX_GANDALF'], velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
         templates = templates.reshape( (templates.shape[0], n_templates) )
         
         offset       = (logLam_template[0] - logLam_galaxy[0])*C # km/s
@@ -443,6 +452,9 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         hdu           = fits.open(outdir+rootname+'_AllSpectra.fits')
         spectra       = np.array( hdu[1].data.SPEC.T )
         logLam_galaxy = np.array( hdu[2].data.LOGLAM )
+        idx_lam       = np.where( np.logical_and( np.exp(logLam_galaxy) > configs['LMIN_GANDALF'], np.exp(logLam_galaxy) < configs['LMAX_GANDALF'] ) )[0]
+        spectra       = spectra[idx_lam,:]
+        logLam_galaxy = logLam_galaxy[idx_lam]
         npix          = spectra.shape[0]
         nbins         = spectra.shape[1]
 
@@ -455,7 +467,7 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
         if GANDALF == 2: 
             logging.info("Using full spectral library for GANDALF on SPAXEL level")
             templates, lamRange_spmod, logLam_template, n_templates = \
-                    util_prepare.prepareSpectralTemplateLibrary("GANDALF", configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                    util_prepare.prepareSpectralTemplateLibrary("GANDALF", configs, configs['LMIN_GANDALF'], configs['LMAX_GANDALF'], velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
             templates = templates.reshape( (templates.shape[0], n_templates) )
         if GANDALF == 3: 
             logging.info("Using previously extracted optimal templates from the GANDALF BIN level on SPAXEL level")

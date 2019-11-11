@@ -101,7 +101,7 @@ def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
     return(mean)
 
 
-def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, goodPixels,\
+def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, logLam_galaxy, goodPixels,\
              velscale, logLam1, ncomb, nAges, nMetal, nAlpha, ubins, npix, outdir, rootname):
     """ Save all results to disk. """
     # ========================
@@ -197,8 +197,15 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = 'BESTFIT'
 
+    # Table HDU with SFH logLam
+    cols = []
+    cols.append( fits.Column(name='BIN_ID', format='J', array=ubins         ))
+    cols.append( fits.Column(name='LOGLAM', format='D', array=logLam_galaxy ))
+    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    logLamHDU.name = 'LOGLAM'
+
     # Create HDU list and write to file
-    HDUList = fits.HDUList([priHDU, dataHDU])
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
     fits.setval(outfits_sfh,'VELSCALE',value=velscale)
@@ -254,8 +261,7 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
         # Prepare template library
         velscale_ratio = 2
         templates, lamRange_temp, logLam_template, ntemplates, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha = \
-                util_prepare.prepareSpectralTemplateLibrary("SFH", configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)
-        # TODO: THIS MUST NOT WORK IF MILES NAMING CONVENTION IS NOT FULFILLED!!!
+                util_prepare.prepareSpectralTemplateLibrary("SFH", configs, configs['LMIN_SFH'], configs['LMAX_SFH'], velscale, velscale_ratio, LSF_Data, LSF_Templates)
 
         # Read spectra
         if os.path.isfile(outdir+rootname+'_gandalf-cleaned_BIN.fits') == True:
@@ -266,11 +272,14 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
             pipeline.prettyOutput_Warning('No emission-subtracted spectra for SFH analysis available. Skipping SFH!')
             return(0)
         galaxy        = np.array( hdu[1].data.SPEC )
+        logLam_galaxy = hdu[2].data.LOGLAM
+        idx_lam       = np.where( np.logical_and( np.exp(logLam_galaxy) > configs['LMIN_SFH'], np.exp(logLam_galaxy) < configs['LMAX_SFH'] ) )[0]
+        galaxy        = galaxy[:,idx_lam]
+        logLam_galaxy = logLam_galaxy[idx_lam]
         nbins         = galaxy.shape[0]
         npix          = galaxy.shape[1]
         ubins         = np.arange(0, nbins)
         noise         = np.full(npix, configs['NOISE'])
-        logLam_galaxy = hdu[2].data.LOGLAM
         dv            = (np.log(lamRange_temp[0]) - logLam_galaxy[0])*C
 
         # Implementation of switch FIXED
@@ -382,7 +391,7 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
         mean_results = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, nbins)
 
         # Save to file
-        save_sfh(mean_results, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, goodPixels_sfh, \
+        save_sfh(mean_results, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, logLam_galaxy, goodPixels_sfh, \
                 velscale, logLam_galaxy, ncomb, nAges, nMetal, nAlpha, ubins, npix, outdir, rootname)
 
         # Plot maps
