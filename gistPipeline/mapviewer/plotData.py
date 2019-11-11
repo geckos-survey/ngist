@@ -168,15 +168,15 @@ def plotData(self):
             self.plotPlainSpectrum( self.Spectra[self.idxBinShort], self.table.SNRBIN[self.idxBinLong], 1 )
 
         if self.PPXF          == True: 
-            self.plotSpectra( 'PPXF', self.Spectra[self.idxBinShort], self.ppxfBestfit[self.idxBinShort], self.ppxfGoodpix, 1 )
+            self.plotSpectraPPXF( self.Spectra[self.idxBinShort], self.ppxfBestfit[self.idxBinShort], self.ppxfGoodpix, 1 )
             self.axes[1].set_title("pPXF: v={:.1f}km/s, sigma={:.1f}km/s, h3={:.2f}, h4={:.2f}".format( self.ppxf_results[self.idxBinLong,0], self.ppxf_results[self.idxBinLong,1], self.ppxf_results[self.idxBinLong,2], self.ppxf_results[self.idxBinLong,3]), loc='left')
             self.axes[1].set_title("BIN_ID = {:d}".format( self.idxBinShort), loc='right')
 
         if self.GANDALF       == True: 
             if self.GandalfLevel == 'BIN':
-                self.plotSpectra( 'GANDALF', self.Spectra[self.idxBinShort], self.gandalfBestfit[self.idxBinShort], self.gandalfGoodpix, 2 )
+                self.plotSpectraGANDALF( self.Spectra[self.idxBinShort], self.gandalfBestfit[self.idxBinShort], self.gandalfGoodpix, 2 )
             elif self.GandalfLevel == 'SPAXEL':
-                self.plotSpectra( 'GANDALF', self.AllSpectra[self.idxBinLong], self.gandalfBestfit[self.idxBinLong], self.gandalfGoodpix, 2 )
+                self.plotSpectraGANDALF( self.AllSpectra[self.idxBinLong], self.gandalfBestfit[self.idxBinLong], self.gandalfGoodpix, 2 )
                 self.axes[2].set_title("SPAXEL_ID = {:d}".format( self.idxBinLong), loc='right')
             try: 
                 self.axes[2].set_title("GandALF: v={:.1f}km/s, sigma={:.1f}km/s".format(self.gandalf_results[self.idxBinLong,0,self.line_idx][0], self.gandalf_results[self.idxBinLong,1,self.line_idx][0]), loc='left')
@@ -185,7 +185,7 @@ def plotData(self):
 
 
         if self.SFH == True:
-            self.plotSpectra( 'SFH', self.Spectra[self.idxBinShort], self.sfhBestfit[self.idxBinShort], self.sfhGoodpix, 3 )
+            self.plotSpectraSFH( self.Spectra[self.idxBinShort], self.sfhBestfit[self.idxBinShort], self.sfhGoodpix, 3 )
             self.axes[3].set_title("SFH: Age={:.2f} Gyr, [M/H]={:.2f}, [alpha/Fe]={:.2f}".format( self.sfh_results[self.idxBinLong,0], self.sfh_results[self.idxBinLong,1], self.sfh_results[self.idxBinLong,2] ), loc='left')
             self.axes[3].set_xlabel("$\lambda\ [\AA]$")
 
@@ -254,8 +254,12 @@ def plotLSSpectrum(self, panel):
 
     self.axes[panel].cla()
 
-    self.axes[panel].plot(self.Lambda, self.EmissionSubtractedSpectraBIN[self.idxBinShort,:], color='orange', linewidth=2)
-    self.axes[panel].plot(self.Lambda, self.Spectra[self.idxBinShort,:], color='k', linewidth=2)
+    idxMin = np.where( self.Lambda == self.gandalfLambda[0]  )[0]
+    idxMax = np.where( self.Lambda == self.gandalfLambda[-1] )[0]
+    idxLam = np.arange(idxMin, idxMax+1)
+
+    self.axes[panel].plot(self.gandalfLambda, self.EmissionSubtractedSpectraBIN[self.idxBinShort,:], color='orange', linewidth=2)
+    self.axes[panel].plot(self.gandalfLambda, self.Spectra[self.idxBinShort,idxLam], color='k', linewidth=2)
 
     self.axes[panel].set_title("pPXF: v={:.1f}km/s, sigma={:.1f}km/s, h3={:.2f}, h4={:.2f}".format( self.ppxf_results[self.idxBinLong,0], self.ppxf_results[self.idxBinLong,1], self.ppxf_results[self.idxBinLong,2], self.ppxf_results[self.idxBinLong,3]), loc='left')
     self.axes[panel].set_title("BIN_ID = {:d}".format( self.idxBinShort), loc='right')
@@ -266,9 +270,12 @@ def plotLSSpectrum(self, panel):
     tab      = ascii.read(self.directory+'lsBands.config', comment='\s*#')
     idx_band = np.where( np.array(tab['names']) == self.maptype )[0]
     if len(idx_band) == 1:
-        self.axes[panel].axvspan( tab['b1'][idx_band], tab['b2'][idx_band], color='k', alpha=0.05, lw=0)
-        self.axes[panel].axvspan( tab['b3'][idx_band], tab['b4'][idx_band], color='k', alpha=0.10, lw=0)
-        self.axes[panel].axvspan( tab['b5'][idx_band], tab['b6'][idx_band], color='k', alpha=0.05, lw=0)
+        self.axes[panel].axvspan( np.log(tab['b1'][idx_band]), np.log(tab['b2'][idx_band]), color='k', alpha=0.05, lw=0)
+        self.axes[panel].axvspan( np.log(tab['b3'][idx_band]), np.log(tab['b4'][idx_band]), color='k', alpha=0.10, lw=0)
+        self.axes[panel].axvspan( np.log(tab['b5'][idx_band]), np.log(tab['b6'][idx_band]), color='k', alpha=0.05, lw=0)
+
+    ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format( np.exp(x) ))
+    self.axes[panel].xaxis.set_major_formatter(ticks)
 
 
 def plotSFH(self, panel):
@@ -288,9 +295,7 @@ def plotSFH(self, panel):
     self.axes[panel].set_ylabel("#")
 
 
-
-
-def plotSpectra(self, plottype, spectra, bestfit, goodpix, panel):
+def plotSpectraPPXF(self, spectra, bestfit, goodpix, panel):
 
     # Compile information on masked regions 
     masked = np.flatnonzero( np.abs(np.diff(goodpix)) > 1)
@@ -307,32 +312,121 @@ def plotSpectra(self, plottype, spectra, bestfit, goodpix, panel):
     offset = np.min( bestfit[:] ) - (np.max(bestfit[:]) - np.min(bestfit[:]))*0.10
 
     # Plot spectra
+    idxMin = np.where( self.Lambda == self.ppxfLambda[0]  )[0]
+    idxMax = np.where( self.Lambda == self.ppxfLambda[-1] )[0]
+    idxLam = np.arange(idxMin, idxMax+1)
 
-    if plottype == 'GANDALF': 
-        if self.GandalfLevel == 'BIN': 
-            self.axes[panel].plot(self.Lambda, self.EmissionSubtractedSpectraBIN[self.idxBinShort,:], color='orange', linewidth=2)
-        elif self.GandalfLevel == 'SPAXEL': 
-            self.axes[panel].plot(self.Lambda, self.EmissionSubtractedSpectraSPAXEL[self.idxBinLong,:],  color='orange', linewidth=2)
-    if plottype == 'SFH':
-        self.axes[panel].plot(self.Lambda, self.EmissionSubtractedSpectraBIN[self.idxBinShort,:],                    color='orange',    linewidth=2)
-        self.axes[panel].plot(self.Lambda, self.EmissionSubtractedSpectraBIN[self.idxBinShort,:] - bestfit + offset, color='limegreen', linewidth=2)
-    else:
-        self.axes[panel].plot(self.Lambda, spectra - bestfit + offset, color='limegreen', linewidth=2)
-
-    self.axes[panel].plot(self.Lambda, spectra[:], color='k',       linewidth=2)
-    self.axes[panel].plot(self.Lambda, bestfit[:], color='crimson', linewidth=2)
+    self.axes[panel].plot(self.Lambda[idxLam], spectra[idxLam],                    color='k',         linewidth=2)
+    self.axes[panel].plot(self.ppxfLambda,     bestfit[:],                         color='crimson',   linewidth=2)
+    self.axes[panel].plot(self.ppxfLambda,     spectra[idxLam] - bestfit + offset, color='limegreen', linewidth=2)
 
     # Highlight masked regions
     i = 0
     while i < len(vlines)-1:
         badpix = np.arange(vlines[i],vlines[i+1]+1)
         i += 2
-    self.axes[panel].plot( [self.Lambda[0], self.Lambda[-1]], [offset,offset], color='k', linewidth=0.5 )
+    self.axes[panel].plot( [self.Lambda[idxLam][0], self.Lambda[idxLam][-1]], [offset,offset], color='k', linewidth=0.5 )
     for i in range( len(np.where(vlines != 0)[0]) ):
         if i%2 == 0:
-            self.axes[panel].axvspan(self.Lambda[vlines[i]], self.Lambda[vlines[i+1]], color='k', alpha=0.1, lw=0)
+            self.axes[panel].axvspan(self.Lambda[idxLam][vlines[i]], self.Lambda[idxLam][vlines[i+1]], color='k', alpha=0.1, lw=0)
 
-    self.axes[panel].set_xlim([self.Lambda[0], self.Lambda[-1]])
+    self.axes[panel].set_xlim([self.Lambda[idxLam][0], self.Lambda[idxLam][-1]])
+    self.axes[panel].set_ylabel('Flux')
+
+    ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format( np.exp(x) ))
+    self.axes[panel].xaxis.set_major_formatter(ticks)
+
+
+def plotSpectraGANDALF(self, spectra, bestfit, goodpix, panel):
+
+    # Compile information on masked regions 
+    masked = np.flatnonzero( np.abs(np.diff(goodpix)) > 1)
+    vlines = []
+    for i in masked:
+        vlines.append( goodpix[i]+1 )
+        vlines.append( goodpix[i+1]-1 )
+    vlines = np.array(vlines)
+
+    # Clear panels
+    self.axes[panel].cla()
+
+    # Offset of residuals
+    offset = np.min( bestfit[:] ) - (np.max(bestfit[:]) - np.min(bestfit[:]))*0.10
+
+    # Plot spectra
+    idxMin = np.where( self.Lambda == self.gandalfLambda[0]  )[0]
+    idxMax = np.where( self.Lambda == self.gandalfLambda[-1] )[0]
+    idxLam = np.arange(idxMin, idxMax+1)
+
+    if self.GandalfLevel == 'BIN': 
+        self.axes[panel].plot(self.gandalfLambda, self.EmissionSubtractedSpectraBIN[self.idxBinShort,:],   color='orange', linewidth=2)
+    elif self.GandalfLevel == 'SPAXEL': 
+        self.axes[panel].plot(self.gandalfLambda, self.EmissionSubtractedSpectraSPAXEL[self.idxBinLong,:], color='orange', linewidth=2)
+
+    self.axes[panel].plot(self.Lambda[idxLam], spectra[idxLam],                    color='k',         linewidth=2)
+    self.axes[panel].plot(self.gandalfLambda,  bestfit[:],                         color='crimson',   linewidth=2)
+    self.axes[panel].plot(self.gandalfLambda,  spectra[idxLam] - bestfit + offset, color='limegreen', linewidth=2)
+
+    # Highlight masked regions
+    i = 0
+    while i < len(vlines)-1:
+        badpix = np.arange(vlines[i],vlines[i+1]+1)
+        i += 2
+    self.axes[panel].plot( [self.Lambda[idxLam][0], self.Lambda[idxLam][-1]], [offset,offset], color='k', linewidth=0.5 )
+    for i in range( len(np.where(vlines != 0)[0]) ):
+        if i%2 == 0:
+            self.axes[panel].axvspan(self.Lambda[idxLam][vlines[i]], self.Lambda[idxLam][vlines[i+1]], color='k', alpha=0.1, lw=0)
+
+    self.axes[panel].set_xlim([self.Lambda[idxLam][0], self.Lambda[idxLam][-1]])
+    self.axes[panel].set_ylabel('Flux')
+
+    ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format( np.exp(x) ))
+    self.axes[panel].xaxis.set_major_formatter(ticks)
+
+
+def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
+
+    # Compile information on masked regions 
+    masked = np.flatnonzero( np.abs(np.diff(goodpix)) > 1)
+    vlines = []
+    for i in masked:
+        vlines.append( goodpix[i]+1 )
+        vlines.append( goodpix[i+1]-1 )
+    vlines = np.array(vlines)
+
+    # Clear panels
+    self.axes[panel].cla()
+
+    # Offset of residuals
+    offset = np.min( bestfit[:] ) - (np.max(bestfit[:]) - np.min(bestfit[:]))*0.10
+
+    # Plot spectra
+    idxMin = np.where( self.Lambda == self.sfhLambda[0]  )[0]
+    idxMax = np.where( self.Lambda == self.sfhLambda[-1] )[0]
+    idxLam = np.arange(idxMin, idxMax+1)
+
+    idxMin     = np.where( self.gandalfLambda == self.sfhLambda[0]  )[0]
+    idxMax     = np.where( self.gandalfLambda == self.sfhLambda[-1] )[0]
+    idxLamGand = np.arange(idxMin, idxMax+1)
+
+
+    self.axes[panel].plot(self.gandalfLambda[idxLamGand], self.EmissionSubtractedSpectraBIN[self.idxBinShort,idxLamGand],                    color='orange',    linewidth=2)
+    self.axes[panel].plot(self.gandalfLambda[idxLamGand], self.EmissionSubtractedSpectraBIN[self.idxBinShort,idxLamGand] - bestfit + offset, color='limegreen', linewidth=2)
+
+    self.axes[panel].plot(self.Lambda[idxLam], spectra[idxLam],                    color='k',         linewidth=2)
+    self.axes[panel].plot(self.sfhLambda,      bestfit[:],                         color='crimson',   linewidth=2)
+
+    # Highlight masked regions
+    i = 0
+    while i < len(vlines)-1:
+        badpix = np.arange(vlines[i],vlines[i+1]+1)
+        i += 2
+    self.axes[panel].plot( [self.Lambda[idxLam][0], self.Lambda[idxLam][-1]], [offset,offset], color='k', linewidth=0.5 )
+    for i in range( len(np.where(vlines != 0)[0]) ):
+        if i%2 == 0:
+            self.axes[panel].axvspan(self.Lambda[idxLam][vlines[i]], self.Lambda[idxLam][vlines[i+1]], color='k', alpha=0.1, lw=0)
+
+    self.axes[panel].set_xlim([self.Lambda[idxLam][0], self.Lambda[idxLam][-1]])
     self.axes[panel].set_ylabel('Flux')
 
     ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format( np.exp(x) ))

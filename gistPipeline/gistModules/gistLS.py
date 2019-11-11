@@ -265,9 +265,13 @@ def runModule_LINESTRENGTH(LINE_STRENGTH, RESOLUTION, PARALLEL, configs, velscal
             logging.info("Reading "+outdir+rootname+"_gandalf-cleaned_BIN.fits")
             hdu_spec  = fits.open(outdir+rootname+'_gandalf-cleaned_BIN.fits')
             hdu_espec = fits.open(outdir+rootname+'_VorSpectra.fits')
+            idx_lamMin = np.where( hdu_spec[2].data.LOGLAM[0]  == hdu_espec[2].data.LOGLAM )[0]
+            idx_lamMax = np.where( hdu_spec[2].data.LOGLAM[-1] == hdu_espec[2].data.LOGLAM )[0]
+            idx_lam    = np.arange(idx_lamMin, idx_lamMax+1)
             oldspec  = np.array( hdu_spec[1].data.SPEC   )
-            oldespec = np.sqrt( np.array( hdu_espec[1].data.ESPEC ) )
+            oldespec = np.sqrt( np.array( hdu_espec[1].data.ESPEC )[:,idx_lam] )
             wave     = np.array( hdu_spec[2].data.LOGLAM )
+
             nbins    = oldspec.shape[0]
             npix     = oldspec.shape[1]
             lamRange = np.array([ wave[0], wave[-1] ])

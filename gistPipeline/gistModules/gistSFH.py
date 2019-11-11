@@ -101,176 +101,7 @@ def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
     return(mean)
 
 
-def setup_spectral_library(configs, velscale, LSF_Data, LSF_Templates):
-    """
-    Prepares the spectral template library for the computation of star-formation
-    histories. The templates are loaded from disk, shortened to meet the
-    spectral range in consideration, convolved to meet the resolution of the
-    observed spectra (according to the LSF), log-rebinned, and normalised. In
-    addition, they are sorted in a three-dimensional array sampling the
-    parameter space in age, metallicity and alpha-enhancement. 
-    """
-    pipeline.prettyOutput_Running("Preparing the stellar population templates")
-    cvel  = 299792.458
-
-    # List of models
-    ssp_lib = glob.glob(configs['SSP_LIB']+'*.fits')
-    ssp_lib.sort()
-
-    # Extract ages, metallicities and alpha from the templates
-    logAge, metal, alpha, metal_str, alpha_str, nAges, nMetal, nAlpha, ncomb = age_metal_alpha(ssp_lib)
-
-    # Read data
-    hdu           = fits.open(ssp_lib[0])
-    ssp_data      = hdu[0].data
-    ssp_head      = hdu[0].header
-    lamRange_temp = ssp_head['CRVAL1'] + np.array([0., ssp_head['CDELT1']*(ssp_head['NAXIS1']-1)])
-
-    # Determine length of templates
-    template_overhead = np.zeros(2)
-    if configs['LMIN'] - lamRange_temp[0] > 150.:
-        template_overhead[0] = 150.
-    else: 
-        template_overhead[0] = configs['LMIN'] - lamRange_temp[0] - 5
-    if lamRange_temp[1] - configs['LMAX'] > 150.:
-        template_overhead[1] = 150.
-    else: 
-        template_overhead[1] = lamRange_temp[1] - configs['LMAX'] - 5
-
-    # Shorten templates to size of data
-    # Reconstruct full original lamRange
-    lamRange_lin = np.arange( lamRange_temp[0], lamRange_temp[-1]+ssp_head['CDELT1'], ssp_head['CDELT1'] )
-    # Create new lamRange according to LMIN and LMAX from config-file
-    constr = np.array([ configs['LMIN'] - template_overhead[0], configs['LMAX'] + template_overhead[1] ])
-    idx_lam = np.where( np.logical_and(lamRange_lin > constr[0], lamRange_lin < constr[1] ) )[0]
-    lamRange_temp = np.array([ lamRange_lin[idx_lam[0]], lamRange_lin[idx_lam[-1]] ])
-    # Shorten data to size of new lamRange
-    ssp_data = ssp_data[idx_lam]
-
-    # Convolve templates to same resolution as data
-    if len( np.where( LSF_Data(lamRange_lin[idx_lam]) - LSF_Templates(lamRange_lin[idx_lam]) < 0. )[0] ) != 0:        
-        message = "According to the specified LSF's, the resolution of the "+\
-                  "templates is lower than the resolution of the data. Exit!"
-        pipeline.prettyOutput_Failed("Preparing the stellar population templates")
-        print("             "+message)
-        logging.critical(message)
-        exit(1)
-    else:
-        FWHM_dif = np.sqrt( LSF_Data(lamRange_lin[idx_lam])**2 - LSF_Templates(lamRange_lin[idx_lam])**2 )
-        sigma = FWHM_dif/2.355/ssp_head['CDELT1']
-
-    # Create a four dimensional array to store the three dimensional cube of models
-    sspNew, _, _ = log_rebin(lamRange_temp, ssp_data, velscale=velscale)
-    templates = np.zeros((sspNew.size, nAges, nMetal, nAlpha)); templates[:,:,:,:] = np.nan
-
-    # Arrays to store properties of the models
-    logAge_grid = np.empty((nAges, nMetal, nAlpha))
-    metal_grid  = np.empty((nAges, nMetal, nAlpha))
-    alpha_grid  = np.empty((nAges, nMetal, nAlpha))
-
-    # Sort the templates in the cube of age, metal, alpha
-    # This sorts for alpha
-    for i, a in enumerate(alpha_str):
-        # This sorts for metals
-        for k, mh in enumerate(metal_str):
-            files = [s for s in ssp_lib if (mh in s and a in s)]
-            # This sorts for ages
-            for j, filename in enumerate(files):
-                hdu = fits.open(filename)
-                ssp = hdu[0].data[idx_lam]
-                ssp = gaussian_filter1d(ssp, sigma)
-                sspNew, logLam2, _ = log_rebin(lamRange_temp, ssp, velscale=velscale)
-
-                logAge_grid[j, k, i] = logAge[j]
-                metal_grid[j, k, i]  = metal[k]
-                alpha_grid[j, k, i]  = alpha[i]
-
-                # Normalise templates for light-weighted results
-                if configs['NORM_TEMP'] == 'LIGHT':
-                    templates[:, j, k, i] = sspNew / np.mean(sspNew)
-                else:
-                    templates[:, j, k, i] = sspNew 
-
-    # Normalise templates for mass-weighted results
-    if configs['NORM_TEMP'] == 'MASS':
-        templates = templates / np.mean( templates )
-
-    pipeline.prettyOutput_Done("Preparing the stellar population templates")
-    logging.info("Prepared the stellar population templates")
-
-    return(templates, lamRange_temp, logLam2, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha)
-
-
-def age_metal_alpha(passedFiles):
-    """
-    Function to extract the values of age, metallicity, and alpha-enhancement
-    from standard MILES filenames. Note that this function can automatically
-    distinguish between template libraries that do or do not include
-    alpha-enhancement. 
-    """
-
-    out = np.zeros((len(passedFiles),3)); out[:,:] = np.nan
-
-    files = []
-    for i in range( len(passedFiles) ):
-        files.append( passedFiles[i].split('/')[-1] )
-
-    for num, s in enumerate(files):
-        # Ages
-        t = s.find('T')
-        age = float( s[t+1 : t+8] )
-    
-        # Metals
-        metal = s[s.find('Z')+1 : t]
-        if "m" in metal:
-            metal = -float(metal[1:])
-        elif "p" in metal:
-            metal = float(metal[1:])
-        else:
-            raise ValueError("             This is not a standard MILES filename")
-    
-        # Alpha
-        if s.find('baseFe') == -1:
-            EMILES = False
-        elif s.find('baseFe') != -1:
-            EMILES = True
-
-        if EMILES == False:
-            # Usage of MILES: There is a alpha defined
-            e = s.find('E')
-            alpha = float( s[e+2 : e+6] )
-        elif EMILES == True:
-            # Usage of EMILES: There is *NO* alpha defined
-            alpha = 0.0
-
-        out[num,:] = age, metal, alpha
-
-    Age   = np.unique( out[:,0] )
-    Metal = np.unique( out[:,1] )
-    Alpha = np.unique( out[:,2] )
-    nAges  = len(Age)
-    nMetal = len(Metal)
-    nAlpha = len(Alpha)
-    ncomb = nAges * nMetal * nAlpha
-
-    metal_str = []
-    alpha_str = []
-    for i in range( len(Metal) ):
-        if Metal[i] > 0:
-            mm = 'p'+'{:.2f}'.format(np.abs(Metal[i]))+'T'
-        elif Metal[i] < 0:
-            mm = 'm'+'{:.2f}'.format(np.abs(Metal[i]))+'T'
-        metal_str.append(mm)
-    for i in range( len(Alpha) ):
-        if EMILES == False:
-            alpha_str.append( 'Ep'+'{:.2f}'.format(Alpha[i]) )
-        elif EMILES == True:
-            alpha_str = ['baseFe']
-
-    return( np.log10(Age), Metal, Alpha, metal_str, alpha_str, nAges, nMetal, nAlpha, ncomb )
-
-
-def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, goodPixels,\
+def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, logLam_galaxy, goodPixels,\
              velscale, logLam1, ncomb, nAges, nMetal, nAlpha, ubins, npix, outdir, rootname):
     """ Save all results to disk. """
     # ========================
@@ -373,11 +204,19 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = 'BESTFIT'
 
-    # Create HDU list and write to file
-    priHDU  = pipeline.createGISTHeaderComment( priHDU  )
-    dataHDU = pipeline.createGISTHeaderComment( dataHDU )
+    # Table HDU with SFH logLam
+    cols = []
+    cols.append( fits.Column(name='BIN_ID', format='J', array=ubins         ))
+    cols.append( fits.Column(name='LOGLAM', format='D', array=logLam_galaxy ))
+    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    logLamHDU.name = 'LOGLAM'
 
-    HDUList = fits.HDUList([priHDU, dataHDU])
+    # Create HDU list and write to file
+    priHDU    = pipeline.createGISTHeaderComment( priHDU    )
+    dataHDU   = pipeline.createGISTHeaderComment( dataHDU   )
+    logLamHDU = pipeline.createGISTHeaderComment( logLamHDU )
+
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
     fits.setval(outfits_sfh,'VELSCALE',value=velscale)
@@ -435,8 +274,8 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
 
         # Prepare template library
         velscale_ratio = 2
-        templates, lamRange_temp, logLam_template, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha = \
-                setup_spectral_library(configs, velscale/velscale_ratio, LSF_Data, LSF_Templates)
+        templates, lamRange_temp, logLam_template, ntemplates, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha = \
+                util_prepare.prepareSpectralTemplateLibrary("SFH", configs, configs['LMIN_SFH'], configs['LMAX_SFH'], velscale, velscale_ratio, LSF_Data, LSF_Templates)
 
         # Read spectra
         if os.path.isfile(outdir+rootname+'_gandalf-cleaned_BIN.fits') == True:
@@ -447,11 +286,14 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
             pipeline.prettyOutput_Warning('No emission-subtracted spectra for SFH analysis available. Skipping SFH!')
             return(0)
         galaxy        = np.array( hdu[1].data.SPEC )
+        logLam_galaxy = hdu[2].data.LOGLAM
+        idx_lam       = np.where( np.logical_and( np.exp(logLam_galaxy) > configs['LMIN_SFH'], np.exp(logLam_galaxy) < configs['LMAX_SFH'] ) )[0]
+        galaxy        = galaxy[:,idx_lam]
+        logLam_galaxy = logLam_galaxy[idx_lam]
         nbins         = galaxy.shape[0]
         npix          = galaxy.shape[1]
         ubins         = np.arange(0, nbins)
         noise         = np.full(npix, configs['NOISE'])
-        logLam_galaxy = hdu[2].data.LOGLAM
         dv            = (np.log(lamRange_temp[0]) - logLam_galaxy[0])*C
 
         # Implementation of switch FIXED
@@ -478,7 +320,7 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
                 start[i,:] = np.array( [0.0, configs['SIGMA']] )
 
         # Define goodpixels
-        goodPixels_sfh = util_prepare.spectralMasking(outdir, logLam_galaxy, 'SFH')
+        goodPixels_sfh = util_prepare.spectralMasking(outdir, logLam_galaxy, 'SFH', configs['REDSHIFT'])
 
         # Define output arrays
         kin          = np.zeros((nbins,6    ))
@@ -563,7 +405,7 @@ def runModule_SFH(SFH, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Templ
         mean_results = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, nbins)
 
         # Save to file
-        save_sfh(mean_results, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, goodPixels_sfh, \
+        save_sfh(mean_results, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, logLam_galaxy, goodPixels_sfh, \
                 velscale, logLam_galaxy, ncomb, nAges, nMetal, nAlpha, ubins, npix, outdir, rootname)
 
         # Plot maps

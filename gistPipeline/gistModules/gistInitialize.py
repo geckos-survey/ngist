@@ -49,8 +49,14 @@ def setup_configs(galnumber, dirPath):
     configs['NCPU']           = int(      configs['NCPU']          )
 
     # GENERAL SETTINGS
-    configs['LMIN']           = float(    configs['LMIN']          )
-    configs['LMAX']           = float(    configs['LMAX']          )
+    configs['LMIN_SNR']       = float(    configs['LMIN_SNR']      )
+    configs['LMAX_SNR']       = float(    configs['LMAX_SNR']      )
+    configs['LMIN_PPXF']      = float(    configs['LMIN_PPXF']     )
+    configs['LMAX_PPXF']      = float(    configs['LMAX_PPXF']     )
+    configs['LMIN_GANDALF']   = float(    configs['LMIN_GANDALF']  )
+    configs['LMAX_GANDALF']   = float(    configs['LMAX_GANDALF']  )
+    configs['LMIN_SFH']       = float(    configs['LMIN_SFH']      )
+    configs['LMAX_SFH']       = float(    configs['LMAX_SFH']      )
     configs['ORIGIN']         = [ float(configs['ORIGIN'].split(',')[0]) , float(configs['ORIGIN'].split(',')[1]) ]
     configs['REDSHIFT']       = float(    configs['REDSHIFT']      )
     configs['SIGMA']          = float(    configs['SIGMA']         )
@@ -203,14 +209,44 @@ def parameter_checks(datafile, configs, dirPath, rootname, outdir):
         print(pipeline.prettyOutput_WarningPrefix()+message)
         logging.warning(message)
 
-    if configs['LMIN'] > configs['LMAX']:
-        message = "The given minimum wavelength LMIN is larger than the maximum wavelength LMAX. I will swap them! Continue."
+    if configs['LMIN_SNR'] > configs['LMAX_SNR']:
+        message = "The given minimum wavelength LMIN_SNR is larger than the maximum wavelength LMAX_SNR. I will swap them! Continue."
         print(pipeline.prettyOutput_WarningPrefix()+message)
         logging.warning(message)
-        lmin = configs['LMAX']
-        lmax = configs['LMIN']
-        configs['LMIN'] = lmin
-        configs['LMAX'] = lmax
+        lmin = configs['LMAX_SNR']
+        lmax = configs['LMIN_SNR']
+        configs['LMIN_SNR'] = lmin
+        configs['LMAX_SNR'] = lmax
+    if configs['LMIN_PPXF'] > configs['LMAX_PPXF']:
+        message = "The given minimum wavelength LMIN_PPXF is larger than the maximum wavelength LMAX_PPXF. I will swap them! Continue."
+        print(pipeline.prettyOutput_WarningPrefix()+message)
+        logging.warning(message)
+        lmin = configs['LMAX_PPXF']
+        lmax = configs['LMIN_PPXF']
+        configs['LMIN_PPXF'] = lmin
+        configs['LMAX_PPXF'] = lmax
+    if configs['LMIN_GANDALF'] > configs['LMAX_GANDALF']:
+        message = "The given minimum wavelength LMIN_GANDALF is larger than the maximum wavelength LMAX_GANDALF. I will swap them! Continue."
+        print(pipeline.prettyOutput_WarningPrefix()+message)
+        logging.warning(message)
+        lmin = configs['LMAX_GANDALF']
+        lmax = configs['LMIN_GANDALF']
+        configs['LMIN_GANDALF'] = lmin
+        configs['LMAX_GANDALF'] = lmax
+    if configs['LMIN_SFH'] > configs['LMAX_SFH']:
+        message = "The given minimum wavelength LMIN_SFH is larger than the maximum wavelength LMAX_SFH. I will swap them! Continue."
+        print(pipeline.prettyOutput_WarningPrefix()+message)
+        logging.warning(message)
+        lmin = configs['LMAX_SFH']
+        lmax = configs['LMIN_SFH']
+        configs['LMIN_SFH'] = lmin
+        configs['LMAX_SFH'] = lmax
+
+    if configs['LMIN_GANDALF'] > configs['LMIN_SFH']  or  configs['LMAX_GANDALF'] < configs['LMAX_SFH']: 
+        message = "The wavelength ranges of the SFH module cannot be larger than the GANDALF wavelength range."
+        print(pipeline.prettyOutput_FailedPrefix()+message)
+        logging.error(message)
+        SKIP_GALAXY = True
 
     if configs['ORIGIN'] == [0.,0.]: 
         message = "If ORIGIN is not set to the coordinates of the galaxy centre, the calculation of lambda_r will be wrong! Continue."
@@ -338,7 +374,10 @@ def printConfigs_Configs(configs):
     "   * PARALLEL:           " + str(bool(int(configs['PARALLEL']))) + "\n"
     "   * NCPU:               "+str(int(configs['NCPU'])) + "\n"
     "\n"
-    "   * Wavelength Range:   " + str(configs['LMIN'])+" - "+str(configs['LMAX'])+" Angst." + "\n"
+    "   * Lambda SNR:         " + str(configs['LMIN_SNR']) +     " - "+str(configs['LMAX_SNR']) +     " Angst." + "\n"
+    "   * Lambda PPXF:        " + str(configs['LMIN_PPXF']) +    " - "+str(configs['LMAX_PPXF']) +    " Angst." + "\n"
+    "   * Lambda GANDALF:     " + str(configs['LMIN_GANDALF']) + " - "+str(configs['LMAX_GANDALF']) + " Angst." + "\n"
+    "   * Lambda SFH:         " + str(configs['LMIN_SFH']) +     " - "+str(configs['LMAX_SFH']) +     " Angst." + "\n"
     "   * Origin coord.:      " + str(configs['ORIGIN']) + "\n"
     "   * Redshift:           " + str(configs['REDSHIFT']) + "\n"
     "   * Init. sigma:        " + str(configs['SIGMA'])    + " km/s" + "\n"

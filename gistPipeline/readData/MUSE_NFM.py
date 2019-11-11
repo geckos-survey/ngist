@@ -32,7 +32,7 @@ def set_debug(cube, xext, yext):
 def read_cube(DEBUG, filename, configs):
 
     loggingBlanks = (len( os.path.splitext(os.path.basename(__file__))[0] ) + 33) * " "
- 
+
     directory = os.path.dirname(filename)+'/'
     datafile  = os.path.basename(filename)
     rootname  = datafile.split('.')[0]
@@ -74,48 +74,43 @@ def read_cube(DEBUG, filename, configs):
             +loggingBlanks+"* Spatial coordinates are centred to "+str(configs['ORIGIN'])+"\n"\
             +loggingBlanks+"* Spatial pixelsize is "+str(pixelsize))
   
-    # Getting the wavelength information
-    cvel      = 299792.458
-    wave      = wave / (1+configs['REDSHIFT'])
-    idx       = np.where( np.logical_and( wave >= configs['LMIN'], wave <= configs['LMAX'] ) )[0]
-    spec      = spec[idx,:]
-    espec     = espec[idx,:]
-    wave      = wave[idx]
-    velscale  = (wave[1]-wave[0])*cvel/np.mean(wave)
-    xy_extent = np.array( [data.shape[2], data.shape[1]] )
-    logging.info("Extracting spectral information:\n"\
-            +loggingBlanks+"* Shortened spectra to wavelength range from "+str(configs['LMIN'])+" to "+str(configs['LMAX'])+" Angst.\n"\
-            +loggingBlanks+"* Spectral pixelsize in velocity space is "+str(velscale)+" km/s")
+    # De-redshift spectra
+    wave = wave / (1+configs['REDSHIFT'])
 
+    # Shorten spectra to required wavelength range
+    lmin  = np.min([configs['LMIN_SNR'], configs['LMIN_PPXF'], configs['LMIN_GANDALF'], configs['LMIN_SFH']])
+    lmax  = np.max([configs['LMAX_SNR'], configs['LMAX_PPXF'], configs['LMAX_GANDALF'], configs['LMAX_SFH']])
+    idx   = np.where( np.logical_and( wave >= lmin, wave <= lmax ) )[0]
+    spec  = spec[idx,:]
+    espec = espec[idx,:]
+    wave  = wave[idx]
 
-    # Mask wavelength region of laser guide star
-    idx_nolaser = np.where( np.logical_or(  wave < 5780 / (1+configs['REDSHIFT']), wave > 6048 / (1+configs['REDSHIFT'])) )[0]
-    idx_laser   = np.where( np.logical_and( wave > 5780 / (1+configs['REDSHIFT']), wave < 6048 / (1+configs['REDSHIFT'])) )[0]
-
-    # Removing obviously defective pixels: Remove spaxel with any nan or negative values
-    nspaxel  = spec.shape[1]
-    idx_good = np.where( np.median(spec[idx_nolaser,:], axis=0) > 0.0 )[0]
-    spec     = spec[:,idx_good]
-    espec    = espec[:,idx_good]
-    x        = x[idx_good]
-    y        = y[idx_good]
-    logging.info("Removing all spaxels containing nan or having a negative median flux:\n"\
-            +loggingBlanks+"* Of "+str(nspaxel)+" in the cube, "+str(len(idx_good))+" are accepted and "+str(nspaxel-len(idx_good))+" removed")
-     
     # Computing the SNR per spaxel
-    signal = np.nanmedian(spec[idx_nolaser,:], axis=0)
+    idx_snr   = np.where( np.logical_and.reduce([ \
+            wave >= configs['LMIN_SNR'], \
+            wave <= configs['LMAX_SNR'], \
+            np.logical_or( wave < 5780/(1+configs['REDSHIFT']), wave > 6048/(1+configs['REDSHIFT'])) ]))[0]
+    signal = np.nanmedian(spec[idx_snr,:],axis=0)
     if len(hdu) == 3:
-        noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_nolaser,:]), axis=0))
+        noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
     elif len(hdu) == 2:
-        noise = espec[0,:]
+        noise = espec[0,:]    # DER_SNR returns constant error spectra
     snr    = signal / noise
     logging.info("Computing the signal-to-noise ratio per spaxel.")
 
-    # Replacing the np.nan in the laser region by the median of the spectrum
-    spec[idx_laser,:]  = signal
-    espec[idx_laser,:] = signal
+    # Determine velscale
+    cvel      = 299792.458
+    velscale  = (wave[1]-wave[0])*cvel/np.mean(wave)
+    logging.info("Extracting spectral information:\n"\
+            +loggingBlanks+"* Shortened spectra to wavelength range from "+str(lmin)+" to "+str(lmax)+" Angst.\n"\
+            +loggingBlanks+"* Spectral pixelsize in velocity space is "+str(velscale)+" km/s")
 
-    # Storing eveything into a structure
+    # Replacing the np.nan in the laser region by the median of the spectrum
+    idx_laser          = np.where( np.logical_and( wave > 5780 / (1+configs['REDSHIFT']), wave < 6048 / (1+configs['REDSHIFT'])) )[0]
+    spec[idx_laser,:]  = signal
+    espec[idx_laser,:] = noise
+
+    # Storing everything into a structure
     cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr,\
             'signal':signal, 'noise':noise, 'velscale':velscale, 'pixelsize':pixelsize}
 

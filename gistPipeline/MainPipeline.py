@@ -167,7 +167,6 @@ def runPipeline(galnumber, dirPath):
     readCUBE = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(readCUBE)
         
-       
 
 
 # ==============================================================================
@@ -175,10 +174,12 @@ def runPipeline(galnumber, dirPath):
 # ==============================================================================
     print("\033[0;37m"+" - - - - - Running Preparation! - - - - - "+"\033[0;39m")
     logging.info(" - - - Running Preparation - - - ")
+
     # Read IFU cube
     cube = readCUBE.read_cube(DEBUG, datafile, configs)
-    # Select spaxels with SNR above threshold
-    idx_inside, idx_outside = util_prepare.apply_snr_threshold(cube['snr'], cube['signal'], configs['MIN_SNR'])
+
+    # Reject defunct spaxels and apply SNR threshold
+    idx_inside, idx_outside = util_prepare.rejectDefunctSpaxels_applySNRThreshold(cube, configs)
 
     if DEFINE_VORONOI_BINS == True:
         # Define Voronoi bins and save table

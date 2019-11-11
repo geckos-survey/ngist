@@ -55,8 +55,12 @@ class Mapviewer(pyqt.QMainWindow):
         _plotData.plotMap(self, maptype)
     def plotData(self):
         _plotData.plotData(self)
-    def plotSpectra(self, plottype, spectra, bestfit, goodpix, panel):
-        _plotData.plotSpectra(self, plottype, spectra, bestfit, goodpix, panel)
+    def plotSpectraPPXF(self, spectra, bestfit, goodpix, panel):
+        _plotData.plotSpectraPPXF(self, spectra, bestfit, goodpix, panel)
+    def plotSpectraGANDALF(self, spectra, bestfit, goodpix, panel):
+        _plotData.plotSpectraGANDALF(self, spectra, bestfit, goodpix, panel)
+    def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
+        _plotData.plotSpectraSFH(self, spectra, bestfit, goodpix, panel)
     def plotPlainSpectrum(self, spectra, snr, panel):
         _plotData.plotPlainSpectrum(self, spectra, snr, panel)
     def plotSSPGrid(self, alpha_idx, panel):
@@ -106,7 +110,7 @@ class Mapviewer(pyqt.QMainWindow):
 def main(args=None):
     # Capturing the command line arguments
     parser = optparse.OptionParser(usage="")
-    parser.add_option("-m", "--mode", dest="MODE", type="string", help="Select the mapviewer mode. Default is PPXF")
+    parser.add_option("-m", "--mode", dest="MODE", type="string", help="Set 'LS' in order to highlight results from the LS module.")
     (options, args) = parser.parse_args()
     MODE = options.MODE
     if   MODE == None: MODE = 'ALL'
