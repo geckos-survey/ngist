@@ -206,7 +206,6 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
 
     # Table HDU with SFH logLam
     cols = []
-    cols.append( fits.Column(name='BIN_ID', format='J', array=ubins         ))
     cols.append( fits.Column(name='LOGLAM', format='D', array=logLam_galaxy ))
     logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     logLamHDU.name = 'LOGLAM'

@@ -190,7 +190,6 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
 
     # Table HDU with PPXF logLam
     cols = []
-    cols.append( fits.Column(name='BIN_ID', format='J', array=ubins  ))
     cols.append( fits.Column(name='LOGLAM', format='D', array=logLam ))
     logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     logLamHDU.name = 'LOGLAM'
