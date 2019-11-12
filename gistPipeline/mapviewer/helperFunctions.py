@@ -274,13 +274,15 @@ def dialogInfo(self):
     keyword_list.remove("SIMPLE")
     keyword_list.remove("BITPIX")
     keyword_list.remove("NAXIS")
+    keyword_list.remove("EXTEND")
+    keyword_list = [y for y in keyword_list if y != 'COMMENT']
 
     # Create InfoDialog
     dialog = pyqt.QDialog()
     self.label0 = pyqt.QLabel('Chosen Configurations:')
     closeButton = pyqt.QPushButton("Close", dialog)
 
-   # Create table
+    # Create table
     self.tableWidget = pyqt.QTableWidget()
     self.tableWidget.setRowCount(len(keyword_list))
     self.tableWidget.setColumnCount(2)
