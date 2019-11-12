@@ -418,13 +418,14 @@ def spectralMasking(outdir, logLam, module, redshift):
 
     # In case there is only one mask
     if len( mask.shape ) == 1  and  mask.shape[0] != 0:
-        mask = mask.reshape(1,2)
-
-    # Check for sky-lines
-    idx_sky = np.where( np.logical_or.reduce( (maskComment == "sky", maskComment == "SKY", maskComment == "Sky") ) )[0]
-    mask[idx_sky,0] = mask[idx_sky,0] / (1+redshift)
+        mask        = mask.reshape(1,2)
+        maskComment = maskComment.reshape(1)
 
     for i in range( mask.shape[0] ):
+
+        # Check for sky-lines
+        if maskComment[i] == 'sky'  or  maskComment[i] == 'SKY'  or  maskComment[i] == 'Sky': 
+            mask[i,0] = mask[i,0] / (1+redshift)
 
         # Define masked pixel range
         minimumPixel = int( np.round( ( np.log( mask[i,0] - mask[i,1]/2. ) - logLam[0] ) / (logLam[1] - logLam[0]) ) )
