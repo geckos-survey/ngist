@@ -5,7 +5,26 @@ import sys
 # ==============================================================================
 #                          P R E T T Y   O U T P U T
 # ==============================================================================
-""" A collection of functions to generate the pretty output in stdout. """
+""" A collection of functions to generate the pretty output."""
+
+def createGISTHeaderComment(hdu): 
+    """
+    Create a fits-header comment in all output files, in order to specify the 
+    used GIST pipeline version. 
+    """
+    hdu.header['COMMENT'] = ""
+    hdu.header['COMMENT'] = "------------------------------------------------------------------------"
+    hdu.header['COMMENT'] = "                Generated with the GIST pipeline, V2.0                  "
+    hdu.header['COMMENT'] = "------------------------------------------------------------------------"
+    hdu.header['COMMENT'] = " Please cite Bittner et al. 2019 (A&A, 628, A117) and the corresponding "
+    hdu.header['COMMENT'] = "       analysis routines if you use this data in any publication.       "
+    hdu.header['COMMENT'] = ""
+    hdu.header['COMMENT'] = "         For a thorough documentation of this software package,         "
+    hdu.header['COMMENT'] = "         please see https://abittner.gitlab.io/thegistpipeline          "
+    hdu.header['COMMENT'] = "------------------------------------------------------------------------"
+    hdu.header['COMMENT'] = ""
+
+    return(hdu)
 
 def printProgress(iteration, total, prefix = '', suffix = '', decimals = 2, barLength = 80, color = 'g'):
     """

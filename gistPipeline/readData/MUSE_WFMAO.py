@@ -38,8 +38,8 @@ def read_cube(DEBUG, filename, configs):
     rootname  = datafile.split('.')[0]
 
     # Read MUSE-cube
-    pipeline.prettyOutput_Running("Reading the MUSE-NFM cube")
-    logging.info("Reading the MUSE-NFM cube: "+filename)
+    pipeline.prettyOutput_Running("Reading the MUSE-WFM cube")
+    logging.info("Reading the MUSE-WFM cube: "+filename)
 
     # Reading the cube
     hdu   = fits.open(filename)
@@ -68,7 +68,7 @@ def read_cube(DEBUG, filename, configs):
     x, y  = np.meshgrid(xaxis,yaxis)
     x     = np.reshape(x,[s[1]*s[2]])
     y     = np.reshape(y,[s[1]*s[2]])
-    pixelsize = 0.025
+    pixelsize = 0.20
 
     logging.info("Extracting spatial information:\n"\
             +loggingBlanks+"* Spatial coordinates are centred to "+str(configs['ORIGIN'])+"\n"\
@@ -86,7 +86,10 @@ def read_cube(DEBUG, filename, configs):
     wave  = wave[idx]
 
     # Computing the SNR per spaxel
-    idx_snr = np.where( np.logical_and( wave >= configs['LMIN_SNR'], wave <= configs['LMAX_SNR'] ) )[0]
+    idx_snr   = np.where( np.logical_and.reduce([ \
+        wave >= configs['LMIN_SNR'], \
+        wave <= configs['LMAX_SNR'], \
+        np.logical_or( wave < 5780/(1+configs['REDSHIFT']), wave > 6048/(1+configs['REDSHIFT'])) ]))[0]
     signal  = np.nanmedian(spec[idx_snr,:],axis=0)
     if len(hdu) == 3:
         noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
@@ -102,6 +105,11 @@ def read_cube(DEBUG, filename, configs):
             +loggingBlanks+"* Shortened spectra to wavelength range from "+str(lmin)+" to "+str(lmax)+" Angst.\n"\
             +loggingBlanks+"* Spectral pixelsize in velocity space is "+str(velscale)+" km/s")
 
+    # Replacing the np.nan in the laser region by the median of the spectrum
+    idx_laser          = np.where( np.logical_and( wave > 5780 / (1+configs['REDSHIFT']), wave < 6048 / (1+configs['REDSHIFT'])) )[0]
+    spec[idx_laser,:]  = signal
+    espec[idx_laser,:] = noise
+
     # Storing everything into a structure
     cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr,\
             'signal':signal, 'noise':noise, 'velscale':velscale, 'pixelsize':pixelsize}
@@ -109,7 +117,7 @@ def read_cube(DEBUG, filename, configs):
     # Constrain cube to one central row if switch DEBUG is set
     if DEBUG == True: cube = set_debug(cube, xy_extent[0], xy_extent[1])
 
-    pipeline.prettyOutput_Done("Reading the MUSE-NFM cube")
+    pipeline.prettyOutput_Done("Reading the MUSE-WFM cube")
     print("             Read "+str(len(cube['x']))+" spectra!")
     logging.info("Finished reading the MUSE cube!")
 

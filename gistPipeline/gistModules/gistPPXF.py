@@ -125,7 +125,7 @@ def calc_LambdaR( ppxf_result, nbins, outdir, rootname ):
 
 
 def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,\
-              ppxf_bestfit, goodPixels, optimal_template, logLam_template, npix, ubins):
+              ppxf_bestfit, logLam, goodPixels, optimal_template, logLam_template, npix, ubins):
     """ Saves all results to disk. """
     # ========================
     # SAVE RESULTS
@@ -164,6 +164,8 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     dataHDU.name = 'PPXF_DATA'
     
     # Create HDU list and write to file
+    priHDU  = pipeline.createGISTHeaderComment(priHDU )
+    dataHDU = pipeline.createGISTHeaderComment(dataHDU)
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
     
@@ -185,9 +187,19 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     cols.append( fits.Column(name='BESTFIT', format=str(npix)+'D', array=ppxf_bestfit      ))
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = 'BESTFIT'
-    
+
+    # Table HDU with PPXF logLam
+    cols = []
+    cols.append( fits.Column(name='LOGLAM', format='D', array=logLam ))
+    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    logLamHDU.name = 'LOGLAM'
+     
     # Create HDU list and write to file
-    HDUList = fits.HDUList([priHDU, dataHDU])
+    priHDU    = pipeline.createGISTHeaderComment( priHDU  )
+    dataHDU   = pipeline.createGISTHeaderComment( dataHDU )
+    logLamHDU = pipeline.createGISTHeaderComment( logLamHDU )
+
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
     
     pipeline.prettyOutput_Done("Writing: "+rootname+'_ppxf-bestfit.fits')
@@ -209,6 +221,8 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     goodpixHDU.name = 'GOODPIX'
     
     # Create HDU list and write to file
+    priHDU     = pipeline.createGISTHeaderComment(priHDU    )
+    goodpixHDU = pipeline.createGISTHeaderComment(goodpixHDU)
     HDUList = fits.HDUList([priHDU, goodpixHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
     
@@ -237,6 +251,9 @@ def save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r,
     logLamHDU.name = 'LOGLAM_TEMPLATE'
     
     # Create HDU list and write to file
+    priHDU    = pipeline.createGISTHeaderComment(priHDU   )
+    dataHDU   = pipeline.createGISTHeaderComment(dataHDU  )
+    logLamHDU = pipeline.createGISTHeaderComment(logLamHDU)
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits, overwrite=True)
     
@@ -260,6 +277,9 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
         hdu      = fits.open(outdir+rootname+'_VorSpectra.fits')
         bin_data = np.array( hdu[1].data.SPEC.T )
         logLam   = np.array( hdu[2].data.LOGLAM )
+        idx_lam  = np.where( np.logical_and( np.exp(logLam) > configs['LMIN_PPXF'], np.exp(logLam) < configs['LMAX_PPXF'] ) )[0]
+        bin_data = bin_data[idx_lam,:]
+        logLam   = logLam[idx_lam]
         npix     = bin_data.shape[0]
         nbins    = bin_data.shape[1]
         ubins    = np.arange(0, nbins)
@@ -267,8 +287,9 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
         # Prepare templates
         velscale_ratio = 2
         logging.info("Using full spectral library for PPXF")
-        templates, lamRange_spmod, logLam_template = util_prepare.prepare_sp_templates\
-                (configs, velscale, velscale_ratio, LSF_Data, LSF_Templates)
+        templates, lamRange_spmod, logLam_template, ntemplates = util_prepare.prepareSpectralTemplateLibrary\
+                ("PPXF", configs, configs['LMIN_PPXF'], configs['LMAX_PPXF'], velscale, velscale_ratio, LSF_Data, LSF_Templates)[:4]
+        templates = templates.reshape( (templates.shape[0], ntemplates) )
 
         # Last preparatory steps
         offset = (logLam_template[0] - logLam[0])*C
@@ -288,7 +309,7 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
             start[:,1] = configs['SIGMA']
 
         # Define goodpixels
-        goodPixels_ppxf = util_prepare.spectralMasking(outdir, logLam, 'PPXF')
+        goodPixels_ppxf = util_prepare.spectralMasking(outdir, logLam, 'PPXF', configs['REDSHIFT'])
 
         # Array to store results of ppxf
         ppxf_result        = np.zeros((nbins,6))
@@ -382,7 +403,7 @@ def runModule_PPXF(PPXF, PARALLEL, configs, dirPath, velscale, LSF_Data, LSF_Tem
         pipeline.prettyOutput_Done("Calculating Lambda_R")
 
         # Save stellar kinematics to file
-        save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r, ppxf_bestfit, goodPixels_ppxf, optimal_template, logLam_template, npix, ubins)
+        save_ppxf(rootname, outdir, ppxf_result, mc_results, formal_error, lambda_r, ppxf_bestfit, logLam, goodPixels_ppxf, optimal_template, logLam_template, npix, ubins)
 
         # Do plotting
         try: 

@@ -86,7 +86,10 @@ def read_cube(DEBUG, filename, configs):
     wave  = wave[idx]
 
     # Computing the SNR per spaxel
-    idx_snr = np.where( np.logical_and( wave >= configs['LMIN_SNR'], wave <= configs['LMAX_SNR'] ) )[0]
+    idx_snr   = np.where( np.logical_and.reduce([ \
+        wave >= configs['LMIN_SNR'], \
+        wave <= configs['LMAX_SNR'], \
+        np.logical_or( wave < 5780/(1+configs['REDSHIFT']), wave > 6048/(1+configs['REDSHIFT'])) ]))[0]
     signal  = np.nanmedian(spec[idx_snr,:],axis=0)
     if len(hdu) == 3:
         noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
@@ -101,6 +104,11 @@ def read_cube(DEBUG, filename, configs):
     logging.info("Extracting spectral information:\n"\
             +loggingBlanks+"* Shortened spectra to wavelength range from "+str(lmin)+" to "+str(lmax)+" Angst.\n"\
             +loggingBlanks+"* Spectral pixelsize in velocity space is "+str(velscale)+" km/s")
+
+    # Replacing the np.nan in the laser region by the median of the spectrum
+    idx_laser          = np.where( np.logical_and( wave > 5780 / (1+configs['REDSHIFT']), wave < 6048 / (1+configs['REDSHIFT'])) )[0]
+    spec[idx_laser,:]  = signal
+    espec[idx_laser,:] = noise
 
     # Storing everything into a structure
     cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr,\

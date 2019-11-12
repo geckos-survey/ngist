@@ -5,66 +5,6 @@
 #                                          T H E   G I S T   P I P E L I N E
 #
 # ======================================================================================================================
-#
-#
-#  NAME:       The GIST Pipeline
-#  VERSION:    1.1.1
-#  PURPOSE:    A modular, general and parallelised pipeline for the analysis of integral-field spectroscopic data
-#
-#  AUTHOR:     Adrian Bittner
-#  CREDITS:    See Bittner et al. 2019; A&A, 628, A117
-#  MAINTAINER: Adrian Bittner
-#  EMAIL:      adrian.bittner@eso.org
-#
-#  COPYRIGHT:  Copyright (c) 2019 Adrian Bittner
-#
-#  LICENSE:    This software is provided as is without any warranty whatsoever. Permission to use, for non-commercial
-#              purposes is granted. Permission to modify for personal or internal use is granted, provided this
-#              copyright and disclaimer are included in all copies of the software. Redistribution of the code, modified
-#              or not, is not allowed. All other rights are reserved.                      
-#
-#  STATUS:     Production
-#
-#  COMMENTS:   If you use this code for any publication, please cite the paper Bittner et al. 2019 (A&A, 628, A117; 
-#              ui.adsabs.harvard.edu/abs/2019arXiv190604746B) and mention its webpage 
-#              (https://abittner.gitlab.io/thegistpipeline) in a footnote. 
-#              
-#              We remind the user to also cite the papers of the underlying analysis techniques and models, if these are
-#              used in the analysis. These are in particular: 
-#               * Voronoi-binning method: 
-#                   ui.adsabs.harvard.edu/?#abs/2003MNRAS.342..345C
-#               * Penalized Pixel-Fitting (pPXF) method: 
-#                   ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C
-#                   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C
-#               * pyGandALF routine: 
-#                   ui.adsabs.harvard.edu/?#abs/2006MNRAS.366.1151S
-#                   ui.adsabs.harvard.edu/abs/2006MNRAS.369..529F
-#                   ui.adsabs.harvard.edu/abs/2019arXiv190604746B
-#               * LS-Measurements routines: 
-#                   ui.adsabs.harvard.edu/?#abs/2006MNRAS.369..497K
-#                   ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M
-#               * MILES models: 
-#                   ui.adsabs.harvard.edu/#abs/2010MNRAS.404.1639V
-# 
-#              Although we provide this pipeline as a convenient, all-in-one framework for the analysis of IFS data, it
-#              is of fundamental importance that the user understands exactly how the involved analysis methods work.
-#              We warn that the improper use of any of these analysis methods, whether executed within the framework of
-#              the GIST pipeline or not, will likely result in spurious or erroneous results and their proper use is
-#              solely the responsibility of the user.  Likewise, the user should be fully aware of the properties of the
-#              input data before intending to derive high-level data products. Therefore, this pipeline should not be
-#              simply adopted as a black-box. To this extend, we urge any user to get familiar with both the input data
-#              and analysis methods, as well as their implementation in this pipeline.
-#
-#              We thank Harald Kuntschner and Alexandre Vazdekis for permission to distribute the Python version of the
-#              line strength measurement routine and the MILES model library with this software package. The authors
-#              also thank Michele Cappellari for permission to implement a Python translation of his log-unbinning
-#              routine. 
-#
-#  README:     For a throughout documentation of this software package, 
-#              please see https://abittner.gitlab.io/thegistpipeline
-#
-#
-# ======================================================================================================================
 
 
 
@@ -123,6 +63,7 @@ def runPipeline(galnumber, dirPath):
                         datefmt = '%m/%d/%y %H:%M:%S' )
     logging.Formatter.converter = time.gmtime    
     logging.info("\n\n# ================================================\n"\
+            +"#   THE GIST PIPELINE, V2.0  "\
             +"#   STARTUP OF PIPELINE\n# "+time.strftime("  %d-%b-%Y %H:%M:%S %Z", time.gmtime())+\
             "\n# ================================================")
 
@@ -166,7 +107,6 @@ def runPipeline(galnumber, dirPath):
     readCUBE = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(readCUBE)
         
-       
 
 
 # ==============================================================================
@@ -174,10 +114,12 @@ def runPipeline(galnumber, dirPath):
 # ==============================================================================
     print("\033[0;37m"+" - - - - - Running Preparation! - - - - - "+"\033[0;39m")
     logging.info(" - - - Running Preparation - - - ")
+
     # Read IFU cube
     cube = readCUBE.read_cube(DEBUG, datafile, configs)
-    # Select spaxels with SNR above threshold
-    idx_inside, idx_outside = util_prepare.apply_snr_threshold(cube['snr'], cube['signal'], configs['MIN_SNR'])
+
+    # Reject defunct spaxels and apply SNR threshold
+    idx_inside, idx_outside = util_prepare.rejectDefunctSpaxels_applySNRThreshold(cube, configs)
 
     if DEFINE_VORONOI_BINS == True:
         # Define Voronoi bins and save table

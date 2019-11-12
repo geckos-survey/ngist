@@ -131,7 +131,7 @@ def plot_line(LEVEL, FROM_PIPELINE, gandalf_Vel, gandalf_Sigma, gandalf_Flux, ga
     # Plot contours
     XY_Triangulation = Triangulation(X-pixelsize/2, Y-pixelsize/2)                      # Create a mesh from a Delaunay triangulation
     XY_Triangulation.set_mask( TriAnalyzer(XY_Triangulation).get_flat_tri_mask(0.01) )  # Remove bad triangles at the border of the field-of-view
-    levels = np.arange( np.min(np.log10( FLUX )) + contour_offset, np.max(np.log10( FLUX )), 0.2 )
+    levels = np.arange( np.nanmin(np.log10( FLUX )) + contour_offset, np.nanmax(np.log10( FLUX )), 0.2 )
     grid[0].tricontour(XY_Triangulation, np.log10(FLUX), levels=levels, linewidths=1, colors='k')
 
     # Label vmin and vmax
