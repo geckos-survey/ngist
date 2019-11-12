@@ -1,18 +1,30 @@
-# ==============================================================================
-#                   M O D I F I C A T I O N   H I S T O R Y
-# ==============================================================================
+# ========================================================================================
+#                        M O D I F I C A T I O N   H I S T O R Y
+# ========================================================================================
 
 
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+
+V2.0.0     2019-11-13    ADDED: 
+			  * Support different wavelength ranges in different modules,
+			    including a separate wavelength range for the SNR calculation.
+			  * Support AO in MUSE wide- and narrow-field mode
+			    Thanks to Sebastien Comeron for the suggestion. 
+			  * Support of sky-lines in spectralMasking_*.config
+			    Thanks to Sebastien Comeron for the suggestion. 
+			 CHANGED: 
+			  * Propagate defunct spaxels through the pipeline
 
 V1.1.1     2019-10-31    FIXED: 
-                          * Apply de-redshifting to laser wavelength range in MUSE_NFM.py
+			  * Apply de-redshifting to laser wavelength range in MUSE_NFM.py
 			  * Apply de-redshifting to LSF
+			    Thanks to Sebastien Comeron for reporting these bugs. 
 
-V1.1       2019-08-16    ADDED:   
+V1.1.0     2019-08-16    ADDED:   
 			  * Allow different initial guesses for different bins in pPXF
+			    Thanks to Michela Rubino for the suggestion. 
 			  * Read-in routine for single spectra in txt-format "PLAINTXT.py"
 	      	   	 FIXED:   
 			  * spectralMasking_SFH.config to handle one or zero masks
@@ -20,12 +32,11 @@ V1.1       2019-08-16    ADDED:
 	      	   	  * GandALF taking into account the LSF in doublet lines
 	      	   	 CHANGED:
 			  * Use stellar kinematics as initial guess on GandALF fit
-	      	   	  * Use np.nansum instead of np.nanmean to co-add spectra into Voronoi-bins
+	      	   	  * Use np.nansum instead of np.nanmean to co-add spectra into 
+			    Voronoi-bins
 	      	   	  * Pass ORIGIN in units of pixels
 	      	   	 REMOVED:
 			  * *_gandalf-residuals_*.fits output
 
-V1.0       2019-06-11    Release of first version
-
-
+V1.0.0     2019-06-11    Release of first version
 

@@ -6,7 +6,7 @@
 #
 #
 #  NAME:       The GIST Pipeline
-#  VERSION:    1.1.1
+#  VERSION:    2.0
 #  PURPOSE:    A modular, general and parallelised pipeline for the analysis of integral-field spectroscopic data
 #
 #  AUTHOR:     Adrian Bittner
@@ -58,7 +58,7 @@
 #              also thank Michele Cappellari for permission to implement a Python translation of his log-unbinning
 #              routine. 
 #
-#  README:     For a throughout documentation of this software package, 
+#  README:     For a thorough documentation of this software package, 
 #              please see https://abittner.gitlab.io/thegistpipeline
 #
 #

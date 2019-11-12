@@ -14,7 +14,7 @@ def createGISTHeaderComment(hdu):
     """
     hdu.header['COMMENT'] = ""
     hdu.header['COMMENT'] = "------------------------------------------------------------------------"
-    hdu.header['COMMENT'] = "                Generated with the GIST pipeline, V1.1.1                "
+    hdu.header['COMMENT'] = "                Generated with the GIST pipeline, V2.0                  "
     hdu.header['COMMENT'] = "------------------------------------------------------------------------"
     hdu.header['COMMENT'] = " Please cite Bittner et al. 2019 (A&A, 628, A117) and the corresponding "
     hdu.header['COMMENT'] = "       analysis routines if you use this data in any publication.       "
