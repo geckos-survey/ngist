@@ -78,7 +78,7 @@ def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_t
                       logLam_galaxy[1]-logLam_galaxy[0], goodpixels, degree, mdegree, int_disp, plot, quiet, log10, reddening,\
                       logLam_template[0], for_errors, velscale_ratio, offset)
         
-        return( [weights, emission_templates, bestfit, sol, esol] )
+            return( [weights, emission_templates, bestfit, sol, esol] )
         
         except:
             return( [-1, -1, -1, -1, -1] )
