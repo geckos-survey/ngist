@@ -67,18 +67,18 @@ def run_gandalf(spectrum, error, stellar_kin, templates, logLam_galaxy, logLam_t
             # Get goodpixels and emission_setup
             goodpixels, emission_setup = getGoodpixelsEmissionSetup\
                     ('GANDALF', emi_file, redshift, velscale, logLam_galaxy, logLam_template, npix, outdir)
-        
+            
             # Initial guess on velocity: Use value relative to stellar kinematics
             for itm in np.arange(len(emission_setup)):
                 emission_setup[itm].v = emission_setup[itm].v + stellar_kin[0] 
-        
+            
             # Run GANDALF
             weights, emission_templates, bestfit, sol, esol = gandalf.gandalf\
                     ( templates, spectrum, error, velscale, stellar_kin, emission_setup, logLam_galaxy[0], \
                       logLam_galaxy[1]-logLam_galaxy[0], goodpixels, degree, mdegree, int_disp, plot, quiet, log10, reddening,\
                       logLam_template[0], for_errors, velscale_ratio, offset)
         
-            return( [weights, emission_templates, bestfit, sol, esol] )
+        return( [weights, emission_templates, bestfit, sol, esol] )
         
         except:
             return( [-1, -1, -1, -1, -1] )
@@ -486,7 +486,7 @@ def runModule_GANDALF(GANDALF, PARALLEL, configs, velscale, LSF_Data, LSF_Templa
 
         # Construct mask for defunct spaxels
         maskedSpaxel = np.zeros(nbins, dtype=bool)
-        idx_bad      = np.where( np.logical_or(  np.any(np.isnan(spectra), axis=0) == True,  np.nanmedian(spectra, axis=0) <= 0.0 ))[0]
+        idx_bad      = np.where( np.logical_or( np.any(np.isnan(spectra) == True, axis=0), np.nanmedian(spectra, axis=0) <= 0.0 ))[0]
         maskedSpaxel[idx_bad] = True
 
         # Prepare templates

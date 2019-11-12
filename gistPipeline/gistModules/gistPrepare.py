@@ -30,8 +30,8 @@ def rejectDefunctSpaxels_applySNRThreshold(cube, configs):
     spaxels as outside of the analysis region. 
     """
     # Select defunct spaxels
-    idx_good = np.where( np.logical_and( np.any(np.isnan(cube['spec']), axis=0) == False, np.nanmedian(cube['spec'], axis=0) >  0.0 ))[0]
-    idx_bad  = np.where( np.logical_or(  np.any(np.isnan(cube['spec']), axis=0) == True,  np.nanmedian(cube['spec'], axis=0) <= 0.0 ))[0]
+    idx_good = np.where( np.logical_and( np.all(np.isnan(cube['spec']) == False, axis=0), np.nanmedian(cube['spec'], axis=0) >  0.0 ))[0]
+    idx_bad  = np.where( np.logical_or(  np.any(np.isnan(cube['spec']) == True,  axis=0), np.nanmedian(cube['spec'], axis=0) <= 0.0 ))[0]
 
     # Select spaxels with SNR above threshold
     idx_inside, idx_outside = applySNRThreshold(cube['snr'][idx_good], cube['signal'][idx_good], configs['MIN_SNR'])
