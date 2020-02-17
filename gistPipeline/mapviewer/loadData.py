@@ -101,7 +101,7 @@ def loadData(self):
         self.ppxfLambda   = fits.open(self.dirprefix+'_ppxf-bestfit.fits')[2].data.LOGLAM
         self.ppxfGoodpix  = fits.open(self.dirprefix+'_ppxf-goodpix.fits')[1].data.GOODPIX
 
-        median_V_stellar       = np.nanmedian( self.ppxf_results[:,0] )
+        median_V_stellar       = np.nanmedian( self.ppxf_results[ np.where( self.table.BIN_ID >= 0 )[0] ,0] )
         self.ppxf_results[:,0] = self.ppxf_results[:,0] - median_V_stellar
 
 
