@@ -98,7 +98,7 @@ def read_cube(DEBUG, filename, configs):
             'signal':signal, 'noise':noise, 'velscale':velscale, 'pixelsize':pixelsize}
 
     # Constrain cube to one central row if switch DEBUG is set
-    if DEBUG == True: cube = set_debug(cube, xy_extent[0], xy_extent[1])
+    if DEBUG == True: cube = set_debug(cube, s[2], s[1])
 
     pipeline.prettyOutput_Done("Reading the CALIFA V500 cube")
     print("             Read "+str(len(cube['x']))+" spectra!")
