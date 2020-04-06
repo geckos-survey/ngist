@@ -79,10 +79,13 @@ def read_cube(DEBUG, filename, configs):
     espec = espec[idx,:]
     wave  = wave[idx]
 
+    # Pass error spectra as variances instead of stddev
+    espec = espec**2
+
     # Computing the SNR per spaxel
     idx_snr = np.where( np.logical_and( wave >= configs['LMIN_SNR'], wave <= configs['LMAX_SNR'] ) )[0]
     signal = np.nanmedian(spec[idx_snr,:],axis=0)
-    noise  = np.abs(np.nanmedian(espec[idx_snr,:],axis=0))
+    noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
     snr    = signal / noise
     logging.info("Computing the signal-to-noise ratio per spaxel.")
 
