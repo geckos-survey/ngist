@@ -7,6 +7,25 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V2.1       2020-04-06	 CHANGED: 
+			  * Changed definition of npad variable in Gandalf analogue 
+			    to PPXF. Thanks to Alireza Molaeinezhad for the suggestion. 
+			  * Check dimensions of templates at read-in to allow the use of 
+			    Miles stars. Thanks to Thomas Spriggs for the suggestion. 
+			  * Modified CALIFA read-in routines to pass variances in 
+			    error spectra. 
+			 FIXED:
+			  * Added missing np.sqrt in the calculation of error spectra
+			    of bins consisting of single spaxels. Thanks to Sebastien 
+			    Comeron for reporting this bug. 
+			  * Neglect negative BIN_IDs in the calculation of the reference 
+			    velocity in Mapviewer. Thanks to Isabel Pérez. 
+			  * Enable DEBUG-mode in read-in routines by passing shape of cube
+			    Thanks to Adriano Poci for reporting this bug. 
+			  * Mapviewer: Plot the spectrum of the nearest valid bin if a bin
+			    outside of the Voronoi-region is selected. 
+			    Thanks to Michela Rubino. 
+
 V2.0.0     2019-11-13    ADDED: 
 			  * Support different wavelength ranges in different modules,
 			    including a separate wavelength range for the SNR calculation.
