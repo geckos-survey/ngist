@@ -6,7 +6,7 @@ def readme():
         return(file.read())
 
 setup(name='gistPipeline',
-      version='1.1.1',
+      version='2.1',
       description='A Multi-Purpose IFS Analysis Pipeline',
       long_description=readme(),
       classifiers=[

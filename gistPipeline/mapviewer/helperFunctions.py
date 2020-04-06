@@ -31,8 +31,8 @@ def getVoronoiBin(self):
         return(None)
 
     # Save index of chosen Voronoi-bin
-    self.idxBinLong  = final_idx                    # In Spaxel arrays
-    self.idxBinShort = self.table.BIN_ID[final_idx] # In Bin arrays
+    self.idxBinLong  = final_idx                            # In Spaxel arrays
+    self.idxBinShort = np.abs(self.table.BIN_ID[final_idx]) # In Bin arrays
 
     # Plot data
     self.plotData() 

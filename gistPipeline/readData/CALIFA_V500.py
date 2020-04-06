@@ -79,10 +79,13 @@ def read_cube(DEBUG, filename, configs):
     espec = espec[idx,:]
     wave  = wave[idx]
 
+    # Pass error spectra as variances instead of stddev
+    espec = espec**2
+
     # Computing the SNR per spaxel
     idx_snr = np.where( np.logical_and( wave >= configs['LMIN_SNR'], wave <= configs['LMAX_SNR'] ) )[0]
     signal = np.nanmedian(spec[idx_snr,:],axis=0)
-    noise  = np.abs(np.nanmedian(espec[idx_snr,:],axis=0))
+    noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
     snr    = signal / noise
     logging.info("Computing the signal-to-noise ratio per spaxel.")
 
@@ -98,7 +101,7 @@ def read_cube(DEBUG, filename, configs):
             'signal':signal, 'noise':noise, 'velscale':velscale, 'pixelsize':pixelsize}
 
     # Constrain cube to one central row if switch DEBUG is set
-    if DEBUG == True: cube = set_debug(cube, xy_extent[0], xy_extent[1])
+    if DEBUG == True: cube = set_debug(cube, s[2], s[1])
 
     pipeline.prettyOutput_Done("Reading the CALIFA V500 cube")
     print("             Read "+str(len(cube['x']))+" spectra!")

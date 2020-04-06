@@ -790,7 +790,7 @@ def convolve_templates_new(templates, kinstars, velscale, npix_gal, velscale_rat
 #
   npix_temp = len(templates[0,:])
   templates = templates.T
-  npad = fftpack.next_fast_len(templates.shape[0])
+  npad = 2**int(np.ceil(np.log2(templates.shape[0])))
   templates_rfft = np.fft.rfft(templates, npad, axis=0)
 #
   pars = kinstars 

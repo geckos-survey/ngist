@@ -223,7 +223,7 @@ def prepareSpectralTemplateLibrary(module, configs, lmin, lmax, velscale, velsca
 
     # Read data
     hdu_spmod      = fits.open(sp_models[0])
-    ssp_data       = hdu_spmod[0].data
+    ssp_data       = np.squeeze(hdu_spmod[0].data)
     ssp_head       = hdu_spmod[0].header
     lamRange_spmod = ssp_head['CRVAL1'] + np.array([0., ssp_head['CDELT1']*(ssp_head['NAXIS1'] - 1)])
 
@@ -271,7 +271,7 @@ def prepareSpectralTemplateLibrary(module, configs, lmin, lmax, velscale, velsca
         templates = np.empty((sspNew.size, ntemplates))
         for j, file in enumerate(sp_models):
             hdu      = fits.open(file)
-            ssp_data = hdu[0].data[idx_lam]
+            ssp_data = np.squeeze(hdu[0].data)[idx_lam]
             ssp_data = gaussian_filter1d(ssp_data, sigma)
             templates[:, j], logLam_spmod, _ = log_rebin(lamRange_spmod, ssp_data, velscale=velscale/velscale_ratio)
    
@@ -310,7 +310,7 @@ def prepareSpectralTemplateLibrary(module, configs, lmin, lmax, velscale, velsca
                 # This sorts for ages
                 for j, filename in enumerate(files):
                     hdu = fits.open(filename)
-                    ssp = hdu[0].data[idx_lam]
+                    ssp = np.squeeze(hdu[0].data)[idx_lam]
                     ssp = gaussian_filter1d(ssp, sigma)
                     sspNew, logLam2, _ = log_rebin(lamRange_spmod, ssp, velscale=velscale/velscale_ratio)
     
