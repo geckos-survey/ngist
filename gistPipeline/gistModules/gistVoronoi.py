@@ -237,7 +237,7 @@ def voronoi_binning( binNum, spec, error ):
         valbin = len(k)
         if valbin == 1:
            av_spec     = spec[:,k]
-           av_err_spec = error[:,k]
+           av_err_spec = np.sqrt(error[:,k])
         else:
            av_spec     = np.nansum(spec[:,k],axis=1)
            av_err_spec = np.sqrt(np.sum(error[:,k],axis=1))
