@@ -1,0 +1,29 @@
+image: python:latest
+
+before_script:
+    - pip install -U twine 
+
+auto-deploy:
+    stage: deploy
+    only:
+        # Every push to master is a stable release version
+        - master
+    script:
+        #
+        # Copy the master branch to a public GitLab repository
+        - if [ $CI_PROJECT_NAME == "gist-development" ]; 
+            then
+            echo "Deploy to public mirror of repository"; 
+            git remote add publicRepo https://abittner:${GITLAB_ACCESS_TOKEN}@gitlab.com:443/abittner/gist-releases.git; 
+            git push publicRepo HEAD:$CI_COMMIT_REF_NAME --tags --force; 
+          fi;
+        #
+        # Deploy any stable version to PyPi
+        # twine upload dist/*; 
+        - if [ $CI_PROJECT_NAME == "gist-development" ];
+            then
+            echo "Deploy to PyPi"; 
+            python setup.py sdist bdist_wheel; 
+            twine check dist/*; 
+            twine upload --repository-url https://test.pypi.org/legacy/ dist/*; 
+          fi;

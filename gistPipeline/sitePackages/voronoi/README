@@ -1,3 +1,0 @@
-If this subdirectory is empty, the GIST pipeline uses the system-wide installed version of the Voronoi-binning routine
-in its analysis. If a specific version of this routine is placed in this subdirectory, it is use preferentially to the
-system-wide installed version. 
