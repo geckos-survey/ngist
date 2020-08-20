@@ -3,7 +3,7 @@ from setuptools import find_packages
 import os
 
 def readme():
-    with open('README') as file:
+    with open('README.md') as file:
         return(file.read())
 
 def versionNumber():
@@ -13,6 +13,7 @@ def versionNumber():
 setup(name='gistPipeline',
       version=versionNumber(),
       description='A Multi-Purpose IFS Analysis Pipeline',
+      long_description_content_type="text/markdown",
       long_description=readme(),
       classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -21,7 +22,7 @@ setup(name='gistPipeline',
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: Astronomy',
       ],
-      url='abittner.gitlab.io/thegistpipeline/',
+      url='https://abittner.gitlab.io/thegistpipeline/',
       author='Adrian Bittner',
       author_email='adrian.bittner@eso.org',
       license='Other/Proprietary License',
@@ -39,7 +40,7 @@ setup(name='gistPipeline',
         'plotbin==3.1.3',
         'printStatus>=1.0',
       ],
-      python_requires='==3.6',
+      python_requires='==3.6.*',
       entry_points={
         'console_scripts': [
             'gistPipeline        = gistPipeline.MainPipeline:main'
