@@ -1,598 +1,142 @@
 from PyQt5 import QtCore, QtGui, QtWidgets as pyqt
 
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg    as FigureCanvas
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+
+
+def returnPlotFunction(self, module, name):
+    """ 
+    Function to connect the correct plotting routine for the maps to the entries
+    in the menu bar. 
+    """
+    return lambda: self.plotMap(module, name)
 
 
 def createWindow(self):
     """
-    This function creates the GUI window in which everything is displayed. 
-    The main steps are: 
-     * Add the matplotlib figure to the window
-     * Create a menu bar
-     * Add entries to the menu bar
-
-    TODO: 
-      In a future version the menu bar entries should be generated
-      automatically from the available outputs. Note that this might require the
-      restart of the entire GUI interface. 
+    This function creates the menu bar which allows to plot the measured
+    quantities as maps. The entries in the menu bar are automatically generated,
+    depending on what columns are included in the output files. Note that this
+    allows to display any non-default output columns in Mapviewer. 
     """
 
-    # Add plot to window
-    self.canvas = FigureCanvas(self.figure)
-    self.toolbar = NavigationToolbar(self.canvas, self)
-    self.canvas.mpl_connect('pick_event', self.onpick)
-    self.canvas.draw()
-
     # Create main menu bar
-    mainMenu = self.menuBar()
-    mainMenu.setNativeMenuBar(False)
-    fileMenu    = mainMenu.addMenu('File')
-    tableMenu   = mainMenu.addMenu('Table')
-    ppxfMenu    = mainMenu.addMenu('PPXF')
-    gandalfMenu = mainMenu.addMenu('Gandalf')
-    sfhMenu     = mainMenu.addMenu('SFH')
-    lsMenu      = mainMenu.addMenu('Line Strength')
-    aboutMenu   = mainMenu.addMenu('About')
+    self.menuBar().clear()
+    self.menuBar().setNativeMenuBar(False)
+    fileMenu  = self.menuBar().addMenu('File')
+    tableMenu = self.menuBar().addMenu('Table')
+    maskMenu  = self.menuBar().addMenu('Mask')
+    kinMenu   = self.menuBar().addMenu('Kinematics')
+    gasMenu   = self.menuBar().addMenu('Emission Lines')
+    sfhMenu   = self.menuBar().addMenu('SFH')
+    lsMenu    = self.menuBar().addMenu('Line Strength')
+    aboutMenu = self.menuBar().addMenu('About')
 
     if self.forAleksandra == True: 
-        mainMenu.setStyleSheet("""
+        # This is an easter egg :)
+        self.menuBar().setStyleSheet("""
           QMenuBar       { background-color: #FF00FF }
           QMenuBar::item { background-color: #FF00FF }
           QMenu          { background-color: #FF00FF }
         """)
+
 
     # ====================
     # FILE MENU
     openButton = pyqt.QAction('Open', self)
     openButton.triggered.connect(self.dialogRunSelection)
     openButton.setShortcut('Ctrl+O')
+    fileMenu.addAction(openButton) 
+
     settingsButton = pyqt.QAction('Settings', self)
     settingsButton.triggered.connect(self.dialogSettings)
     settingsButton.setShortcut('Ctrl+S')
+    fileMenu.addAction(settingsButton) 
+
     binidButton = pyqt.QAction('Select ID', self)
     binidButton.triggered.connect(self.dialogBinID)
     binidButton.setShortcut('Ctrl+B')
+    fileMenu.addAction(binidButton) 
+
     InfoButton = pyqt.QAction('Info', self)
     InfoButton.triggered.connect(self.dialogInfo)
     InfoButton.setShortcut('Ctrl+I')
+    fileMenu.addAction(InfoButton) 
+
     exitButton = pyqt.QAction('Exit', self)
     exitButton.setShortcut('Ctrl+W')
     exitButton.setStatusTip('Exit application')
     exitButton.triggered.connect(self.close)
-
-    fileMenu.addAction(openButton) 
-    fileMenu.addAction(settingsButton) 
-    fileMenu.addAction(binidButton) 
-    fileMenu.addAction(InfoButton) 
     fileMenu.addSeparator()
     fileMenu.addAction(exitButton) 
 
 
     # ====================
     # TABLE MENU
-    BinIDButton = pyqt.QAction('BIN_ID', self)
-    BinIDButton.triggered.connect(lambda: self.plotMap("Table_BINID"))
-    FluxButton = pyqt.QAction('Flux', self)
-    FluxButton.triggered.connect(lambda: self.plotMap("Table_FLUX"))
-    SNRButton = pyqt.QAction('SNR', self)
-    SNRButton.triggered.connect(lambda: self.plotMap("Table_SNR"))
-    SNRbinButton = pyqt.QAction('SNRbin', self)
-    SNRbinButton.triggered.connect(lambda: self.plotMap("Table_SNRBIN"))
-    NSpaxButton = pyqt.QAction('NSPAX', self)
-    NSpaxButton.triggered.connect(lambda: self.plotMap("Table_NSPAX"))
-
-    tableMenu.addAction(BinIDButton)
-    tableMenu.addAction(FluxButton)
-    tableMenu.addAction(SNRButton)
-    tableMenu.addAction(SNRbinButton)
-    tableMenu.addAction(NSpaxButton)
+    for name in self.table.names:
+        if name not in ['ID','X','Y','XBIN','YBIN']:
+            button = tableMenu.addAction(name)
+            button.triggered.connect(returnPlotFunction(self, 'TABLE', name))
 
 
     # ====================
-    # PPXF MENU
-    VButton = pyqt.QAction('V', self)
-    VButton.triggered.connect(lambda: self.plotMap("PPXF_V"))
-    SigmaButton = pyqt.QAction('SIGMA', self)
-    SigmaButton.triggered.connect(lambda: self.plotMap("PPXF_SIGMA"))
-    H3Button = pyqt.QAction('H3', self)
-    H3Button.triggered.connect(lambda: self.plotMap("PPXF_H3"))
-    H4Button = pyqt.QAction('H4', self)
-    H4Button.triggered.connect(lambda: self.plotMap("PPXF_H4"))
-    LambdaRButton = pyqt.QAction('LAMBDA_R', self)
-    LambdaRButton.triggered.connect(lambda: self.plotMap("PPXF_LAMBDAR"))
-
-    ppxfMenu.addAction(VButton)
-    ppxfMenu.addAction(SigmaButton)
-    ppxfMenu.addAction(H3Button)
-    ppxfMenu.addAction(H4Button)
-    ppxfMenu.addAction(LambdaRButton)
+    # MASK MENU
+    if self.MASK == True:
+        for name in self.Mask.names:
+            button = maskMenu.addAction(name)
+            button.triggered.connect(returnPlotFunction(self, 'MASK', name))
+    elif self.MASK == False: 
+        button = maskMenu.addAction("  Not available.  ")
+        button.setDisabled(True)
 
 
     # ====================
-    # GANDALF MENU
-    Halpha_Submenu = pyqt.QMenu('Ha_6562.80', self)
-    V_Ha = pyqt.QAction('Velocity', self);  Halpha_Submenu.addAction(V_Ha)
-    S_Ha = pyqt.QAction('Sigma', self);     Halpha_Submenu.addAction(S_Ha)
-    A_Ha = pyqt.QAction('Amplitude', self); Halpha_Submenu.addAction(A_Ha)
-    F_Ha = pyqt.QAction('Flux', self);      Halpha_Submenu.addAction(F_Ha)
-    V_Ha.triggered.connect(lambda: self.plotMap("V_Ha_6562.80"))
-    S_Ha.triggered.connect(lambda: self.plotMap("S_Ha_6562.80"))
-    A_Ha.triggered.connect(lambda: self.plotMap("A_Ha_6562.80"))
-    F_Ha.triggered.connect(lambda: self.plotMap("F_Ha_6562.80"))
-    #
-    Hbeta_Submenu = pyqt.QMenu('Hb_4861.32', self)
-    V_Hb = pyqt.QAction('Velocity', self);  Hbeta_Submenu.addAction(V_Hb)
-    S_Hb = pyqt.QAction('Sigma', self);     Hbeta_Submenu.addAction(S_Hb)
-    A_Hb = pyqt.QAction('Amplitude', self); Hbeta_Submenu.addAction(A_Hb)
-    F_Hb = pyqt.QAction('Flux', self);      Hbeta_Submenu.addAction(F_Hb)
-    V_Hb.triggered.connect(lambda: self.plotMap("V_Hb_4861.32"))
-    S_Hb.triggered.connect(lambda: self.plotMap("S_Hb_4861.32"))
-    A_Hb.triggered.connect(lambda: self.plotMap("A_Hb_4861.32"))
-    F_Hb.triggered.connect(lambda: self.plotMap("F_Hb_4861.32"))
-    #
-    Hd_Submenu = pyqt.QMenu('Hd_4101.73', self)
-    V_Hd = pyqt.QAction('Velocity', self);  Hd_Submenu.addAction(V_Hd)
-    S_Hd = pyqt.QAction('Sigma', self);     Hd_Submenu.addAction(S_Hd)
-    A_Hd = pyqt.QAction('Amplitude', self); Hd_Submenu.addAction(A_Hd)
-    F_Hd = pyqt.QAction('Flux', self);      Hd_Submenu.addAction(F_Hd)
-    V_Hd.triggered.connect(lambda: self.plotMap("V_Hd_4101.73"))
-    S_Hd.triggered.connect(lambda: self.plotMap("S_Hd_4101.73"))
-    A_Hd.triggered.connect(lambda: self.plotMap("A_Hd_4101.73"))
-    F_Hd.triggered.connect(lambda: self.plotMap("F_Hd_4101.73"))
-    #
-    He_Submenu = pyqt.QMenu('He_3970.07', self)
-    V_He = pyqt.QAction('Velocity', self);  He_Submenu.addAction(V_He)
-    S_He = pyqt.QAction('Sigma', self);     He_Submenu.addAction(S_He)
-    A_He = pyqt.QAction('Amplitude', self); He_Submenu.addAction(A_He)
-    F_He = pyqt.QAction('Flux', self);      He_Submenu.addAction(F_He)
-    V_He.triggered.connect(lambda: self.plotMap("V_He_3970.07"))
-    S_He.triggered.connect(lambda: self.plotMap("S_He_3970.07"))
-    A_He.triggered.connect(lambda: self.plotMap("A_He_3970.07"))
-    F_He.triggered.connect(lambda: self.plotMap("F_He_3970.07"))
-    #
-    H5_Submenu = pyqt.QMenu('H5_3889.05', self)
-    V_H5 = pyqt.QAction('Velocity', self);  H5_Submenu.addAction(V_H5)
-    S_H5 = pyqt.QAction('Sigma', self);     H5_Submenu.addAction(S_H5)
-    A_H5 = pyqt.QAction('Amplitude', self); H5_Submenu.addAction(A_H5)
-    F_H5 = pyqt.QAction('Flux', self);      H5_Submenu.addAction(F_H5)
-    V_H5.triggered.connect(lambda: self.plotMap("V_H5_3889.05"))
-    S_H5.triggered.connect(lambda: self.plotMap("S_H5_3889.05"))
-    A_H5.triggered.connect(lambda: self.plotMap("A_H5_3889.05"))
-    F_H5.triggered.connect(lambda: self.plotMap("F_H5_3889.05"))
-    #
-    HeI_Submenu = pyqt.QMenu('HeI_5875.60', self)
-    V_HeI = pyqt.QAction('Velocity', self);  HeI_Submenu.addAction(V_HeI)
-    S_HeI = pyqt.QAction('Sigma', self);     HeI_Submenu.addAction(S_HeI)
-    A_HeI = pyqt.QAction('Amplitude', self); HeI_Submenu.addAction(A_HeI)
-    F_HeI = pyqt.QAction('Flux', self);      HeI_Submenu.addAction(F_HeI)
-    V_HeI.triggered.connect(lambda: self.plotMap("V_HeI_5875.60"))
-    S_HeI.triggered.connect(lambda: self.plotMap("S_HeI_5875.60"))
-    A_HeI.triggered.connect(lambda: self.plotMap("A_HeI_5875.60"))
-    F_HeI.triggered.connect(lambda: self.plotMap("F_HeI_5875.60"))
-    #
-    HeII_3203_Submenu = pyqt.QMenu('HeII_3203.15', self)
-    V_HeII_3203 = pyqt.QAction('Velocity', self);  HeII_3203_Submenu.addAction(V_HeII_3203)
-    S_HeII_3203 = pyqt.QAction('Sigma', self);     HeII_3203_Submenu.addAction(S_HeII_3203)
-    A_HeII_3203 = pyqt.QAction('Amplitude', self); HeII_3203_Submenu.addAction(A_HeII_3203)
-    F_HeII_3203 = pyqt.QAction('Flux', self);      HeII_3203_Submenu.addAction(F_HeII_3203)
-    V_HeII_3203.triggered.connect(lambda: self.plotMap("V_HeII_3203.15"))
-    S_HeII_3203.triggered.connect(lambda: self.plotMap("S_HeII_3203.15"))
-    A_HeII_3203.triggered.connect(lambda: self.plotMap("A_HeII_3203.15"))
-    F_HeII_3203.triggered.connect(lambda: self.plotMap("F_HeII_3203.15"))
-    #
-    HeII_4685_Submenu = pyqt.QMenu('HeII_4685.74', self)
-    V_HeII_4685 = pyqt.QAction('Velocity', self);  HeII_4685_Submenu.addAction(V_HeII_4685)
-    S_HeII_4685 = pyqt.QAction('Sigma', self);     HeII_4685_Submenu.addAction(S_HeII_4685)
-    A_HeII_4685 = pyqt.QAction('Amplitude', self); HeII_4685_Submenu.addAction(A_HeII_4685)
-    F_HeII_4685 = pyqt.QAction('Flux', self);      HeII_4685_Submenu.addAction(F_HeII_4685)
-    V_HeII_4685.triggered.connect(lambda: self.plotMap("V_HeII_4685.74"))
-    S_HeII_4685.triggered.connect(lambda: self.plotMap("S_HeII_4685.74"))
-    A_HeII_4685.triggered.connect(lambda: self.plotMap("A_HeII_4685.74"))
-    F_HeII_4685.triggered.connect(lambda: self.plotMap("F_HeII_4685.74"))
-    # 
-    OI_6300_Submenu = pyqt.QMenu('[OI]_6300.20', self)
-    V_OI_6300 = pyqt.QAction('Velocity', self);  OI_6300_Submenu.addAction(V_OI_6300)
-    S_OI_6300 = pyqt.QAction('Sigma', self);     OI_6300_Submenu.addAction(S_OI_6300)
-    A_OI_6300 = pyqt.QAction('Amplitude', self); OI_6300_Submenu.addAction(A_OI_6300)
-    F_OI_6300 = pyqt.QAction('Flux', self);      OI_6300_Submenu.addAction(F_OI_6300)
-    V_OI_6300.triggered.connect(lambda: self.plotMap("V_[OI]_6300.20"))
-    S_OI_6300.triggered.connect(lambda: self.plotMap("S_[OI]_6300.20"))
-    A_OI_6300.triggered.connect(lambda: self.plotMap("A_[OI]_6300.20"))
-    F_OI_6300.triggered.connect(lambda: self.plotMap("F_[OI]_6300.20"))
-    #
-    OI_6363_Submenu = pyqt.QMenu('[OI]_6363.67', self)
-    V_OI_6363 = pyqt.QAction('Velocity', self);  OI_6363_Submenu.addAction(V_OI_6363)
-    S_OI_6363 = pyqt.QAction('Sigma', self);     OI_6363_Submenu.addAction(S_OI_6363)
-    A_OI_6363 = pyqt.QAction('Amplitude', self); OI_6363_Submenu.addAction(A_OI_6363)
-    F_OI_6363 = pyqt.QAction('Flux', self);      OI_6363_Submenu.addAction(F_OI_6363)
-    V_OI_6363.triggered.connect(lambda: self.plotMap("V_[OI]_6363.67"))
-    S_OI_6363.triggered.connect(lambda: self.plotMap("S_[OI]_6363.67"))
-    A_OI_6363.triggered.connect(lambda: self.plotMap("A_[OI]_6363.67"))
-    F_OI_6363.triggered.connect(lambda: self.plotMap("F_[OI]_6363.67"))
-    #
-    OII_3726_Submenu = pyqt.QMenu('[OII]_3726.03', self)
-    V_OII_3726 = pyqt.QAction('Velocity', self);  OII_3726_Submenu.addAction(V_OII_3726)
-    S_OII_3726 = pyqt.QAction('Sigma', self);     OII_3726_Submenu.addAction(S_OII_3726)
-    A_OII_3726 = pyqt.QAction('Amplitude', self); OII_3726_Submenu.addAction(A_OII_3726)
-    F_OII_3726 = pyqt.QAction('Flux', self);      OII_3726_Submenu.addAction(F_OII_3726)
-    V_OII_3726.triggered.connect(lambda: self.plotMap("V_[OII]_3726.03"))
-    S_OII_3726.triggered.connect(lambda: self.plotMap("S_[OII]_3726.03"))
-    A_OII_3726.triggered.connect(lambda: self.plotMap("A_[OII]_3726.03"))
-    F_OII_3726.triggered.connect(lambda: self.plotMap("F_[OII]_3726.03"))
-    #
-    OII_3728_Submenu = pyqt.QMenu('[OII]_3728.73', self)
-    V_OII_3728 = pyqt.QAction('Velocity', self);  OII_3728_Submenu.addAction(V_OII_3728)
-    S_OII_3728 = pyqt.QAction('Sigma', self);     OII_3728_Submenu.addAction(S_OII_3728)
-    A_OII_3728 = pyqt.QAction('Amplitude', self); OII_3728_Submenu.addAction(A_OII_3728)
-    F_OII_3728 = pyqt.QAction('Flux', self);      OII_3728_Submenu.addAction(F_OII_3728)
-    V_OII_3728.triggered.connect(lambda: self.plotMap("V_[OII]_3728.73"))
-    S_OII_3728.triggered.connect(lambda: self.plotMap("S_[OII]_3728.73"))
-    A_OII_3728.triggered.connect(lambda: self.plotMap("A_[OII]_3728.73"))
-    F_OII_3728.triggered.connect(lambda: self.plotMap("F_[OII]_3728.73"))
-    #
-    OIII_4363_Submenu = pyqt.QMenu('[OIII]_4363.15', self)
-    V_OIII_4363 = pyqt.QAction('Velocity', self);  OIII_4363_Submenu.addAction(V_OIII_4363)
-    S_OIII_4363 = pyqt.QAction('Sigma', self);     OIII_4363_Submenu.addAction(S_OIII_4363)
-    A_OIII_4363 = pyqt.QAction('Amplitude', self); OIII_4363_Submenu.addAction(A_OIII_4363)
-    F_OIII_4363 = pyqt.QAction('Flux', self);      OIII_4363_Submenu.addAction(F_OIII_4363)
-    V_OIII_4363.triggered.connect(lambda: self.plotMap("V_[OIII]_4363.15"))
-    S_OIII_4363.triggered.connect(lambda: self.plotMap("S_[OIII]_4363.15"))
-    A_OIII_4363.triggered.connect(lambda: self.plotMap("A_[OIII]_4363.15"))
-    F_OIII_4363.triggered.connect(lambda: self.plotMap("F_[OIII]_4363.15"))
-    #
-    OIII_4958_Submenu = pyqt.QMenu('[OIII]_4958.83', self)
-    V_OIII_4958 = pyqt.QAction('Velocity', self);  OIII_4958_Submenu.addAction(V_OIII_4958)
-    S_OIII_4958 = pyqt.QAction('Sigma', self);     OIII_4958_Submenu.addAction(S_OIII_4958)
-    A_OIII_4958 = pyqt.QAction('Amplitude', self); OIII_4958_Submenu.addAction(A_OIII_4958)
-    F_OIII_4958 = pyqt.QAction('Flux', self);      OIII_4958_Submenu.addAction(F_OIII_4958)
-    V_OIII_4958.triggered.connect(lambda: self.plotMap("V_[OIII]_4958.83"))
-    S_OIII_4958.triggered.connect(lambda: self.plotMap("S_[OIII]_4958.83"))
-    A_OIII_4958.triggered.connect(lambda: self.plotMap("A_[OIII]_4958.83"))
-    F_OIII_4958.triggered.connect(lambda: self.plotMap("F_[OIII]_4958.83"))
-    #
-    OIII_5006_Submenu = pyqt.QMenu('[OIII]_5006.77', self)
-    V_OIII_5006 = pyqt.QAction('Velocity', self);  OIII_5006_Submenu.addAction(V_OIII_5006)
-    S_OIII_5006 = pyqt.QAction('Sigma', self);     OIII_5006_Submenu.addAction(S_OIII_5006)
-    A_OIII_5006 = pyqt.QAction('Amplitude', self); OIII_5006_Submenu.addAction(A_OIII_5006)
-    F_OIII_5006 = pyqt.QAction('Flux', self);      OIII_5006_Submenu.addAction(F_OIII_5006)
-    V_OIII_5006.triggered.connect(lambda: self.plotMap("V_[OIII]_5006.77"))
-    S_OIII_5006.triggered.connect(lambda: self.plotMap("S_[OIII]_5006.77"))
-    A_OIII_5006.triggered.connect(lambda: self.plotMap("A_[OIII]_5006.77"))
-    F_OIII_5006.triggered.connect(lambda: self.plotMap("F_[OIII]_5006.77"))
-    #
-    NeV_3345_Submenu = pyqt.QMenu('[NeV]_3345.81', self)
-    V_NeV_3345 = pyqt.QAction('Velocity', self);  NeV_3345_Submenu.addAction(V_NeV_3345)
-    S_NeV_3345 = pyqt.QAction('Sigma', self);     NeV_3345_Submenu.addAction(S_NeV_3345)
-    A_NeV_3345 = pyqt.QAction('Amplitude', self); NeV_3345_Submenu.addAction(A_NeV_3345)
-    F_NeV_3345 = pyqt.QAction('Flux', self);      NeV_3345_Submenu.addAction(F_NeV_3345)
-    V_NeV_3345.triggered.connect(lambda: self.plotMap("V_[NeV]_3345.81"))
-    S_NeV_3345.triggered.connect(lambda: self.plotMap("S_[NeV]_3345.81"))
-    A_NeV_3345.triggered.connect(lambda: self.plotMap("A_[NeV]_3345.81"))
-    F_NeV_3345.triggered.connect(lambda: self.plotMap("F_[NeV]_3345.81"))
-    #
-    NeV_3425_Submenu = pyqt.QMenu('[NeV]_3425.81', self)
-    V_NeV_3425 = pyqt.QAction('Velocity', self);  NeV_3425_Submenu.addAction(V_NeV_3425)
-    S_NeV_3425 = pyqt.QAction('Sigma', self);     NeV_3425_Submenu.addAction(S_NeV_3425)
-    A_NeV_3425 = pyqt.QAction('Amplitude', self); NeV_3425_Submenu.addAction(A_NeV_3425)
-    F_NeV_3425 = pyqt.QAction('Flux', self);      NeV_3425_Submenu.addAction(F_NeV_3425)
-    V_NeV_3425.triggered.connect(lambda: self.plotMap("V_[NeV]_3425.81"))
-    S_NeV_3425.triggered.connect(lambda: self.plotMap("S_[NeV]_3425.81"))
-    A_NeV_3425.triggered.connect(lambda: self.plotMap("A_[NeV]_3425.81"))
-    F_NeV_3425.triggered.connect(lambda: self.plotMap("F_[NeV]_3425.81"))
-    #
-    NeIII_3868_Submenu = pyqt.QMenu('[NeIII]_3868.69', self)
-    V_NeIII_3868 = pyqt.QAction('Velocity', self);  NeIII_3868_Submenu.addAction(V_NeIII_3868)
-    S_NeIII_3868 = pyqt.QAction('Sigma', self);     NeIII_3868_Submenu.addAction(S_NeIII_3868)
-    A_NeIII_3868 = pyqt.QAction('Amplitude', self); NeIII_3868_Submenu.addAction(A_NeIII_3868)
-    F_NeIII_3868 = pyqt.QAction('Flux', self);      NeIII_3868_Submenu.addAction(F_NeIII_3868)
-    V_NeIII_3868.triggered.connect(lambda: self.plotMap("V_[NeIII]_3868.69"))
-    S_NeIII_3868.triggered.connect(lambda: self.plotMap("S_[NeIII]_3868.69"))
-    A_NeIII_3868.triggered.connect(lambda: self.plotMap("A_[NeIII]_3868.69"))
-    F_NeIII_3868.triggered.connect(lambda: self.plotMap("F_[NeIII]_3868.69"))
-    #
-    NeIII_3967_Submenu = pyqt.QMenu('[NeIII]_3967.40', self)
-    V_NeIII_3967 = pyqt.QAction('Velocity', self);  NeIII_3967_Submenu.addAction(V_NeIII_3967)
-    S_NeIII_3967 = pyqt.QAction('Sigma', self);     NeIII_3967_Submenu.addAction(S_NeIII_3967)
-    A_NeIII_3967 = pyqt.QAction('Amplitude', self); NeIII_3967_Submenu.addAction(A_NeIII_3967)
-    F_NeIII_3967 = pyqt.QAction('Flux', self);      NeIII_3967_Submenu.addAction(F_NeIII_3967)
-    V_NeIII_3967.triggered.connect(lambda: self.plotMap("V_[NeIII]_3967.40"))
-    S_NeIII_3967.triggered.connect(lambda: self.plotMap("S_[NeIII]_3967.40"))
-    A_NeIII_3967.triggered.connect(lambda: self.plotMap("A_[NeIII]_3967.40"))
-    F_NeIII_3967.triggered.connect(lambda: self.plotMap("F_[NeIII]_3967.40"))
-    #
-    NI_5197_Submenu = pyqt.QMenu('[NI]_5197.90', self)
-    V_NI_5197 = pyqt.QAction('Velocity', self);  NI_5197_Submenu.addAction(V_NI_5197)
-    S_NI_5197 = pyqt.QAction('Sigma', self);     NI_5197_Submenu.addAction(S_NI_5197)
-    A_NI_5197 = pyqt.QAction('Amplitude', self); NI_5197_Submenu.addAction(A_NI_5197)
-    F_NI_5197 = pyqt.QAction('Flux', self);      NI_5197_Submenu.addAction(F_NI_5197)
-    V_NI_5197.triggered.connect(lambda: self.plotMap("V_[NI]_5197.90"))
-    S_NI_5197.triggered.connect(lambda: self.plotMap("S_[NI]_5197.90"))
-    A_NI_5197.triggered.connect(lambda: self.plotMap("A_[NI]_5197.90"))
-    F_NI_5197.triggered.connect(lambda: self.plotMap("F_[NI]_5197.90"))
-    #
-    NI_5200_Submenu = pyqt.QMenu('[NI]_5200.39', self)
-    V_NI_5200 = pyqt.QAction('Velocity', self);  NI_5200_Submenu.addAction(V_NI_5200)
-    S_NI_5200 = pyqt.QAction('Sigma', self);     NI_5200_Submenu.addAction(S_NI_5200)
-    A_NI_5200 = pyqt.QAction('Amplitude', self); NI_5200_Submenu.addAction(A_NI_5200)
-    F_NI_5200 = pyqt.QAction('Flux', self);      NI_5200_Submenu.addAction(F_NI_5200)
-    V_NI_5200.triggered.connect(lambda: self.plotMap("V_[NI]_5200.39"))
-    S_NI_5200.triggered.connect(lambda: self.plotMap("S_[NI]_5200.39"))
-    A_NI_5200.triggered.connect(lambda: self.plotMap("A_[NI]_5200.39"))
-    F_NI_5200.triggered.connect(lambda: self.plotMap("F_[NI]_5200.39"))
-    # 
-    NII_6583_Submenu = pyqt.QMenu('[NII]_6583.34', self)
-    V_NII_6583 = pyqt.QAction('Velocity', self);  NII_6583_Submenu.addAction(V_NII_6583)
-    S_NII_6583 = pyqt.QAction('Sigma', self);     NII_6583_Submenu.addAction(S_NII_6583)
-    A_NII_6583 = pyqt.QAction('Amplitude', self); NII_6583_Submenu.addAction(A_NII_6583)
-    F_NII_6583 = pyqt.QAction('Flux', self);      NII_6583_Submenu.addAction(F_NII_6583)
-    V_NII_6583.triggered.connect(lambda: self.plotMap("V_[NII]_6583.34"))
-    S_NII_6583.triggered.connect(lambda: self.plotMap("S_[NII]_6583.34"))
-    A_NII_6583.triggered.connect(lambda: self.plotMap("A_[NII]_6583.34"))
-    F_NII_6583.triggered.connect(lambda: self.plotMap("F_[NII]_6583.34"))
-    #
-    NII_6547_Submenu = pyqt.QMenu('[NII]_6547.96', self)
-    V_NII_6547 = pyqt.QAction('Velocity', self);  NII_6547_Submenu.addAction(V_NII_6547)
-    S_NII_6547 = pyqt.QAction('Sigma', self);     NII_6547_Submenu.addAction(S_NII_6547)
-    A_NII_6547 = pyqt.QAction('Amplitude', self); NII_6547_Submenu.addAction(A_NII_6547)
-    F_NII_6547 = pyqt.QAction('Flux', self);      NII_6547_Submenu.addAction(F_NII_6547)
-    V_NII_6547.triggered.connect(lambda: self.plotMap("V_[NII]_6547.96"))
-    S_NII_6547.triggered.connect(lambda: self.plotMap("S_[NII]_6547.96"))
-    A_NII_6547.triggered.connect(lambda: self.plotMap("A_[NII]_6547.96"))
-    F_NII_6547.triggered.connect(lambda: self.plotMap("F_[NII]_6547.96"))
-    #
-    SII_6716_Submenu = pyqt.QMenu('[SII]_6716.31', self)
-    V_SII_6716 = pyqt.QAction('Velocity', self);  SII_6716_Submenu.addAction(V_SII_6716)
-    S_SII_6716 = pyqt.QAction('Sigma', self);     SII_6716_Submenu.addAction(S_SII_6716)
-    A_SII_6716 = pyqt.QAction('Amplitude', self); SII_6716_Submenu.addAction(A_SII_6716)
-    F_SII_6716 = pyqt.QAction('Flux', self);      SII_6716_Submenu.addAction(F_SII_6716)
-    V_SII_6716.triggered.connect(lambda: self.plotMap("V_[SII]_6716.31"))
-    S_SII_6716.triggered.connect(lambda: self.plotMap("S_[SII]_6716.31"))
-    A_SII_6716.triggered.connect(lambda: self.plotMap("A_[SII]_6716.31"))
-    F_SII_6716.triggered.connect(lambda: self.plotMap("F_[SII]_6716.31"))
-    #
-    SII_6730_Submenu = pyqt.QMenu('[SII]_6730.68', self)
-    V_SII_6730 = pyqt.QAction('Velocity', self);  SII_6730_Submenu.addAction(V_SII_6730)
-    S_SII_6730 = pyqt.QAction('Sigma', self);     SII_6730_Submenu.addAction(S_SII_6730)
-    A_SII_6730 = pyqt.QAction('Amplitude', self); SII_6730_Submenu.addAction(A_SII_6730)
-    F_SII_6730 = pyqt.QAction('Flux', self);      SII_6730_Submenu.addAction(F_SII_6730)
-    V_SII_6730.triggered.connect(lambda: self.plotMap("V_[SII]_6730.68"))
-    S_SII_6730.triggered.connect(lambda: self.plotMap("S_[SII]_6730.68"))
-    A_SII_6730.triggered.connect(lambda: self.plotMap("A_[SII]_6730.68"))
-    F_SII_6730.triggered.connect(lambda: self.plotMap("F_[SII]_6730.68"))
-    #
-    ArIV_4711_Submenu = pyqt.QMenu('[ArIV]_4711.30', self)
-    V_ArIV_4711 = pyqt.QAction('Velocity', self);  ArIV_4711_Submenu.addAction(V_ArIV_4711)
-    S_ArIV_4711 = pyqt.QAction('Sigma', self);     ArIV_4711_Submenu.addAction(S_ArIV_4711)
-    A_ArIV_4711 = pyqt.QAction('Amplitude', self); ArIV_4711_Submenu.addAction(A_ArIV_4711)
-    F_ArIV_4711 = pyqt.QAction('Flux', self);      ArIV_4711_Submenu.addAction(F_ArIV_4711)
-    V_ArIV_4711.triggered.connect(lambda: self.plotMap("V_[ArIV]_4711.30"))
-    S_ArIV_4711.triggered.connect(lambda: self.plotMap("S_[ArIV]_4711.30"))
-    A_ArIV_4711.triggered.connect(lambda: self.plotMap("A_[ArIV]_4711.30"))
-    F_ArIV_4711.triggered.connect(lambda: self.plotMap("F_[ArIV]_4711.30"))
-    #
-    ArIV_4740_Submenu = pyqt.QMenu('[ArIV]_4740.10', self)
-    V_ArIV_4740 = pyqt.QAction('Velocity', self);  ArIV_4740_Submenu.addAction(V_ArIV_4740)
-    S_ArIV_4740 = pyqt.QAction('Sigma', self);     ArIV_4740_Submenu.addAction(S_ArIV_4740)
-    A_ArIV_4740 = pyqt.QAction('Amplitude', self); ArIV_4740_Submenu.addAction(A_ArIV_4740)
-    F_ArIV_4740 = pyqt.QAction('Flux', self);      ArIV_4740_Submenu.addAction(F_ArIV_4740)
-    V_ArIV_4740.triggered.connect(lambda: self.plotMap("V_[ArIV]_4740.10"))
-    S_ArIV_4740.triggered.connect(lambda: self.plotMap("S_[ArIV]_4740.10"))
-    A_ArIV_4740.triggered.connect(lambda: self.plotMap("A_[ArIV]_4740.10"))
-    F_ArIV_4740.triggered.connect(lambda: self.plotMap("F_[ArIV]_4740.10"))
-    #
-    ArIII_7135_Submenu = pyqt.QMenu('[ArIII]_7135.67', self)
-    V_ArIII_7135 = pyqt.QAction('Velocity', self);  ArIII_7135_Submenu.addAction(V_ArIII_7135)
-    S_ArIII_7135 = pyqt.QAction('Sigma', self);     ArIII_7135_Submenu.addAction(S_ArIII_7135)
-    A_ArIII_7135 = pyqt.QAction('Amplitude', self); ArIII_7135_Submenu.addAction(A_ArIII_7135)
-    F_ArIII_7135 = pyqt.QAction('Flux', self);      ArIII_7135_Submenu.addAction(F_ArIII_7135)
-    V_ArIII_7135.triggered.connect(lambda: self.plotMap("V_[ArIII]_7135.67"))
-    S_ArIII_7135.triggered.connect(lambda: self.plotMap("S_[ArIII]_7135.67"))
-    A_ArIII_7135.triggered.connect(lambda: self.plotMap("A_[ArIII]_7135.67"))
-    F_ArIII_7135.triggered.connect(lambda: self.plotMap("F_[ArIII]_7135.67"))
-    #
-    Hg_4340_Submenu = pyqt.QMenu('Hg_4340.46', self)
-    V_Hg_4340 = pyqt.QAction('Velocity', self);  Hg_4340_Submenu.addAction(V_Hg_4340)
-    S_Hg_4340 = pyqt.QAction('Sigma', self);     Hg_4340_Submenu.addAction(S_Hg_4340)
-    A_Hg_4340 = pyqt.QAction('Amplitude', self); Hg_4340_Submenu.addAction(A_Hg_4340)
-    F_Hg_4340 = pyqt.QAction('Flux', self);      Hg_4340_Submenu.addAction(F_Hg_4340)
-    V_Hg_4340.triggered.connect(lambda: self.plotMap("V_Hg_4340.46"))
-    S_Hg_4340.triggered.connect(lambda: self.plotMap("S_Hg_4340.46"))
-    A_Hg_4340.triggered.connect(lambda: self.plotMap("A_Hg_4340.46"))
-    F_Hg_4340.triggered.connect(lambda: self.plotMap("F_Hg_4340.46"))
-
-    gandalfMenu.addMenu(Halpha_Submenu)
-    gandalfMenu.addMenu(Hbeta_Submenu)
-    gandalfMenu.addMenu(Hg_4340_Submenu)
-    gandalfMenu.addMenu(Hd_Submenu)
-    gandalfMenu.addMenu(He_Submenu)
-    gandalfMenu.addMenu(H5_Submenu)
-    gandalfMenu.addSeparator()
-    gandalfMenu.addMenu(HeI_Submenu)
-    gandalfMenu.addMenu(HeII_3203_Submenu)
-    gandalfMenu.addMenu(HeII_4685_Submenu)
-    gandalfMenu.addSeparator()
-    gandalfMenu.addMenu(OI_6300_Submenu)
-    gandalfMenu.addMenu(OI_6363_Submenu)
-    gandalfMenu.addMenu(OII_3726_Submenu)
-    gandalfMenu.addMenu(OII_3728_Submenu)
-    gandalfMenu.addMenu(OIII_4363_Submenu)
-    gandalfMenu.addMenu(OIII_4958_Submenu)
-    gandalfMenu.addMenu(OIII_5006_Submenu)
-    gandalfMenu.addSeparator()
-    gandalfMenu.addMenu(NeIII_3868_Submenu)
-    gandalfMenu.addMenu(NeIII_3967_Submenu)
-    gandalfMenu.addMenu(NeV_3345_Submenu)
-    gandalfMenu.addMenu(NeV_3425_Submenu)
-    gandalfMenu.addSeparator()
-    gandalfMenu.addMenu(NI_5197_Submenu)
-    gandalfMenu.addMenu(NI_5200_Submenu)
-    gandalfMenu.addMenu(NII_6547_Submenu)
-    gandalfMenu.addMenu(NII_6583_Submenu)
-    gandalfMenu.addSeparator()
-    gandalfMenu.addMenu(SII_6716_Submenu)
-    gandalfMenu.addMenu(SII_6730_Submenu)
-    gandalfMenu.addSeparator()
-    gandalfMenu.addMenu(ArIII_7135_Submenu)
-    gandalfMenu.addMenu(ArIV_4711_Submenu)
-    gandalfMenu.addMenu(ArIV_4740_Submenu)
+    # stellarKinematics Menu
+    if self.KIN == True: 
+        for name in self.kinResults.names:
+            button = kinMenu.addAction(name)
+            button.triggered.connect(returnPlotFunction(self, 'KIN', name))
+    elif self.KIN == False: 
+        button = kinMenu.addAction("  Not available.  ")
+        button.setDisabled(True)
 
 
     # ====================
-    # SFH MENU
-    MetalButton = pyqt.QAction('Metals', self)
-    MetalButton.triggered.connect(lambda: self.plotMap("METALS"))
-    AgeButton = pyqt.QAction('Age', self)
-    AgeButton.triggered.connect(lambda: self.plotMap("AGE"))
-    AlphaButton = pyqt.QAction('Alpha', self)
-    AlphaButton.triggered.connect(lambda: self.plotMap("ALPHA"))
-    #
-    V_SFHButton = pyqt.QAction('V', self)
-    V_SFHButton.triggered.connect(lambda: self.plotMap("V_SFH"))
-    Sigma_SFHButton = pyqt.QAction('SIGMA', self)
-    Sigma_SFHButton.triggered.connect(lambda: self.plotMap("SIGMA_SFH"))
-    H3_SFHButton = pyqt.QAction('H3', self)
-    H3_SFHButton.triggered.connect(lambda: self.plotMap("H3_SFH"))
-    H4_SFHButton = pyqt.QAction('H4', self)
-    H4_SFHButton.triggered.connect(lambda: self.plotMap("H4_SFH"))
-    #
-    V_SFHDifButton = pyqt.QAction('V_Dif', self)
-    V_SFHDifButton.triggered.connect(lambda: self.plotMap("V_Dif"))
-    Sigma_SFHDifButton = pyqt.QAction('SIGMA_Dif', self)
-    Sigma_SFHDifButton.triggered.connect(lambda: self.plotMap("SIGMA_Dif"))
-    H3_SFHDifButton = pyqt.QAction('H3_Dif', self)
-    H3_SFHDifButton.triggered.connect(lambda: self.plotMap("H3_Dif"))
-    H4_SFHDifButton = pyqt.QAction('H4_Dif', self)
-    H4_SFHDifButton.triggered.connect(lambda: self.plotMap("H4_Dif"))
-
-    sfhMenu.addAction(MetalButton)
-    sfhMenu.addAction(AgeButton)
-    sfhMenu.addAction(AlphaButton)
-    sfhMenu.addSeparator()
-    sfhMenu.addAction(V_SFHButton)
-    sfhMenu.addAction(Sigma_SFHButton)
-    sfhMenu.addAction(H3_SFHButton)
-    sfhMenu.addAction(H4_SFHButton)
-    sfhMenu.addSeparator()
-    sfhMenu.addAction(V_SFHDifButton)
-    sfhMenu.addAction(Sigma_SFHDifButton)
-    sfhMenu.addAction(H3_SFHDifButton)
-    sfhMenu.addAction(H4_SFHDifButton)
+    # emissionLines Menu
+    if self.GAS == True:
+        for name in self.gasResults.names:
+            button = gasMenu.addAction(name)
+            button.triggered.connect(returnPlotFunction(self, 'GAS', name))
+    elif self.GAS == False:
+        button = gasMenu.addAction("  Not available.  ")
+        button.setDisabled(True)
 
 
     # ====================
-    # LINE STRENGTH MENU
-    LSAge_Button = pyqt.QAction('LSAge', self)
-    LSAge_Button.triggered.connect(lambda: self.plotMap("LS_AGE"))
-    LSMetal_Button = pyqt.QAction('LSMetal', self)
-    LSMetal_Button.triggered.connect(lambda: self.plotMap("LS_METAL"))
-    LSAlpha_Button = pyqt.QAction('LSAlpha', self)
-    LSAlpha_Button.triggered.connect(lambda: self.plotMap("LS_ALPHA"))
-    #
-    HdelA_Button = pyqt.QAction('HdelA', self)
-    HdelA_Button.triggered.connect(lambda: self.plotMap("LS_HdelA"))
-    HdelF_Button = pyqt.QAction('HdelF', self)
-    HdelF_Button.triggered.connect(lambda: self.plotMap("LS_HdelF"))
-    CN1_Button = pyqt.QAction('CN1', self)
-    CN1_Button.triggered.connect(lambda: self.plotMap("LS_CN1"))
-    CN2_Button = pyqt.QAction('CN2', self)
-    CN2_Button.triggered.connect(lambda: self.plotMap("LS_CN2"))
-    Ca4227_Button = pyqt.QAction('Ca4227', self)
-    Ca4227_Button.triggered.connect(lambda: self.plotMap("LS_Ca4227"))
-    G4300_Button = pyqt.QAction('G4300', self)
-    G4300_Button.triggered.connect(lambda: self.plotMap("LS_G4300"))
-    HgamA_Button = pyqt.QAction('HgamA', self)
-    HgamA_Button.triggered.connect(lambda: self.plotMap("LS_HgamA"))
-    HgamF_Button = pyqt.QAction('HgamF', self)
-    HgamF_Button.triggered.connect(lambda: self.plotMap("LS_HgamF"))
-    Fe4383_Button = pyqt.QAction('Fe4383', self)
-    Fe4383_Button.triggered.connect(lambda: self.plotMap("LS_Fe4383"))
-    Ca4455_Button = pyqt.QAction('Ca4455', self)
-    Ca4455_Button.triggered.connect(lambda: self.plotMap("LS_Ca4455"))
-    Fe4531_Button = pyqt.QAction('Fe4531', self)
-    Fe4531_Button.triggered.connect(lambda: self.plotMap("LS_Fe4531"))
-    Fe4668_Button = pyqt.QAction('Fe4668', self)
-    Fe4668_Button.triggered.connect(lambda: self.plotMap("LS_Fe4668"))
-    Hbeta_Button = pyqt.QAction('Hbeta', self)
-    Hbeta_Button.triggered.connect(lambda: self.plotMap("LS_Hbeta"))
-    Hbetao_Button = pyqt.QAction('Hbetao', self)
-    Hbetao_Button.triggered.connect(lambda: self.plotMap("LS_Hbetao"))
-    Hbetap_Button = pyqt.QAction('Hbetap', self)
-    Hbetap_Button.triggered.connect(lambda: self.plotMap("LS_Hbetap"))
-    Fe4930_Button = pyqt.QAction('Fe4930', self)
-    Fe4930_Button.triggered.connect(lambda: self.plotMap("LS_Fe4930"))
-    OIII1_Button = pyqt.QAction('OIII1', self)
-    OIII1_Button.triggered.connect(lambda: self.plotMap("LS_OIII1"))
-    OIII2_Button = pyqt.QAction('OIII2', self)
-    OIII2_Button.triggered.connect(lambda: self.plotMap("LS_OIII2"))
-    Fe5015_Button = pyqt.QAction('Fe5015', self)
-    Fe5015_Button.triggered.connect(lambda: self.plotMap("LS_Fe5015"))
-    Mg1_Button = pyqt.QAction('Mg1', self)
-    Mg1_Button.triggered.connect(lambda: self.plotMap("LS_Mg1"))
-    Mg2_Button = pyqt.QAction('Mg2', self)
-    Mg2_Button.triggered.connect(lambda: self.plotMap("LS_Mg2"))
-    Mgb_Button = pyqt.QAction('Mgb', self)
-    Mgb_Button.triggered.connect(lambda: self.plotMap("LS_Mgb"))
-    Fe5270_Button = pyqt.QAction('Fe5270', self)
-    Fe5270_Button.triggered.connect(lambda: self.plotMap("LS_Fe5270"))
-    Fe5335_Button = pyqt.QAction('Fe5335', self)
-    Fe5335_Button.triggered.connect(lambda: self.plotMap("LS_Fe5335"))
-    Fe5406_Button = pyqt.QAction('Fe5406', self)
-    Fe5406_Button.triggered.connect(lambda: self.plotMap("LS_Fe5406"))
-    Fe5709_Button = pyqt.QAction('Fe5709', self)
-    Fe5709_Button.triggered.connect(lambda: self.plotMap("LS_Fe5709"))
-    Fe5782_Button = pyqt.QAction('Fe5782', self)
-    Fe5782_Button.triggered.connect(lambda: self.plotMap("LS_Fe5782"))
-    Na5895_Button = pyqt.QAction('Na5895', self)
-    Na5895_Button.triggered.connect(lambda: self.plotMap("LS_Na5895"))
-    TiO1_Button = pyqt.QAction('TiO1', self)
-    TiO1_Button.triggered.connect(lambda: self.plotMap("LS_TiO1"))
-    TiO2_Button = pyqt.QAction('TiO2', self)
-    TiO2_Button.triggered.connect(lambda: self.plotMap("LS_TiO2"))
-    Ca1_Button = pyqt.QAction('Ca1', self)
-    Ca1_Button.triggered.connect(lambda: self.plotMap("LS_Ca1"))
-    Ca2_Button = pyqt.QAction('Ca2', self)
-    Ca2_Button.triggered.connect(lambda: self.plotMap("LS_Ca2"))
-    Ca3_Button = pyqt.QAction('Ca3', self)
-    Ca3_Button.triggered.connect(lambda: self.plotMap("LS_Ca3"))
+    # starFormationHistories Menu
+    if self.SFH == True:
+        for name in self.sfhResults.names:
+            button = sfhMenu.addAction(name)
+            button.triggered.connect(returnPlotFunction(self, 'SFH', name))
+        if 'V' in self.sfhResults.names:
+            sfhKinematicsDiff = pyqt.QMenu('Kinematics Difference', self)
+            for name in self.sfhResults.names:
+                if name in ['V', 'SIGMA', 'H3', 'H4', 'H5', 'H6']:
+                    button = sfhKinematicsDiff.addAction(name+'_DIFF')
+                    button.triggered.connect(returnPlotFunction(self, 'SFH', name+'_DIFF'))
+            sfhMenu.addMenu(sfhKinematicsDiff) 
+    elif self.SFH == False: 
+        button = sfhMenu.addAction("  Not available.  ")
+        button.setDisabled(True)
 
-    lsMenu.addAction(LSAge_Button)
-    lsMenu.addAction(LSMetal_Button)
-    lsMenu.addAction(LSAlpha_Button)
-    lsMenu.addSeparator()
-    lsMenu.addAction(HdelA_Button)
-    lsMenu.addAction(HdelF_Button)
-    lsMenu.addAction(CN1_Button)
-    lsMenu.addAction(CN2_Button)
-    lsMenu.addAction(Ca4227_Button)
-    lsMenu.addAction(G4300_Button)
-    lsMenu.addAction(HgamA_Button)
-    lsMenu.addAction(HgamF_Button)
-    lsMenu.addAction(Fe4383_Button)
-    lsMenu.addAction(Ca4455_Button)
-    lsMenu.addAction(Fe4531_Button)
-    lsMenu.addAction(Fe4668_Button)
-    lsMenu.addAction(Hbeta_Button )
-    lsMenu.addAction(Hbetao_Button)
-    lsMenu.addAction(Hbetap_Button)
-    lsMenu.addAction(Fe4930_Button)
-    lsMenu.addAction(OIII1_Button)
-    lsMenu.addAction(OIII2_Button)
-    lsMenu.addAction(Fe5015_Button)
-    lsMenu.addAction(Mg1_Button)
-    lsMenu.addAction(Mg2_Button)
-    lsMenu.addAction(Mgb_Button)
-    lsMenu.addAction(Fe5270_Button)
-    lsMenu.addAction(Fe5335_Button)
-    lsMenu.addAction(Fe5406_Button)
-    lsMenu.addAction(Fe5709_Button)
-    lsMenu.addAction(Fe5782_Button)
-    lsMenu.addAction(Na5895_Button)
-    lsMenu.addAction(TiO1_Button)
-    lsMenu.addAction(TiO2_Button)
-    lsMenu.addAction(Ca1_Button)
-    lsMenu.addAction(Ca2_Button)
-    lsMenu.addAction(Ca3_Button)
+
+    # ====================
+    # lineStrengths Menu
+    if self.LINE_STRENGTH == True:
+        for name in self.lsResults.names:
+            button = lsMenu.addAction(name)
+            button.triggered.connect(returnPlotFunction(self, 'LS', name))
+    elif self.LINE_STRENGTH == False:
+        button = lsMenu.addAction("  Not available.  ")
+        button.setDisabled(True)
 
 
     # ====================
@@ -600,14 +144,5 @@ def createWindow(self):
     aboutButton = pyqt.QAction('About this pipeline', self)
     aboutButton.triggered.connect(self.dialogAbout)
     aboutMenu.addAction(aboutButton)
-
-
-    # ====================
-    # Set layout
-    layout = pyqt.QVBoxLayout()
-    layout.addWidget(self.toolbar)
-    layout.addWidget(self.canvas)
-    self.main_widget.setLayout(layout)
-
 
 

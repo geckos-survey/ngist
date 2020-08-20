@@ -4,7 +4,8 @@ import numpy               as np
 import os
 import logging
 
-from gistPipeline.gistModules import util    as pipeline
+from printStatus import printStatus
+
 from gistPipeline.readData    import der_snr as der_snr
 
 
@@ -12,20 +13,16 @@ from gistPipeline.readData    import der_snr as der_snr
 # ======================================
 # Routine to load spectra from plain txt
 # ======================================
-def read_cube(DEBUG, filename, configs):
+def readCube(config):
 
     loggingBlanks = (len( os.path.splitext(os.path.basename(__file__))[0] ) + 33) * " "
 
-    directory = os.path.dirname(filename)+'/'
-    datafile  = os.path.basename(filename)
-    rootname  = datafile.split('.')[0]
-
-    # Read MUSE-cube
-    pipeline.prettyOutput_Running("Reading the file")
-    logging.info("Reading the file: "+filename)
+    # Read spectrum
+    printStatus.running("Reading the spectrum")
+    logging.info("Reading the spectrum: "+config['GENERAL']['INPUT'])
 
     # Reading the cube
-    data  = np.genfromtxt(filename)
+    data  = np.genfromtxt(config['GENERAL']['INPUT'])
     spec  = np.zeros((data.shape[0],1))
     espec = np.zeros((data.shape[0],1))
     wave  = data[:,0]
@@ -41,35 +38,29 @@ def read_cube(DEBUG, filename, configs):
     pixelsize = 1.0
 
     # De-redshift spectra
-    wave = wave / (1+configs['REDSHIFT'])
+    wave = wave / (1+config['GENERAL']['REDSHIFT'])
+    logging.info("Shifting spectra to rest-frame, assuming a redshift of "+str(config['GENERAL']['REDSHIFT']))
 
     # Shorten spectra to required wavelength range
-    lmin  = np.min([configs['LMIN_SNR'], configs['LMIN_PPXF'], configs['LMIN_GANDALF'], configs['LMIN_SFH']])
-    lmax  = np.max([configs['LMAX_SNR'], configs['LMAX_PPXF'], configs['LMAX_GANDALF'], configs['LMAX_SFH']])
+    lmin  = config['READ_DATA']['LMIN_TOT']
+    lmax  = config['READ_DATA']['LMAX_TOT']
     idx   = np.where( np.logical_and( wave >= lmin, wave <= lmax ) )[0]
     spec  = spec[idx]
     espec = espec[idx]
     wave  = wave[idx]
+    logging.info("Shortening spectra to the wavelength range from "+str(config['READ_DATA']['LMAX_TOT'])+"A to "+str(config['READ_DATA']['LMAX_TOT'])+"A.")
 
     # Computing the SNR per spaxel
-    idx_snr = np.where( np.logical_and( wave >= configs['LMIN_SNR'], wave <= configs['LMAX_SNR'] ) )[0]
+    idx_snr = np.where( np.logical_and( wave >= config['READ_DATA']['LMIN_SNR'], wave <= config['READ_DATA']['LMAX_SNR'] ) )[0]
     signal  = np.zeros(1) + np.nanmedian(spec[idx_snr],axis=0)
     noise   = np.zeros(1) + np.abs(np.nanmedian(np.sqrt(espec[idx_snr]),axis=0))
     snr     = signal / noise
-    logging.info("Computing the signal-to-noise ratio per spaxel.")
-
-    # Shorten spectra to chosen wavelength range
-    cvel      = 299792.458
-    velscale  = (wave[1]-wave[0])*cvel/np.mean(wave)
-    logging.info("Extracting spectral information:\n"\
-            +loggingBlanks+"* Shortened spectra to wavelength range from "+str(lmin)+" to "+str(lmax)+" Angst.\n"\
-            +loggingBlanks+"* Spectral pixelsize in velocity space is "+str(velscale)+" km/s")
+    logging.info("Computing the signal-to-noise ratio in the wavelength range from "+str(config['READ_DATA']['LMAX_SNR'])+"A to "+str(config['READ_DATA']['LMAX_SNR'])+"A.")
 
     # Storing everything into a structure
-    cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr,\
-            'signal':signal, 'noise':noise, 'velscale':velscale, 'pixelsize':pixelsize}
+    cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr, 'signal':signal, 'noise':noise, 'pixelsize':pixelsize}
 
-    pipeline.prettyOutput_Done("Reading the file")
-    logging.info("Finished reading the file!")
+    printStatus.updateDone("Reading the spectrum")
+    logging.info("Finished reading the spectrum!")
 
     return(cube)

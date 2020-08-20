@@ -1,0 +1,37 @@
+# ==================================================================================================================== #
+#                                      C I T A T I O N   I N S T R U C T I O N S                                       #
+# ==================================================================================================================== #
+
+This code is made available under the license enclose with the software. 
+
+Over and above the legal restrictions imposed by this license, if you use this software or a modification of this
+software for an academic publication you are obliged to provide proper attribution. This must be done by citing the
+paper that describes this software (Bittner et al. 2020, A&A, 628, 117; ui.adsabs.harvard.edu/abs/2019A%26A...628A.117B)
+and including a link to the ASCL entry of the code in a footnote (http://ascl.net/1907.025). The bibtex entry for this
+paper is the following: 
+
+    @ARTICLE{2019A&A...628A.117B,
+           author = {{Bittner}, A. and {Falc{\'o}n-Barroso}, J. and {Nedelchev}, B. and {Dorta}, A. and {Gadotti}, D.~A. and {Sarzi}, M. and {Molaeinezhad}, A. and {Iodice}, E. and {Rosado-Belza}, D. and {de Lorenzo-C{\'a}ceres}, A. and {Fragkoudi}, F. and {Gal{\'a}n-de Anta}, P.~M. and {Husemann}, B. and {M{\'e}ndez-Abreu}, J. and {Neumann}, J. and {Pinna}, F. and {Querejeta}, M. and {S{\'a}nchez-Bl{\'a}zquez}, P. and {Seidel}, M.~K.},
+            title = "{The GIST pipeline: A multi-purpose tool for the analysis and visualisation of (integral-field) spectroscopic data}",
+          journal = {\aap},
+         keywords = {methods: data analysis, techniques: spectroscopic, galaxies: individual: NGC 1433, galaxies: stellar content, galaxies: kinematics and dynamics, galaxies: structure, Astrophysics - Astrophysics of Galaxies, Astrophysics - Instrumentation and Methods for Astrophysics},
+             year = 2019,
+            month = aug,
+           volume = {628},
+              eid = {A117},
+            pages = {A117},
+              doi = {10.1051/0004-6361/201935829},
+    archivePrefix = {arXiv},
+           eprint = {1906.04746},
+     primaryClass = {astro-ph.GA},
+           adsurl = {https://ui.adsabs.harvard.edu/abs/2019A&A...628A.117B},
+          adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+    }
+
+
+
+We remind the user to also cite the papers of the underlying analysis techniques and models, if these are used in the
+analysis. In the default GIST implementation, these are the adaptive Voronoi tesselation routine (Cappellari & Copin
+2003), the penalised pixel-fitting method (pPXF; Cappellari & Emsellem 2004; Cappellari 2017), the pyGandALF routine
+(Sarzi et al. 2006; Falcon-Barroso et al. 2006; Bittner et al. 2019), the line-strength measurement routines (Kuntschner
+et al. 2006; Martin-Navarro et al. 2018), and the MILES models included in the tutorial (Vazdekis et al. 2010). 

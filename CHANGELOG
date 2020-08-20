@@ -7,6 +7,10 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V3.0       2020-08-20    Substantial revision and restructuring of the source code. Please
+			 consider the documentation for a detailed description of all 
+			 changes. 
+
 V2.1       2020-04-06	 CHANGED: 
 			  * Changed definition of npad variable in Gandalf analogue 
 			    to PPXF. Thanks to Alireza Molaeinezhad for the suggestion. 

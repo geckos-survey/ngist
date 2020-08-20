@@ -1,13 +1,19 @@
 from setuptools import setup
 from setuptools import find_packages
+import os
 
 def readme():
-    with open('README') as file:
+    with open('README.md') as file:
         return(file.read())
 
+def versionNumber():
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gistPipeline/_version.py')) as versionFile:
+        return(versionFile.readlines()[-1].split()[-1].strip("\"'"))
+
 setup(name='gistPipeline',
-      version='2.1',
+      version=versionNumber(),
       description='A Multi-Purpose IFS Analysis Pipeline',
+      long_description_content_type="text/markdown",
       long_description=readme(),
       classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -16,7 +22,7 @@ setup(name='gistPipeline',
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: Astronomy',
       ],
-      url='abittner.gitlab.io/thegistpipeline/',
+      url='https://abittner.gitlab.io/thegistpipeline/',
       author='Adrian Bittner',
       author_email='adrian.bittner@eso.org',
       license='Other/Proprietary License',
@@ -28,22 +34,24 @@ setup(name='gistPipeline',
         'numpy==1.16.4',
         'PyQt5==5.10',
         'scipy==1.3.0',
+        'pyyaml>5.3',
         'vorbin==3.1.3',
         'ppxf==6.7.15',
         'plotbin==3.1.3',
+        'printStatus>=1.0',
       ],
-      python_requires='==3.6',
+      python_requires='==3.6.*',
       entry_points={
         'console_scripts': [
             'gistPipeline        = gistPipeline.MainPipeline:main'
             ],
         'gui_scripts': [
             'Mapviewer           = gistPipeline.Mapviewer:main',
-            'gistPlot_kinematics = gistPipeline.gistModules.gistPlot_kinematics:main',
-            'gistPlot_lambdar    = gistPipeline.gistModules.gistPlot_lambdar:main',
-            'gistPlot_gandalf    = gistPipeline.gistModules.gistPlot_gandalf:main',
-            'gistPlot_spp        = gistPipeline.gistModules.gistPlot_spp:main',
-            'gistPlot_ls         = gistPipeline.gistModules.gistPlot_ls:main'
+            'gistPlot_kin        = gistPipeline.plotting.gistPlot_kin:main',
+            'gistPlot_lambdar    = gistPipeline.plotting.gistPlot_lambdar:main',
+            'gistPlot_gas        = gistPipeline.plotting.gistPlot_gas:main',
+            'gistPlot_sfh        = gistPipeline.plotting.gistPlot_sfh:main',
+            'gistPlot_ls         = gistPipeline.plotting.gistPlot_ls:main'
          ],
       },
       include_package_data=True,

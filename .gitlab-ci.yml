@@ -1,0 +1,28 @@
+image: python:latest
+
+before_script:
+    - pip install -U twine 
+
+release-test:
+    stage: test
+    only:
+        - release
+    script:
+        #
+        # Check if the automatic deployment to PyPi works
+        echo "Deploy to PyPi Test"; 
+        python setup.py sdist bdist_wheel; 
+        twine check dist/*; 
+        twine upload --repository-url https://test.pypi.org/legacy/ dist/*; 
+
+auto-deploy:
+    stage: deploy
+    only:
+        - master
+    script:
+        #
+        # Deploy any stable version to PyPi
+        echo "Deploy to PyPi"; 
+        python setup.py sdist bdist_wheel; 
+        twine check dist/*; 
+        twine upload dist/*; 

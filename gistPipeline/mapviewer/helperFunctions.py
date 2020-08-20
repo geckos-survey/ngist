@@ -1,14 +1,15 @@
-from    astropy.io import fits
-import numpy       as np
+import numpy as np
 import os
+import yaml
 
 from PyQt5 import QtCore, QtGui, QtWidgets as pyqt
-import matplotlib.pyplot as plt
+
+from gistPipeline._version import __version__
 
 
 
 def onpick(self, event):
-    # Capture the event of performing a left-click on the map
+    """ Capture the event of performing a left-click on the map """
     self.mouse = event.mouseevent
     if self.mouse.button == 1:
         self.getVoronoiBin()
@@ -18,7 +19,6 @@ def getVoronoiBin(self):
     """
     Identify the Voronoi-bin/spaxel closest to the clicked location on the map
     """
-
     idx = np.where( np.logical_and( np.abs(self.table.X-self.mouse.xdata) < self.pixelsize, np.abs(self.table.Y-self.mouse.ydata) < self.pixelsize ) )[0]
 
     if len(idx) == 1:
@@ -39,11 +39,12 @@ def getVoronoiBin(self):
 
 
 def dialogAbout(self):
-    pyqt.QMessageBox.about(self, "About", "This is the 'GIST Pipeline'")
+    message = "{:10}\n{:10}\n\n{:10}".format("The GIST Pipeline", "Version "+__version__, "For a thorough documentation of this software package, please see https://abittner.gitlab.io/thegistpipeline")
+    pyqt.QMessageBox.about(self, "About", message)
 
 
 def dialogNotAvailable(self, which):
-    # Show information if any selected data is not available
+    """ Show information if any selected data is not available """
     if which == "directory":
         pyqt.QMessageBox.information(self, "Not available", "There is no data available! Please choose another directory! \n:( ")
     else:
@@ -51,28 +52,24 @@ def dialogNotAvailable(self, which):
 
 
 def dialogRunSelection(self):
-    # Select the output directory of the run to be displayed. Basic checks and correction are applied.
+    """ 
+    Select the output directory of the run to be displayed. Basic checks 
+    and corrections are applied.
+    """
     tmp0 = str( pyqt.QFileDialog.getExistingDirectory(self, "Select Directory", '.') )
     if len( tmp0 ) > 0:
         if tmp0.split('/')[-1] == 'maps':
             tmp0 = tmp0[:-5]
-        elif tmp0.split('/')[-1] == 'results':
-            self.dialogWrongDirectory()
-            self.dialogRunSelection()
-            return(None)
-        tmp1 = tmp0.split('/')[-1].split('_')[-2]
-        self.dirprefix = tmp0+'/'+tmp1
+        tmp1 = tmp0.split('/')[-1]
+        self.dirprefix = os.path.join(tmp0,tmp1)
         self.directory = tmp0+'/'
+
         self.loadData()
-
-
-def dialogWrongDirectory(self):
-    pyqt.QMessageBox.warning(self, "Wrong Directory", \
-         "You selected a wrong directory. Please navigate into the output directory, e.g. /results/NGC0000_Example/")
+        self.createWindow()
 
 
 def dialogBinID(self):
-    # Create the dialogue for passing the bin/spaxel ID to be displayed
+    """ Create the dialogue for passing the bin/spaxel ID to be displayed """
 
     dialog=pyqt.QDialog()
 
@@ -100,7 +97,7 @@ def dialogBinID(self):
 
 
 def selectBinIDfromDialog(self):
-    # Extract the chosen BIN_ID from the dialogBinID
+    """ Extract the chosen BIN_ID from the dialogBinID """
 
     try: 
         # Save index of chosen Voronoi-bin
@@ -117,8 +114,8 @@ def selectBinIDfromDialog(self):
 
 
 def selectSpaxelIDfromDialog(self):
-    # Extract the chosen Spaxel ID from the dialogBinID
-
+    """ Extract the chosen Spaxel ID from the dialogBinID """
+    
     try: 
         # Save index of chosen Voronoi-bin
         self.idxBinLong  = int(self.textbox.text())                       # In Spaxel arrays
@@ -131,7 +128,7 @@ def selectSpaxelIDfromDialog(self):
 
 
 def dialogSettings(self):
-    # Create the setting dialogue
+    """ Create the setting dialogue """
 
     dialog = pyqt.QDialog()
 
@@ -142,25 +139,25 @@ def dialogSettings(self):
     self.checkbox0 = pyqt.QCheckBox('Restrict to Voronoi region', dialog)
     if self.restrict2voronoi == 2: self.checkbox0.setChecked(True)
 
-    # Choose GANDALF level
-    self.label_GandalfLevel          = pyqt.QLabel('\nDisplay Gandalf results on bin or spaxel level?')
-    self.checkbox_GandalfLevelBIN    = pyqt.QCheckBox('Bin level', dialog)
-    self.checkbox_GandalfLevelSPAXEL = pyqt.QCheckBox('Spaxel level', dialog)
-    if len( self.GandalfLevelAvailable ) == 2: 
-        self.checkbox_GandalfLevelBIN.setEnabled(True)
-        self.checkbox_GandalfLevelSPAXEL.setEnabled(True)
+    # Choose gas level
+    self.label_gasLevel          = pyqt.QLabel('\nDisplay emissionLines results on bin or spaxel level?')
+    self.checkbox_gasLevelBIN    = pyqt.QCheckBox('Bin level', dialog)
+    self.checkbox_gasLevelSPAXEL = pyqt.QCheckBox('Spaxel level', dialog)
+    if len( self.gasLevelAvailable ) == 2: 
+        self.checkbox_gasLevelBIN.setEnabled(True)
+        self.checkbox_gasLevelSPAXEL.setEnabled(True)
     else:
-        self.checkbox_GandalfLevelBIN.setEnabled(False)
-        self.checkbox_GandalfLevelSPAXEL.setEnabled(False)
-    if self.GandalfLevel == 'BIN':
-        self.checkbox_GandalfLevelBIN.setChecked(True)
-    elif self.GandalfLevel == 'SPAXEL':
-        self.checkbox_GandalfLevelSPAXEL.setChecked(True)
-    self.GandalfLevel_ButtonGroup = pyqt.QButtonGroup()
-    self.GandalfLevel_ButtonGroup.addButton(self.checkbox_GandalfLevelBIN,1)
-    self.GandalfLevel_ButtonGroup.addButton(self.checkbox_GandalfLevelSPAXEL,2)
+        self.checkbox_gasLevelBIN.setEnabled(False)
+        self.checkbox_gasLevelSPAXEL.setEnabled(False)
+    if self.gasLevel == 'BIN':
+        self.checkbox_gasLevelBIN.setChecked(True)
+    elif self.gasLevel == 'SPAXEL':
+        self.checkbox_gasLevelSPAXEL.setChecked(True)
+    self.gasLevel_ButtonGroup = pyqt.QButtonGroup()
+    self.gasLevel_ButtonGroup.addButton(self.checkbox_gasLevelBIN,1)
+    self.gasLevel_ButtonGroup.addButton(self.checkbox_gasLevelSPAXEL,2)
 
-    # Choose AoN Threshold for Gandalf
+    # Choose AoN Threshold for emissionLines results
     self.label_AoNThreshold = pyqt.QLabel('\nAoN Threshold for displayed line detections:')
     self.AoNThreshold_Input = pyqt.QLineEdit()
     self.AoNThreshold_Input.setText(str(self.AoNThreshold))
@@ -208,9 +205,9 @@ def dialogSettings(self):
     setlay.addWidget(self.label0)
     setlay.addWidget(self.checkbox0)
     #
-    setlay.addWidget(self.label_GandalfLevel)
-    setlay.addWidget(self.checkbox_GandalfLevelBIN)
-    setlay.addWidget(self.checkbox_GandalfLevelSPAXEL)
+    setlay.addWidget(self.label_gasLevel)
+    setlay.addWidget(self.checkbox_gasLevelBIN)
+    setlay.addWidget(self.checkbox_gasLevelSPAXEL)
     #
     setlay.addWidget(self.label_LsLevel)
     setlay.addWidget(self.checkbox_LsLevelORIG)
@@ -235,30 +232,34 @@ def dialogSettings(self):
 
 
 def getSettings(self):
-    # Extract the settings from the dialogSettings and apply them
+    """ Extract the settings from the dialogSettings and apply them """
 
     self.restrict2voronoi = self.checkbox0.checkState()
 
-    if self.checkbox_GandalfLevelBIN.checkState() == 2  and  \
-       self.GandalfLevel != 'BIN'  and  self.GANDALF == True:
-        self.GandalfLevelSelected = 'BIN'
+    if self.checkbox_gasLevelBIN.checkState() == 2  and  \
+       self.gasLevel != 'BIN'  and  self.GAS == True:
+        self.gasLevelSelected = 'BIN'
         self.loadData()
-    elif self.checkbox_GandalfLevelSPAXEL.checkState() == 2  and  \
-         self.GandalfLevel != 'SPAXEL'  and  self.GANDALF == True:
-        self.GandalfLevelSelected = 'SPAXEL'
+        self.createWindow()
+    elif self.checkbox_gasLevelSPAXEL.checkState() == 2  and  \
+         self.gasLevel != 'SPAXEL'  and  self.GAS == True:
+        self.gasLevelSelected = 'SPAXEL'
         self.loadData()
+        self.createWindow()
 
-    if self.AoNThreshold != float( self.AoNThreshold_Input.text() )  and  self.GANDALF == True:
+    if self.AoNThreshold != float( self.AoNThreshold_Input.text() )  and  self.GAS == True:
         self.AoNThreshold = float( self.AoNThreshold_Input.text() )
 
     if self.checkbox_LsLevelORIG.checkState() == 2  and  \
        self.LsLevel != 'ORIGINAL'  and  self.LINE_STRENGTH == True:
         self.LsLevelSelected = 'ORIGINAL'
         self.loadData()
+        self.createWindow()
     elif self.checkbox_LsLevelADAP.checkState() == 2  and  \
          self.LsLevel != 'ADAPTED'  and  self.LINE_STRENGTH == True:
         self.LsLevelSelected = 'ADAPTED'
         self.loadData()
+        self.createWindow()
 
     if self.checkbox1.checkState() == 2: self.markercolor = 'r'
     if self.checkbox2.checkState() == 2: self.markercolor = 'g'
@@ -266,16 +267,14 @@ def getSettings(self):
 
 
 def dialogInfo(self):
-    # Print the info dialogue with the information from the Config-file
+    """ Print the info dialogue with the information from the Config-file """
 
     # Load data
-    info = fits.open(self.directory+"USED_PARAMS.fits")[0].header
-    keyword_list = list(info.keys())
-    keyword_list.remove("SIMPLE")
-    keyword_list.remove("BITPIX")
-    keyword_list.remove("NAXIS")
-    keyword_list.remove("EXTEND")
-    keyword_list = [y for y in keyword_list if y != 'COMMENT']
+    with open(self.directory+'CONFIG', "r") as file:
+        conf = yaml.load(file, Loader=yaml.FullLoader)
+    totalLength = 0
+    for i in conf.keys():
+        totalLength += len(conf[i])
 
     # Create InfoDialog
     dialog = pyqt.QDialog()
@@ -284,15 +283,20 @@ def dialogInfo(self):
 
     # Create table
     self.tableWidget = pyqt.QTableWidget()
-    self.tableWidget.setRowCount(len(keyword_list))
-    self.tableWidget.setColumnCount(2)
+    self.tableWidget.setRowCount(totalLength)
+    self.tableWidget.setColumnCount(3)
     self.tableWidget.setSizeAdjustPolicy(pyqt.QAbstractScrollArea.AdjustToContents)
-    self.tableWidget.setHorizontalHeaderLabels(["Configs", "Values"])
-    self.tableWidget.setVerticalHeaderLabels([""]*len(keyword_list))
+    self.tableWidget.setHorizontalHeaderLabels(["Module", "Configs", "Values"])
+    self.tableWidget.setVerticalHeaderLabels([""]*totalLength)
 
-    for i, o in enumerate(keyword_list):
-        self.tableWidget.setItem(i,0, pyqt.QTableWidgetItem(o      ))
-        self.tableWidget.setItem(i,1, pyqt.QTableWidgetItem(info[o]))
+    # Add entries
+    counter = 0
+    for i in conf.keys():
+        self.tableWidget.setItem(counter, 0, pyqt.QTableWidgetItem(i))
+        for o, key in enumerate(conf[i]):
+            self.tableWidget.setItem(counter, 1, pyqt.QTableWidgetItem(key))
+            self.tableWidget.setItem(counter, 2, pyqt.QTableWidgetItem(str(conf[i][key])))
+            counter += 1
     self.tableWidget.move(0,0)
 
     # Set layout
@@ -307,3 +311,5 @@ def dialogInfo(self):
 
     dialog.setWindowTitle("Info")
     dialog.exec_()
+
+
