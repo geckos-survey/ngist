@@ -7,6 +7,15 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V3.0.1     2020-09-03    CHANGED: 
+			  * Assure compatibility with pPXF version 7 by adopting the 
+			    _bvls_solve and nnls_flags from pPXF version 6 into pyGandALF.
+			    Thanks to Michele Cappellari for his permission to include 
+			    these functions. 
+			  * Relaxed version dependencies of other packages in setup.py.
+			  * Changed the default value of the ftol parameter in pyGandALF 
+			    to 1e-5, in order to improve the reliability of the fit.
+
 V3.0       2020-08-20    Substantial revision and restructuring of the source code. Please
 			 consider the documentation for a detailed description of all 
 			 changes. 
