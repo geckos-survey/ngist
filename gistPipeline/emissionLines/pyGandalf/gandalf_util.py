@@ -4,7 +4,7 @@ from numpy.polynomial import legendre, hermite
 from pprint import pprint
 from matplotlib.font_manager import FontProperties
 from scipy.interpolate import interp1d
-from scipy import fftpack
+from scipy import fftpack, optimize, linalg
 import astropy.io.fits as fits
 import astropy.table as table
 import numpy as np
@@ -21,10 +21,11 @@ import sys
 
 from gistPipeline.emissionLines.pyGandalf.cap_mpfit import mpfit
 
-from ppxf.ppxf import bvls_solve as _bvls_solve
 from ppxf.ppxf import robust_sigma
 
-# ------------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------- #
 # WARNING: 
 #   These line are necessary to calculate errors on the GANDALF results.
 #   However, the provided bvls-algorithm only supports Python=<3.5.5 while pPXF
@@ -36,10 +37,48 @@ from ppxf.ppxf import robust_sigma
 #    from gistPipeline.emissionLines.pyGandalf._bvls import bvls
 #except:
 #    from gistPipeline.emissionLines.pyGandalf.bvls_n import BVLS as bvls
-# ------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------- #
 
 
-#
+
+# ---------------------------------------------------------------------------- #
+# Version 7 of pPXF does not contain the _bvls_solve and nnls_flags functions
+# anymore. However, the current implementation of pyGandALF depends on these
+# functions. In order to assure the compatibility of the GIST framework with
+# the most recent version of pPXF, we include these two functions from pPXF
+# version 6 below. We are grateful to Michele Cappellari for his permission to
+# include these functions. 
+
+def nnls_flags(A, b, npoly):
+    """
+    Solves min||A*x - b|| with
+    x[j] >= 0 for j >= npoly
+    x[j] free for j < npoly
+    where A[m, n], b[m], x[n], flag[n]
+
+    """
+    m, n = A.shape
+    AA = np.hstack([A, -A[:, :npoly]])
+    x = optimize.nnls(AA, b)[0]
+    x[:npoly] -= x[n:]
+    return x[:n]
+
+def _bvls_solve(A, b, npoly):
+    # No need to enforce positivity constraints if fitting one single template:
+    # use faster linear least-squares solution instead of NNLS.
+    m, n = A.shape
+    if m == 1:                  # A is a vector, not an array
+        soluz = A.dot(b)/A.dot(A)
+    elif n == npoly + 1:        # Fitting a single template
+        soluz = linalg.lstsq(A, b)[0]
+    else:                       # Fitting multiple templates
+        soluz = nnls_flags(A, b, npoly)
+    return soluz
+
+# ---------------------------------------------------------------------------- #
+
+
+
 #################################################################
 #global 
 C = np.float64(299792.458)
