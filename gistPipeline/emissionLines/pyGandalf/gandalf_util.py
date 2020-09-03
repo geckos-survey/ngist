@@ -1265,7 +1265,7 @@ def gandalf(templates, galaxy, noise, velscale, sol, emission_setup, l0_gal, lst
   # Note that we evalutate also the errors on the best parameters, but
   # as regards the position and width of the lines these should only be
   # considered as lower estimates for the real uncertainties.
-  mpfit_out = mpfit(fitfunc_gas, xall=start_pars, functkw=functargs_2, parinfo=parinfo_2, ftol=1e-2,quiet=1)
+  mpfit_out = mpfit(fitfunc_gas, xall=start_pars, functkw=functargs_2, parinfo=parinfo_2, ftol=1e-5,quiet=1)
   status    = mpfit_out.status
   ncalls    = mpfit_out.nfev
   errors    = mpfit_out.perror
@@ -1366,7 +1366,7 @@ def gandalf(templates, galaxy, noise, velscale, sol, emission_setup, l0_gal, lst
     # Re-run MPFIT starting from previous solution and using now the
     # FOR_ERRORS keyword to specify that we solve non-linearly also for
     # the amplitudes, and not only for the line position and width.
-    mpfit_out = mpfit(fitfunc_gas, xall=start_pars, functkw=functargs, parinfo=parinfo, ftol=1e-2,quiet = 1)
+    mpfit_out = mpfit(fitfunc_gas, xall=start_pars, functkw=functargs, parinfo=parinfo, ftol=1e-5,quiet = 1)
     status_2 = mpfit_out.status
     ncalls_2 = mpfit_out.nfev
     errors_2 = mpfit_out.perror
