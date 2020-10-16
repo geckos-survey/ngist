@@ -48,14 +48,14 @@ def readCube(config):
     spec  = spec[idx]
     espec = espec[idx]
     wave  = wave[idx]
-    logging.info("Shortening spectra to the wavelength range from "+str(config['READ_DATA']['LMAX_TOT'])+"A to "+str(config['READ_DATA']['LMAX_TOT'])+"A.")
+    logging.info("Shortening spectra to the wavelength range from "+str(config['READ_DATA']['LMIN_TOT'])+"A to "+str(config['READ_DATA']['LMAX_TOT'])+"A.")
 
     # Computing the SNR per spaxel
     idx_snr = np.where( np.logical_and( wave >= config['READ_DATA']['LMIN_SNR'], wave <= config['READ_DATA']['LMAX_SNR'] ) )[0]
     signal  = np.zeros(1) + np.nanmedian(spec[idx_snr],axis=0)
     noise   = np.zeros(1) + np.abs(np.nanmedian(np.sqrt(espec[idx_snr]),axis=0))
     snr     = signal / noise
-    logging.info("Computing the signal-to-noise ratio in the wavelength range from "+str(config['READ_DATA']['LMAX_SNR'])+"A to "+str(config['READ_DATA']['LMAX_SNR'])+"A.")
+    logging.info("Computing the signal-to-noise ratio in the wavelength range from "+str(config['READ_DATA']['LMIN_SNR'])+"A to "+str(config['READ_DATA']['LMAX_SNR'])+"A.")
 
     # Storing everything into a structure
     cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr, 'signal':signal, 'noise':noise, 'pixelsize':pixelsize}
