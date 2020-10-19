@@ -105,7 +105,7 @@ def save_gandalf(config, emission_setup, idx_l, sol, esol, nlines, sol_gas_AoN,\
     gandalfOutput = Table()
     gandalfErrorOutput = Table()
     for i in range(len(idx_l)): 
-        if np.all(sol_gas_AoN[:,i]) != 0.0:
+        if np.any(sol_gas_AoN[:,i]) != 0.0:
             gandalfOutput[names[i]+'_'+lambdas[i]+'_F'] = sol[:,i*4+0]
             gandalfOutput[names[i]+'_'+lambdas[i]+'_A'] = sol[:,i*4+1]
             gandalfOutput[names[i]+'_'+lambdas[i]+'_V'] = sol[:,i*4+2]

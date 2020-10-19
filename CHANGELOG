@@ -7,6 +7,12 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V3.0.2     2020-10-19    FIXED:
+			  * Fixed typo in log-messages from read-in routines
+			  * Fixed bug in gandalf.py that prevented some output columns to
+			    be written to disk. Thanks to Andrew Battisti for pointing
+			    out these two issues. 
+
 V3.0.1     2020-09-03    CHANGED: 
 			  * Assure compatibility with pPXF version 7 by adopting the 
 			    _bvls_solve and nnls_flags from pPXF version 6 into pyGandALF.
