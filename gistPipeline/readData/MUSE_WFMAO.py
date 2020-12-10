@@ -66,7 +66,7 @@ def readCube(config):
     x, y  = np.meshgrid(xaxis,yaxis)
     x     = np.reshape(x,[s[1]*s[2]])
     y     = np.reshape(y,[s[1]*s[2]])
-    pixelsize = 0.20
+    pixelsize = hdr['CD2_2']*3600.0
 
     logging.info("Extracting spatial information:\n"\
             +loggingBlanks+"* Spatial coordinates are centred to "+str(origin)+"\n"\
