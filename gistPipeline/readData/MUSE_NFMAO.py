@@ -89,7 +89,7 @@ def readCube(config):
     idx_snr   = np.where( np.logical_and.reduce([ \
         wave >= config['READ_DATA']['LMIN_SNR'], \
         wave <= config['READ_DATA']['LMAX_SNR'], \
-        np.logical_or( wave < 5780/(1+config['GENERAL']['REDSHIFT']), wave > 6048/(1+config['GENERAL']['REDSHIFT'])) ]))[0]
+        np.logical_or( wave < 5780/(1+config['GENERAL']['REDSHIFT']), wave > 6050/(1+config['GENERAL']['REDSHIFT'])) ]))[0]
     signal  = np.nanmedian(spec[idx_snr,:],axis=0)
     if len(hdu) == 3:
         noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
@@ -99,7 +99,7 @@ def readCube(config):
     logging.info("Computing the signal-to-noise ratio in the wavelength range from "+str(config['READ_DATA']['LMIN_SNR'])+"A to "+str(config['READ_DATA']['LMAX_SNR'])+"A.")
 
     # Replacing the np.nan in the laser region by the median of the spectrum
-    idx_laser          = np.where( np.logical_and( wave > 5780 / (1+config['GENERAL']['REDSHIFT']), wave < 6048 / (1+config['GENERAL']['REDSHIFT'])) )[0]
+    idx_laser          = np.where( np.logical_and( wave > 5780 / (1+config['GENERAL']['REDSHIFT']), wave < 6050 / (1+config['GENERAL']['REDSHIFT'])) )[0]
     spec[idx_laser,:]  = signal
     espec[idx_laser,:] = noise
 
