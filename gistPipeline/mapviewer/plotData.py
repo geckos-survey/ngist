@@ -193,6 +193,9 @@ def plotPlainSpectrum(self, spectra, snr, panel):
     self.axes[panel].set_title("SNRBIN = {:.1f}".format(snr), loc='left')
     self.axes[panel].set_title("BIN_ID = {:d}".format(self.idxBinShort), loc='right')
 
+    ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format( np.exp(x) ))
+    self.axes[panel].xaxis.set_major_formatter(ticks)
+
 
 def plotSpectraKIN(self, spectra, bestfit, goodpix, panel):
 
