@@ -7,6 +7,14 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V3.0.3     2020-12-11    FIXED: 
+			  * Change MUSE read-in routines to read pixelsize from header
+			  * Correct wavelength range affected by laser guide stars in MUSE 
+			    adaptive optics read-in routines. Masking now extends to 6050A
+			  * Fixed Mapviewer to show wavelengths in Angstrom if only a 
+			    plain spectrum (without any other analysis) is displayed.
+			    Thanks to Sebastien Comeron for pointing out these bugs. 
+
 V3.0.2     2020-10-19    FIXED:
 			  * Fixed typo in log-messages from read-in routines
 			  * Fixed bug in gandalf.py that prevented some output columns to
