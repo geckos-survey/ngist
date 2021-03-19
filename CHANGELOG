@@ -7,6 +7,18 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V3.0.4     2021-03-19    FIXED: 
+			  * Replaced MUSE_WFMAO read-in routine by MUSE_WFMAON and 
+			    MUSE_WFMAOE to account for the distinct wavelength ranges 
+			    affected by the LGS facility in the nominal and extended modes
+			    of the MUSE wide-field mode. 
+			    Thanks to Aishwarya Girdhar for pointing out this bug.
+			  * Fixed Mapviewer, gandalf.py, and gistPlot_kin.py to work with 
+			    only two kinematic moments. Thanks to Sebastien Comeron for 
+			    reporting these issues. 
+			  * Account for the correct de-redshifting of sky-masks in 
+			    pyGandALF. Thanks to Andrew Battisti for the suggestion. 
+
 V3.0.3     2020-12-11    FIXED: 
 			  * Change MUSE read-in routines to read pixelsize from header
 			  * Correct wavelength range affected by laser guide stars in MUSE 
