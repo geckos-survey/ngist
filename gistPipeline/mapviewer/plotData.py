@@ -127,7 +127,10 @@ def plotData(self):
     # Plot stellarKinematics fit
     if self.KIN == True: 
         self.plotSpectraKIN(self.Spectra[self.idxBinShort], self.kinBestfit[self.idxBinShort], self.kinGoodpix, 1)
-        self.axes[1].set_title("Stellar kinematics: v={:.1f}km/s, sigma={:.1f}km/s, h3={:.2f}, h4={:.2f}".format(self.kinResults.V[self.idxBinLong], self.kinResults.SIGMA[self.idxBinLong], self.kinResults.H3[self.idxBinLong], self.kinResults.H4[self.idxBinLong]), loc='left')
+        if 'V' in self.kinResults.names  and  'SIGMA' in self.kinResults.names  and  'H3' in self.kinResults.names  and  'H4' in self.kinResults.names: 
+            self.axes[1].set_title("Stellar kinematics: V={:.1f}km/s, SIGMA={:.1f}km/s, H3={:.2f}, H4={:.2f}".format(self.kinResults.V[self.idxBinLong], self.kinResults.SIGMA[self.idxBinLong], self.kinResults.H3[self.idxBinLong], self.kinResults.H4[self.idxBinLong]), loc='left')
+        elif 'V' in self.kinResults.names  and  'SIGMA' in self.kinResults.names:
+            self.axes[1].set_title("Stellar kinematics: V={:.1f}km/s, SIGMA={:.1f}km/s".format(self.kinResults.V[self.idxBinLong], self.kinResults.SIGMA[self.idxBinLong]), loc='left')
         self.axes[1].set_title("BIN_ID = {:d}".format(self.idxBinShort), loc='right')
 
 

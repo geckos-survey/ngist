@@ -279,7 +279,7 @@ def return_arg(arg_out, values):
   for x in values:
     arg_out.append(x)
 #################################################################
-def mask_emission_lines(npix,Vsys,emission_setup, velscale,l0_gal,lstep_gal, sigm,l_rf_range,log10):
+def mask_emission_lines(npix,Vsys,emission_setup, velscale,l0_gal,lstep_gal, sigm,l_rf_range,log10,sysRedshift):
 # Return a list of goodpixels to fit that excludes regions potentially
 # affected by gas emission and by sky lines. Unless the log10 keyword
 # is specified, wavelength values are assumed to be ln-rebinned, and
@@ -318,9 +318,9 @@ def mask_emission_lines(npix,Vsys,emission_setup, velscale,l0_gal,lstep_gal, sig
           meml_cpix = mt.ceil((np.log10((emission_setup[i])._lambda)-l0_gal)/lstep_gal+Vsys/velscale)
         # sky lines are at rest-frame
         if ((emission_setup[i]).name == 'sky'):
-          meml_cpix = mt.ceil((np.log((emission_setup[i])._lambda)-l0_gal)/lstep_gal) 
+          meml_cpix = mt.ceil((np.log((emission_setup[i])._lambda/(1+sysRedshift))-l0_gal)/lstep_gal)
         if (((emission_setup[i]).name == 'sky') & (log10==1)):
-          meml_cpix = mt.ceil((np.log10((emission_setup[i])._lambda)-l0_gal)/lstep_gal) 
+          meml_cpix = mt.ceil((np.log10((emission_setup[i])._lambda/(1+sysRedshift))-l0_gal)/lstep_gal)
         # set the width of the mask in pixels using either
         # 3 times the sigma of each line in the emission-line setup 
         # or the provided sigma value 

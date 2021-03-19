@@ -35,8 +35,8 @@ def readCube(config):
     loggingBlanks = (len( os.path.splitext(os.path.basename(__file__))[0] ) + 33) * " "
 
     # Read MUSE-cube
-    printStatus.running("Reading the MUSE-NFM cube")
-    logging.info("Reading the MUSE-NFM cube: "+config['GENERAL']['INPUT'])
+    printStatus.running("Reading the MUSE-WFM cube")
+    logging.info("Reading the MUSE-WFM cube: "+config['GENERAL']['INPUT'])
 
     # Reading the cube
     hdu   = fits.open(config['GENERAL']['INPUT'])
@@ -89,7 +89,7 @@ def readCube(config):
     idx_snr   = np.where( np.logical_and.reduce([ \
         wave >= config['READ_DATA']['LMIN_SNR'], \
         wave <= config['READ_DATA']['LMAX_SNR'], \
-        np.logical_or( wave < 5780/(1+config['GENERAL']['REDSHIFT']), wave > 6050/(1+config['GENERAL']['REDSHIFT'])) ]))[0]
+        np.logical_or( wave < 5820/(1+config['GENERAL']['REDSHIFT']), wave > 5970/(1+config['GENERAL']['REDSHIFT'])) ]))[0]
     signal  = np.nanmedian(spec[idx_snr,:],axis=0)
     if len(hdu) == 3:
         noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
@@ -99,10 +99,10 @@ def readCube(config):
     logging.info("Computing the signal-to-noise ratio in the wavelength range from "+str(config['READ_DATA']['LMIN_SNR'])+"A to "+str(config['READ_DATA']['LMAX_SNR'])+"A, while ignoring the wavelength range affected by the LGS.")
 
     # Replacing the np.nan in the laser region by the median of the spectrum
-    idx_laser          = np.where( np.logical_and( wave > 5780 / (1+config['GENERAL']['REDSHIFT']), wave < 6050 / (1+config['GENERAL']['REDSHIFT'])) )[0]
+    idx_laser          = np.where( np.logical_and( wave > 5820 / (1+config['GENERAL']['REDSHIFT']), wave < 5970 / (1+config['GENERAL']['REDSHIFT'])) )[0]
     spec[idx_laser,:]  = signal
     espec[idx_laser,:] = noise
-    logging.info("Replacing the spectral region affected by the LGS (5780A-6050A) with the median signal of the spectra.")
+    logging.info("Replacing the spectral region affected by the LGS (5820A - 5970A) with the median signal of the spectra.")
 
     # Storing everything into a structure
     cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr, 'signal':signal, 'noise':noise, 'pixelsize':pixelsize}
@@ -110,7 +110,7 @@ def readCube(config):
     # Constrain cube to one central row if switch DEBUG is set
     if config['READ_DATA']['DEBUG'] == True: cube = set_debug(cube, s[2], s[1])
 
-    printStatus.updateDone("Reading the MUSE-NFM cube")
+    printStatus.updateDone("Reading the MUSE-WFM cube")
     print("             Read "+str(len(cube['x']))+" spectra!")
     logging.info("Finished reading the MUSE cube! Read a total of "+str(len(cube['x']))+" spectra!")
 
