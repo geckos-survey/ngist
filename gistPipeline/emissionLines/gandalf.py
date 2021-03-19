@@ -334,7 +334,7 @@ def getGoodpixelsEmissionSetup(config, redshift, velscale, logLam_galaxy, logLam
 
     # Create goodpixels and final emission line setup
     goodpixels, emission_setup = gandalf.mask_emission_lines\
-            (npix, redshift, emission_setup, velscale, logLam_galaxy[0], (logLam_galaxy[1]-logLam_galaxy[0]), None, None, 0)    
+            (npix, redshift, emission_setup, velscale, logLam_galaxy[0], (logLam_galaxy[1]-logLam_galaxy[0]), None, None, 0, config['GENERAL']['REDSHIFT'])
 
     # Prepare emission_setup structure for GANDALF, which should only deal with the lines we fit
     i_f = []
