@@ -82,11 +82,11 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         hdu = fits.open(os.path.join(outdir,rootname)+'_kin.fits')
     elif flag == 'SFH':
         hdu = fits.open(os.path.join(outdir,rootname)+'_sfh.fits')
-    result      = np.empty((len(ubins),4))
+    result      = np.zeros((len(ubins),4))
     result[:,0] = np.array( hdu[1].data.V     )
     result[:,1] = np.array( hdu[1].data.SIGMA )
-    result[:,2] = np.array( hdu[1].data.H3    )
-    result[:,3] = np.array( hdu[1].data.H4    )
+    if hasattr(ppxf, 'H3'): result[:,2] = np.array(hdu[1].data.H3)
+    if hasattr(ppxf, 'H4'): result[:,3] = np.array(hdu[1].data.H4)
 
     # Convert results to long version
     result_long  = np.zeros( (len(binNum_long), result.shape[1]) ); result_long[:,:] = np.nan

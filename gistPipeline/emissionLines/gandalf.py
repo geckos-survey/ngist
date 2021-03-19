@@ -415,8 +415,8 @@ def performEmissionLineAnalysis(config):
         stellar_kin = np.zeros((ppxf.V.shape[0],6))
         stellar_kin[:,0] = np.array(ppxf.V)
         stellar_kin[:,1] = np.array(ppxf.SIGMA)
-        stellar_kin[:,2] = np.array(ppxf.H3)
-        stellar_kin[:,3] = np.array(ppxf.H4)
+        if hasattr(ppxf, 'H3'): stellar_kin[:,2] = np.array(ppxf.H3)
+        if hasattr(ppxf, 'H4'): stellar_kin[:,3] = np.array(ppxf.H4)
     
         # Rename to keep the code clean
         for_errors = config['GAS']['ERRORS']
@@ -460,8 +460,8 @@ def performEmissionLineAnalysis(config):
         stellar_kin = np.zeros((ppxf.V.shape[0],6))
         stellar_kin[:,0] = np.array(ppxf.V)
         stellar_kin[:,1] = np.array(ppxf.SIGMA)
-        stellar_kin[:,2] = np.array(ppxf.H3)
-        stellar_kin[:,3] = np.array(ppxf.H4)
+        if hasattr(ppxf, 'H3'): stellar_kin[:,2] = np.array(ppxf.H3)
+        if hasattr(ppxf, 'H4'): stellar_kin[:,3] = np.array(ppxf.H4)
 
         # Read bintable
         bintable    = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_table.fits')[1].data
