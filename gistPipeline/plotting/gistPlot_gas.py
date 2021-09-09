@@ -208,12 +208,16 @@ def plotMaps(outdir, LEVEL, FROM_PIPELINE, INTERACTIVE=False, vminmax=np.zeros(2
     runname  = outdir
     rootname = outdir.rstrip('/').split('/')[-1]
 
+    # Construct a mask for defunct spaxels
+    mask = fits.open(os.path.join(outdir,rootname)+'_mask.fits')[1].data.MASK_DEFUNCT
+    maskedSpaxel = np.array(mask, dtype=bool)
+
     # Read bintable
     table_hdu = fits.open(os.path.join(outdir,rootname)+'_table.fits')
-    X           = np.array( table_hdu[1].data.X ) * -1
-    Y           = np.array( table_hdu[1].data.Y )
-    FLUX        = np.array( table_hdu[1].data.FLUX )
-    binNum_long = np.array( table_hdu[1].data.BIN_ID )
+    X           = np.array( table_hdu[1].data.X[~maskedSpaxel] ) * -1
+    Y           = np.array( table_hdu[1].data.Y[~maskedSpaxel] )
+    FLUX        = np.array( table_hdu[1].data.FLUX[~maskedSpaxel] )
+    binNum_long = np.array( table_hdu[1].data.BIN_ID[~maskedSpaxel] )
     ubins       = np.unique( np.abs(binNum_long) )
     pixelsize   = table_hdu[0].header['PIXSIZE']
 
@@ -225,7 +229,7 @@ def plotMaps(outdir, LEVEL, FROM_PIPELINE, INTERACTIVE=False, vminmax=np.zeros(2
 
     # Read Gandalf results
     if LEVEL == 'SPAXEL':
-        results = fits.open(os.path.join(outdir,rootname)+'_gas_SPAXEL.fits')[1].data
+        results = fits.open(os.path.join(outdir,rootname)+'_gas_SPAXEL.fits')[1].data[~maskedSpaxel]
     elif LEVEL == 'BIN':
         results = fits.open(os.path.join(outdir,rootname)+'_gas_BIN.fits')[1].data
 
