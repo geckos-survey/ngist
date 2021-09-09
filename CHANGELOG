@@ -7,6 +7,10 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V3.1.0     2021-09-09    Last GIST version maintained by Adrian Bittner as Astronomer.
+			 FIXED:
+			  * Fixed bug in GAS plotting routine related to defunct spaxels
+
 V3.0.5     2021-05-28    FIXED:
 			  * Fixed bug in KIN plotting routine to work with both two and 
 			    four kinematic moments. Thanks to Geoff Chih-Fan Chen for 
