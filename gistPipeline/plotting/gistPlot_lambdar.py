@@ -43,7 +43,7 @@ def setup_plot(usetex=False):
     dpi = 300
     
     plt.rc('font', family='serif')
-    plt.rc('text', usetex=usetex)
+    plt.rc('text', usetex=False)
     
     plt.rcParams['axes.labelsize'] = fontsize
     plt.rcParams['legend.fontsize'] = fontsize-3
@@ -145,8 +145,8 @@ def plotMaps(outdir, INTERACTIVE=False, vminmax=np.array([0.0,1.0]), contour_off
     ymin = np.nanmin(Y)-6;  ymax = np.nanmax(Y)+6
     npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
     npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
-    i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int )
-    j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int )
+    i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
+    j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
     image = np.full( (npixels_x, npixels_y), np.nan )
     image[i,j] = val
   
@@ -162,8 +162,8 @@ def plotMaps(outdir, INTERACTIVE=False, vminmax=np.array([0.0,1.0]), contour_off
     grid[0].tricontour(XY_Triangulation, np.log10(FLUX), levels=levels, linewidths=1, colors='k')
 
     # Label vmin and vmax
-    grid[0].text(0.985,0.008 ,r'\textbf{{{:.2f}}}'.format(vmin).replace("-", r"\textendash\,")+r'\textbf{ / }'+r'\textbf{{{:.2f}}}'.format(vmax), \
-            horizontalalignment='right', verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
+    grid[0].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' / '+r'{:.2f}'.format(vmax), \
+            horizontalalignment='right', fontweight ='bold', verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
 
     # Remove ticks and labels from colorbar
     for cax in grid.cbar_axes:
@@ -172,11 +172,11 @@ def plotMaps(outdir, INTERACTIVE=False, vminmax=np.array([0.0,1.0]), contour_off
 
     # Set V, SIGMA, H3, H4 labels
     grid[0].text(0.02,  0.975, r'$\lambda$',                      horizontalalignment='left',  verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
-    grid[0].text(0.985, 0.975, r'\textbf{{{}}}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
+    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
 
     # Set xlabel and ylabel
-    grid[0].set_ylabel(r'$\Delta \delta$ \textbf{[arcsec]}')
-    grid[0].set_xlabel(r'$\Delta \alpha$ \textbf{[arcsec]}')
+    grid[0].set_ylabel(r'$\Delta \delta$ [arcsec]',fontweight='bold')
+    grid[0].set_xlabel(r'$\Delta \alpha$ [arcsec]',fontweight='bold')
 
     # Fix minus sign in ticklabels
     grid[0].xaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))

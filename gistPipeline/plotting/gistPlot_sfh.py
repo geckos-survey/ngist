@@ -40,7 +40,7 @@ def setup_plot(usetex=False):
     dpi = 300
     
     plt.rc('font', family='serif')
-    plt.rc('text', usetex=usetex)
+    plt.rc('text', usetex=False)
     
     plt.rcParams['axes.labelsize'] = fontsize
     plt.rcParams['legend.fontsize'] = fontsize-3
@@ -162,8 +162,8 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         ymin = np.nanmin(Y)-5;  ymax = np.nanmax(Y)+5
         npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
         npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
-        i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int )
-        j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int )
+        i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
+        j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
         image[i,j] = val
       
@@ -180,7 +180,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
 
         # Label vmin and vmax
         if iterate in [0,1,2]: 
-            grid[iterate].text(0.985,0.008 ,r'\textbf{{{:.2f}}}'.format(vmin).replace("-", r"\textendash\,")+r'\textbf{\,/\,}'+r'\textbf{{{:.2f}}}'.format(vmax).replace("-", r"\textendash\,"), \
+            grid[iterate].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' '+r'{:.2f}'.format(vmax).replace("-", r"\textendash\,"), \
                     horizontalalignment='right', verticalalignment='bottom', transform = grid[iterate].transAxes, fontsize=16)
 
     # Remove ticks and labels from colorbar
@@ -189,18 +189,18 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         cax.yaxis.set_ticks([])
 
     # Set age, metallicity labels
-    grid[0].text(0.02,  0.98,  r'\textbf{Age} $\mathrm{[Gyr]}$',  horizontalalignment='left',  verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
-    grid[0].text(0.985, 0.975, r'\textbf{{{}}}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
-    grid[1].text(0.02,  0.98,  r'\textbf{[M/H]}',                 horizontalalignment='left',  verticalalignment='top', transform = grid[1].transAxes, fontsize=16)
+    grid[0].text(0.02,  0.98,  r'Age $\mathrm{[Gyr]}$',  horizontalalignment='left',  verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
+    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
+    grid[1].text(0.02,  0.98,  r'[M/H]',                 horizontalalignment='left',  verticalalignment='top', transform = grid[1].transAxes, fontsize=16)
     if nplots == 3:
-        grid[2].text(0.02,  0.98,  r'\textbf{[$\alpha$/Fe]}',     horizontalalignment='left',  verticalalignment='top', transform = grid[2].transAxes, fontsize=16)
+        grid[2].text(0.02,  0.98,  r'[$\alpha$/Fe]',     horizontalalignment='left',  verticalalignment='top', transform = grid[2].transAxes, fontsize=16)
 
     # Set xlabel and ylabel
-    grid[0].set_ylabel(r'$\Delta \delta$ \textbf{[arcsec]}')
-    grid[0].set_xlabel(r'$\Delta \alpha$ \textbf{[arcsec]}')
-    grid[1].set_xlabel(r'$\Delta \alpha$ \textbf{[arcsec]}')
+    grid[0].set_ylabel(r'$\Delta \delta$ [arcsec]')
+    grid[0].set_xlabel(r'$\Delta \alpha$ [arcsec]')
+    grid[1].set_xlabel(r'$\Delta \alpha$ [arcsec]')
     if nplots == 3: 
-        grid[2].set_xlabel(r'$\Delta \alpha$ \textbf{[arcsec]}')
+        grid[2].set_xlabel(r'$\Delta \alpha$ [arcsec]')
 
     # Fix minus sign in ticklabels
     grid[0].xaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))

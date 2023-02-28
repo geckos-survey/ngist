@@ -35,7 +35,7 @@ PURPOSE:
 
 
 def TicklabelFormatter(x, pos):
-    return( "${}$".format(int(x)).replace("-", r"\textendash") )
+    return( "${}$".format(int(x)).replace("-", r"-") )
 
 def setup_plot(usetex=False):
 
@@ -43,7 +43,7 @@ def setup_plot(usetex=False):
     dpi = 300
     
     plt.rc('font', family='serif')
-    plt.rc('text', usetex=usetex)
+    plt.rc('text', usetex=False)
     
     plt.rcParams['axes.labelsize'] = fontsize
     plt.rcParams['legend.fontsize'] = fontsize-3
@@ -110,8 +110,8 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
     ymin = np.nanmin(Y)-6;  ymax = np.nanmax(Y)+6
     npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
     npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
-    i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int )
-    j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int )
+    i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
+    j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
     image = np.full( (npixels_x, npixels_y), np.nan )
     image[i,j] = val
 
@@ -128,10 +128,10 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
 
     # Label vmin and vmax
     if lineIdentifier.split('_')[-1] in ['V', 'S']: 
-        grid[0].text(0.985,0.008 ,r'\textbf{{{:.0f}}}'.format(vmin).replace("-", r"\textendash\,")+r'\textbf{ / }'+r'\textbf{{{:.0f}}}'.format(vmax), \
+        grid[0].text(0.985,0.008 ,r'{:.0f}'.format(vmin).replace("-", r"- ")+r' / '+r'{:.0f}'.format(vmax), \
                 horizontalalignment='right', verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
     if lineIdentifier.split('_')[-1] in ['F', 'A']: 
-        grid[0].text(0.985,0.008 ,r'\textbf{{{:.2f}}}'.format(vmin).replace("-", r"\textendash\,")+r'\textbf{ / }'+r'\textbf{{{:.2f}}}'.format(vmax), \
+        grid[0].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' / '+r'{:.2f}'.format(vmax), \
                 horizontalalignment='right', verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
 
     # Remove ticks and labels from colorbar
@@ -140,29 +140,29 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
         cax.yaxis.set_ticks([])
 
     # Set labels
-    grid[0].text(0.985, 0.975, r'\textbf{{{}}}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
+    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
     if lineIdentifier.split('_')[-1] == 'V':
         grid[0].text(0.02, 0.98, r'$V \mathrm{[km/s]}$',      horizontalalignment='left', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
     elif lineIdentifier.split('_')[-1] == 'S':
         grid[0].text(0.02, 0.98, r'$\sigma \mathrm{[km/s]}$', horizontalalignment='left', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
     elif lineIdentifier.split('_')[-1] == 'F':
-        grid[0].text(0.02, 0.98, r'\textbf{Flux}',            horizontalalignment='left', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
+        grid[0].text(0.02, 0.98, r'Flux',            horizontalalignment='left', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
     elif lineIdentifier.split('_')[-1] == 'A':
-        grid[0].text(0.02, 0.98, r'\textbf{Ampl}',            horizontalalignment='left', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
+        grid[0].text(0.02, 0.98, r'Ampl',            horizontalalignment='left', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
 
     if lineIdentifier.split('_')[0] == 'Ha':
-        grid[0].text( 0.02, 0.008, r'$\mathbf{H\alpha}$', \
-                horizontalalignment='left',verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
+        grid[0].text( 0.02, 0.008, r'$H\alpha$', \
+                horizontalalignment='left',verticalalignment='bottom', fontweight = 'bold', transform = grid[0].transAxes, fontsize=16)
     elif lineIdentifier.split('_')[0] == 'Hb':
-        grid[0].text( 0.02, 0.008, r'$\mathbf{H\beta}$', \
-                horizontalalignment='left',verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
+        grid[0].text( 0.02, 0.008, r'$H\beta$', \
+                horizontalalignment='left',verticalalignment='bottom', fontweight = 'bold', transform = grid[0].transAxes, fontsize=16)
     else:
-        grid[0].text( 0.02, 0.008, r'\textbf{'+lineIdentifier[:-2].replace('_',' ')+'\AA}', \
-                horizontalalignment='left',verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
+        grid[0].text( 0.02, 0.008, r'lineIdentifier[:-2]'.replace('_',' ')+'\AA', \
+                horizontalalignment='left',verticalalignment='bottom', fontweight = 'bold', transform = grid[0].transAxes, fontsize=16)
 
     # Set xlabel and ylabel
-    grid[0].set_xlabel(r'$\Delta \alpha$ \textbf{[arcsec]}')
-    grid[0].set_ylabel(r'$\Delta \delta$ \textbf{[arcsec]}')
+    grid[0].set_xlabel(r'$\Delta \alpha$ [arcsec]',fontweight = 'bold')
+    grid[0].set_ylabel(r'$\Delta \delta$ [arcsec]',fontweight = 'bold')
 
     # Fix minus sign in ticklabels
     grid[0].xaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
