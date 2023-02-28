@@ -1,0 +1,35 @@
+# This file defines spectral ranges that are masked during the analysis of the
+# KIN module. Note that all masks are defined in restframe wavelength ranges.
+# If you intend to mask sky-lines, please use the keyword 'sky' in the comment
+# column. 
+#
+# Lambda [Angst.]    Width [Angst.]    Comment
+3203.15              30                HeII     
+3345.81              30                [NeV]    
+3425.81              30                [NeV]    
+3726.03              30                [OII]    
+3728.73              30                [OII]    
+3868.69              30                [NeIII]  
+3967.40              30                [NeIII]  
+3889.05              30                H5       
+3970.07              30                He       
+4101.73              30                Hd       
+4340.46              30                Hg       
+4363.15              30                [OIII]   
+4685.74              30                HeII     
+4711.30              30                [ArIV]   
+4740.10              30                [ArIV]   
+4861.32              30                Hb       
+4958.83              30                [OIII]   
+5006.77              30                [OIII]   
+5197.90              30                [NI]     
+5200.39              30                [NI]     
+5875.60              30                HeI      
+6300.20              30                [OI]     
+6363.67              30                [OI]     
+6547.96              30                [NII]    
+6562.80              30                Ha       
+6583.34              30                [NII]    
+6716.31              30                [SII]    
+6730.68              30                [SII]    
+7135.67              30                [ArIII]  

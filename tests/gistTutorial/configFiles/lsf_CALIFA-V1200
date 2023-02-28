@@ -1,0 +1,7 @@
+# Column 1: Wavelength vector in Angstroem; Column 2: FWHM of observation for the respective wavelength
+# 
+# This files describes the line-spread-function V1200 from García-Benito et al. 2015 
+#
+3.000000000000000000e+03 2.31e+00
+8.000000000000000000e+03 2.31e+00
+
