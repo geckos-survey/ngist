@@ -57,7 +57,7 @@ def setup_plot(usetex=False):
     plt.rcParams['savefig.dpi'] = dpi
     plt.rcParams['savefig.pad_inches'] = 0.3
     
-    plt.rcParams['text.latex.preamble'] = [r'\boldmath']
+    # plt.rcParams['text.latex.preamble'] = [r'\boldmath']
 
 
 def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, lineIdentifier, vminmax, contour_offset_saved, X, Y, FLUX, pixelsize, outdir, rootname):

@@ -57,7 +57,7 @@ def setup_plot(usetex=False):
     plt.rcParams['savefig.dpi'] = dpi
     plt.rcParams['savefig.pad_inches'] = 0.3
     
-    plt.rcParams['text.latex.preamble'] = [r'\boldmath']
+    # plt.rcParams['text.latex.preamble'] = [r'\boldmath']
 
 
 def plotMaps(outdir, INTERACTIVE=False, vminmax=np.array([0.0,1.0]), contour_offset_saved=0.20, SAVE_AFTER_INTERACTIVE=False):

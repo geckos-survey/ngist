@@ -39,6 +39,7 @@ setup(name='gistPipeline',
         'ppxf>=6.7',
         'plotbin>=3.1',
         'printStatus>=1.0',
+        'multiprocess>=0.5'
       ],
       python_requires='==3.6.*',
       entry_points={
