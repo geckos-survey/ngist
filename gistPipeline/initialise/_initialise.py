@@ -124,7 +124,7 @@ def addPathsToConfig(config, dirPath):
             if not line.startswith('#'):
                 line = line.split('=')
                 line = [x.strip() for x in line]
-
+                # print(line)
                 if os.path.isdir(line[1]) == True:
                     if line[0] == 'inputDir': 
                         config['GENERAL']['INPUT'] = os.path.join(line[1], config['GENERAL']['INPUT'])
@@ -174,6 +174,7 @@ def loadConfig(outdir):
     """
     Load configurations from a saved CONFIG file in the output directory of the current run. 
     """
+    print(outdir)
     with open(os.path.join(outdir, 'CONFIG'), "r") as file:
         loadedConfig = yaml.load(file, Loader=yaml.FullLoader)
     return(loadedConfig)

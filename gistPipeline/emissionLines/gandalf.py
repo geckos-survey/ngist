@@ -1,7 +1,7 @@
 from astropy.io import fits
 from astropy.table import Table
 import numpy as np
-from multiprocessing import Queue, Process
+from multiprocess import Queue, Process
 
 import time
 import os

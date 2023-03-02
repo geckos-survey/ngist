@@ -1,0 +1,7 @@
+# This file defines spectral ranges that are masked during the analysis of the
+# SFH module.  Note that all masks are defined in restframe wavelength ranges.
+# If you intend to mask sky-lines, please use the keyword 'sky' in the comment
+# column. 
+#
+# Lambda [Angst.]    Width [Angst.]    Comment
+

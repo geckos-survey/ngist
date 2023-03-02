@@ -1,6 +1,6 @@
 from astropy.io import fits, ascii
 import numpy as np
-from multiprocessing import Queue, Process
+from multiprocess import Queue, Process
 
 import time
 import logging

@@ -1,6 +1,6 @@
 #!/usr/bin/env pythonw
 
-from PyQt5 import QtCore, QtGui, QtWidgets as pyqt
+from PyQt6 import QtCore, QtGui, QtWidgets as pyqt
 
 import sys
 import warnings

@@ -124,10 +124,10 @@ def saveMask(combinedMask, maskedDefunct, maskedSNR, maskedMask, config):
     # Table HDU with output data
     # This is an integer array! 0 means unmasked, 1 means masked!
     cols = []
-    cols.append(fits.Column(name='MASK',         format='I', array=np.array(combinedMask, dtype=np.int)  ))
-    cols.append(fits.Column(name='MASK_DEFUNCT', format='I', array=np.array(maskedDefunct, dtype=np.int) ))
-    cols.append(fits.Column(name='MASK_SNR',     format='I', array=np.array(maskedSNR, dtype=np.int)     ))
-    cols.append(fits.Column(name='MASK_FILE',    format='I', array=np.array(maskedMask, dtype=np.int)    ))
+    cols.append(fits.Column(name='MASK',         format='I', array=np.array(combinedMask, dtype=np.int32)  ))
+    cols.append(fits.Column(name='MASK_DEFUNCT', format='I', array=np.array(maskedDefunct, dtype=np.int32) ))
+    cols.append(fits.Column(name='MASK_SNR',     format='I', array=np.array(maskedSNR, dtype=np.int32)     ))
+    cols.append(fits.Column(name='MASK_FILE',    format='I', array=np.array(maskedMask, dtype=np.int32)    ))
     tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     tbhdu.name = "MASKFILE"
 
