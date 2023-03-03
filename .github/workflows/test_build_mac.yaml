@@ -38,6 +38,6 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Checking the pipline runs NGC 0000
-        run: gistPipeline --config=tests/gistTutorial/configFiles/MasterConfig --default-dir=tests/gistTutorial/configFiles/defaultDir_mac
+        run: gistPipeline --config=tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=tests/gistTutorial/configFiles/defaultDir_mac
       - name: Checking pipeline results
         run: python tests/check_outputs.py
