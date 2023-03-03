@@ -10,13 +10,15 @@ from gistPipeline._version import __version__
 
 
 """
-PURPOSE: 
+PURPOSE:
   This file contains a collection of functions necessary to initialise the
   pipeline. This includes the creation of the LOGFILE, functions to read, save,
-  and check the MasterConfig file, and print the configurations to stdout. 
+  and check the MasterConfig file, and print the configurations to stdout.
 
   The functions in this file do not interfere with subsequent modules or their
-  configuration parameters provided in MasterConfig. 
+  configuration parameters provided in MasterConfig.
+
+  02 Mar 2023: AFM editing to change configFile to a .yaml to make more user friendly
 """
 
 
@@ -29,7 +31,7 @@ def setupLogfile(config):
                         level    = logging.INFO,
                         format   = '%(asctime)s - %(levelname)-8s - %(module)s: %(message)s',
                         datefmt  = '%m/%d/%y %H:%M:%S' )
-    logging.Formatter.converter  = time.gmtime    
+    logging.Formatter.converter  = time.gmtime
     logging.info(welcomeString)
 
 
@@ -44,7 +46,7 @@ def handleUncaughtException(exceptionType, exceptionValue, exceptionTraceback):
 
 def convertConfigDataType(value):
     """
-    Convert the configuration parameters from MasterConfig to the most suitable data type. 
+    Convert the configuration parameters from MasterConfig to the most suitable data type.
     """
     if value.lower() == 'true':
         return(True)
@@ -62,62 +64,20 @@ def convertConfigDataType(value):
 
 def readMasterConfig(filename, galindex):
     """
-    Read the MasterConfig file and stores all parameters in the configs dictionary. 
+    Read the MasterConfig file and stores all parameters in the configs dictionary.
     """
-
-    file = open(filename, "r")
-    keys = []
-    param = []
-    i = 0
-    for line in file.readlines():
-        line = line.strip()
-        if line.startswith('#'):
-            continue
-        if i in [0,1]: 
-            keys.append(line)
-        if i in [galindex+2]:
-            param.append(line)
-        i += 1
-    file.close()
-    
-    moduleKeys = keys[0].split('|')
-    paramKeys  = keys[1].split('|')
-    param      = param[0].split('|')
-    moduleKeys = [x.strip() for x in moduleKeys]
-    paramKeys  = [x.strip() for x in paramKeys]
-    param      = [x.strip() for x in param]
-    moduleKeys = list( filter(None, moduleKeys) )
-    
-    if len(moduleKeys) != len(paramKeys):
-        print('There is '+str(len(moduleKeys))+' module keys defined, but '+str(len(paramKeys))+' groups of parameter keys.')
-        print('Please fix the errors in the Configuration file.')
-        return(None)
-    if len(moduleKeys) != len(param):
-        print('There is '+str(len(moduleKeys))+' module keys defined, but '+str(len(param))+' groups of parameters.')
-        print('Please fix the errors in the Configuration file.')
-        return(None)
-    
-    configs = {}
-    for i, mK in enumerate(moduleKeys): 
-        configs[mK] = {}
-        pK = list( filter(None, paramKeys[i].split(' ')) )
-        pA = list( filter(None, param[i].split(' ')) )
-    
-        if len(pK) != len(pA):
-            print('In module key '+mK+' there are '+str(len(pK))+' parameter keys defined, but '+str(len(pA))+' parameters.')
-            print('Please fix the errors in the Configuration file.')
-            return(None)
-        for o in range(len(pK)):
-            configs[mK][pK[o]] = convertConfigDataType(pA[o])
+    # Amelia edited this module to instead of reading in the old MasterConfig, to read in MasterConfig.yaml 
+    with open(filename, 'r') as f:
+        configs = yaml.safe_load(f)
 
     return(configs)
 
 
-def addPathsToConfig(config, dirPath):
+def addPathsToConfig(config, dirPath): # Amrlia - I *think* the input here is the dictionary...
     """
-    Combine the configuration parameters from MasterConfig with the paths specified as command line arguments. 
+    Combine the configuration parameters from MasterConfig with the paths specified as command line arguments.
 
-    Naturally, this function cannot account for paths in user-defined parameters and/or user-defined modules. 
+    Naturally, this function cannot account for paths in user-defined parameters and/or user-defined modules.
     """
     if os.path.isfile(dirPath.defaultDir) == True:
         for line in open(dirPath.defaultDir, "r"):
@@ -126,7 +86,7 @@ def addPathsToConfig(config, dirPath):
                 line = [x.strip() for x in line]
                 # print(line)
                 if os.path.isdir(line[1]) == True:
-                    if line[0] == 'inputDir': 
+                    if line[0] == 'inputDir':
                         config['GENERAL']['INPUT'] = os.path.join(line[1], config['GENERAL']['INPUT'])
                     elif line[0] == 'outputDir':
                         config['GENERAL']['OUTPUT'] = os.path.join(line[1], config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID'])
@@ -138,20 +98,22 @@ def addPathsToConfig(config, dirPath):
                     config['GENERAL']['CONFIG_DIR'] = config['GENERAL']['OUTPUT']
                 else:
                     print("WARNING! "+line[1]+" specified as default "+line[0]+" is not a directory!")
-    else: 
+    else:
         print("WARNING! "+dirPath.defaultDir+" is not a file!")
+
+
 
     return(config)
 
 
 def checkOutputDirectory(config):
     """
-    Create output directory if it does not exist yet. 
+    Create output directory if it does not exist yet.
     """
-    if os.path.isdir(config['GENERAL']['OUTPUT']) == False: 
+    if os.path.isdir(config['GENERAL']['OUTPUT']) == False:
         os.mkdir(config['GENERAL']['OUTPUT'])
         saveConfig(config)
-    else: 
+    else:
         if config['GENERAL']['OW_CONFIG'] == True:
             saveConfig(config)
         else:
@@ -163,16 +125,16 @@ def checkOutputDirectory(config):
 
 def saveConfig(config):
     """
-    Save configurations from MasterConfig in the output directory of the current run. 
+    Save configurations from MasterConfig in the output directory of the current run.
     """
-    with open(os.path.join(config['GENERAL']['OUTPUT'], 'CONFIG'), "w") as file: 
+    with open(os.path.join(config['GENERAL']['OUTPUT'], 'CONFIG'), "w") as file:
         yaml.dump(config, file, sort_keys=False)
     return(None)
 
 
 def loadConfig(outdir):
     """
-    Load configurations from a saved CONFIG file in the output directory of the current run. 
+    Load configurations from a saved CONFIG file in the output directory of the current run.
     """
     print(outdir)
     with open(os.path.join(outdir, 'CONFIG'), "r") as file:
@@ -184,7 +146,7 @@ def checkConfig(config, loadedConfig):
     """
     Compare to config dictionaries.
     """
-    if config != loadedConfig: 
+    if config != loadedConfig:
         message = "The configurations set in MasterConfig and those saved in the output directory are not identical. Please double-check your configurations. The analysis will continue with the configurations from MasterConfig, however, this does not imply that any previous results are compatible with these configurations."
         printStatus.warning(message)
     return(None)
@@ -198,9 +160,9 @@ def printConfig(config):
     headerString = (
     "\n"
     "\033[0;37m"+"************************************************************"+"\033[0;39m\n"
-    "\033[0;37m"+"*            T H E   G I S T   P I P E L I N E             *"+"\033[0;39m\n"
+    "\033[0;37m"+"*            T H E   G I S T   P I P E L I N E  WOO           *"+"\033[0;39m\n"
     "\033[0;37m"+"************************************************************"+"\033[0;39m\n"
-    )    
+    )
     infoString = ""
     for mK in config.keys():
         infoString = infoString+"\n"
@@ -209,5 +171,3 @@ def printConfig(config):
             infoString = infoString+"    {:13}{}\n".format(str(pK)+":", str(config[mK][pK]))
 
     print(headerString+infoString+"\n")
-
-
