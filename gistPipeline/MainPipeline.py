@@ -9,9 +9,9 @@
 
 
 import os
-os.environ["MKL_NUM_THREADS"]     = "1" 
-os.environ["NUMEXPR_NUM_THREADS"] = "1" 
-os.environ["OMP_NUM_THREADS"]     = "1" 
+os.environ["MKL_NUM_THREADS"]     = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"]     = "1"
 
 import numpy             as np
 from   astropy.io        import fits, ascii
@@ -65,11 +65,11 @@ def numberOfGalaxies(filename):
 
 def runGIST(dirPath, galindex):
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# - - - - - - - - -  I N I T I A L I S E   T H E   G I S T  - - - - - - - - - - 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - - - - - - - - -  I N I T I A L I S E   T H E   G I S T  - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # - - - - - INITIALISE MODULE - - - - - 
+    # - - - - - INITIALISE MODULE - - - - -
 
     # Read MasterConfig
     config = _initialise.readMasterConfig(dirPath.configFile, galindex)
@@ -88,9 +88,9 @@ def runGIST(dirPath, galindex):
 
 
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# - - - - - - - -  P R E P A R A T I O N   M O D U L E S  - - - - - - - - - - - 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - - - - - - - -  P R E P A R A T I O N   M O D U L E S  - - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
     # - - - - - READ_DATA MODULE - - - - -
@@ -122,9 +122,9 @@ def runGIST(dirPath, galindex):
 
 
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-# - - - - - - - - - -   A N A L Y S I S   M O D U L E S   - - - - - - - - - - - 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - - - - - - - - - -   A N A L Y S I S   M O D U L E S   - - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
     # - - - - - STELLAR KINEMATICS MODULE - - - - -
@@ -134,7 +134,7 @@ def runGIST(dirPath, galindex):
 
 
 
-    # - - - - - EMISSION LINES MODULE - - - - - 
+    # - - - - - EMISSION LINES MODULE - - - - -
 
     _ = _emissionLines.emissionLines_Module(config)
     if _ == "SKIP": skipGalaxy(config); return(None)
@@ -156,9 +156,9 @@ def runGIST(dirPath, galindex):
 
 
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - -  F I N A L I S E   T H E   A N A L Y S I S  - - - - - - - - -
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
     # Branding
@@ -187,18 +187,18 @@ def main(args=None):
     (dirPath, args) = parser.parse_args()
 
     # Check if required command-line argument is given
-    if dirPath.configFile == None: 
+    if dirPath.configFile == None:
         printStatus.failed("Please specify the path of the MasterConfig file to be used. Exit!")
         exit(1)
-    
+
     # Check if Config-file exists
     if os.path.isfile(dirPath.configFile) == False:
         printStatus.failed("MasterConfig file at "+dirPath.configFile+" not found. Exit!")
         exit(1)
 
     # Iterate over galaxies in Config-file
-    ngalaxies = numberOfGalaxies(dirPath.configFile) - 2
-    if ngalaxies <= 0: 
+    ngalaxies = 1 #numberOfGalaxies(dirPath.configFile) - 2 # Amelia changed this because she changed the format of the config file. We can revisit should we ever need to run more than one galaxy per config file
+    if ngalaxies <= 0:
         message = "The number of runs defined in the MasterConfig file seems to be 0. Exit."
         printStatus.failed(message)
         exit(1)
@@ -210,5 +210,3 @@ def main(args=None):
 if __name__ == '__main__':
     # Call the main function
     main()
-
-
