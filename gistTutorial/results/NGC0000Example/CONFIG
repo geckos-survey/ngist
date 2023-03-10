@@ -1,0 +1,75 @@
+GENERAL:
+  RUN_ID: NGC0000Example
+  INPUT: inputData/NGC0000.fits
+  OUTPUT: results/./NGC0000Example
+  REDSHIFT: 0.008764
+  PARALLEL: true
+  NCPU: 4
+  LSF_DATA: lsf_MUSE-WFM
+  LSF_TEMP: lsf_MILES
+  OW_CONFIG: true
+  OW_OUTPUT: true
+  CONFIG_DIR: configFiles
+  TEMPLATE_DIR: spectralTemplates
+READ_DATA:
+  METHOD: MUSE_WFM
+  DEBUG: false
+  ORIGIN: 14,14
+  LMIN_TOT: 4800
+  LMAX_TOT: 5500
+  LMIN_SNR: 4800
+  LMAX_SNR: 5500
+SPATIAL_MASKING:
+  METHOD: default
+  MIN_SNR: 20.0
+  MASK: NGC0000_mask.fits
+SPATIAL_BINNING:
+  METHOD: voronoi
+  TARGET_SNR: 250.0
+  COVARIANCE: 0.0
+PREPARE_SPECTRA:
+  METHOD: default
+  VELSCALE: 70
+PREPARE_TEMPLATES:
+  METHOD: miles
+  LIBRARY: MILES/
+  NORM_TEMP: LIGHT
+KIN:
+  METHOD: ppxf
+  SPEC_MASK: specMask_KIN
+  LMIN: 4800
+  LMAX: 5500
+  SIGMA: 200
+  MOM: 4
+  ADEG: 8
+  MDEG: 0
+  REDDENING: null
+  MC_PPXF: 0
+GAS:
+  METHOD: gandalf
+  LEVEL: BIN
+  LMIN: 4800
+  LMAX: 5500
+  ERRORS: 0
+  REDDENING: 0.1,0.1
+  EBmV: null
+  EMI_FILE: emissionLines.config
+SFH:
+  METHOD: ppxf
+  LMIN: 4800
+  LMAX: 5500
+  SPEC_MASK: specMask_SFH
+  MOM: 4
+  MDEG: 4
+  REGUL_ERR: 1.0
+  NOISE: 1.0
+  FIXED: true
+LS:
+  METHOD: default
+  TYPE: SPP
+  LS_FILE: lsBands.config
+  CONV_COR: 8.4
+  SPP_FILE: MILES_KB_LIS8.4.fits
+  MC_LS: 30
+  NWALKER: 10
+  NCHAIN: 100
