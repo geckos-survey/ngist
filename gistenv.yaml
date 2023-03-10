@@ -1,0 +1,16 @@
+name: gistenv
+channels:
+  - conda-forge
+  - default
+
+dependencies:
+  - python=3.11
+  - astropy
+  - numpy
+  - scipy
+  - matplotlib
+  - multiprocess
+  - pip
+  - pip:
+    - pyqt6
+    - latex
