@@ -12,7 +12,7 @@ V4.0	   2023-03-09	 First version of the gist-geckos pipeline!
 			 human-readable. This is now the input file to use.
 			 * Updated _initialise.py and main_pipeline.py to accept YAML.
 			 * New GIST call is: 
-			 gistPipeline --config configFiles/config.yaml --default-dir configFiles/defaultDir
+			 gistPipeline --config configFiles/MasterConfig.yaml --default-dir configFiles/defaultDir
 
 V3.1.0     2021-09-09    Last GIST version maintained by Adrian Bittner as Astronomer.
 			 FIXED:
