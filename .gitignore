@@ -8,6 +8,6 @@ __pycache__/
 
 dist/
 build/
-tests/
+.github/
 *.egg-info/
 *.egg
