@@ -24,7 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install numpy astropy PyQt6 scipy matplotlib pytest multiprocess latex
-          python setup.py install
+          #python setup.py install
           # python -m pip install --upgrade pip
           # pip install flake8 pytest
           # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
@@ -38,6 +38,6 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Checking the pipline runs NGC 0000
-        run: gistPipeline --config=tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=tests/gistTutorial/configFiles/defaultDir_ubuntu
+        run: gistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_ubuntu
       - name: Checking pipeline results
-        run: python tests/check_outputs.py
+        run: python ./.github/workflows/tests/check_outputs.py
