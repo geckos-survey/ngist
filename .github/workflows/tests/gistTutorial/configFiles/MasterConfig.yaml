@@ -1,0 +1,93 @@
+# This is a test config file
+GENERAL :
+  RUN_ID : 'NGC0000Example' # Name of the analysis run. A subdirectory of this name within the output directory will be created. This identifier further serves as a prefix to all output files.
+  INPUT : 'NGC0000.fits' # Input file for this analysis run. The specified path is relative to the input path given in defaultDir.
+  OUTPUT : . # Output directory. The output of this run will be collected in a subdirectory named RUN_ID. The specified path is relative to the output path given in defaultDir.
+  REDSHIFT : 0.008764 # Initial guess on the redshift of the system [in z]. Spectra are shifted to rest-frame, according to this redshift.
+  PARALLEL: True # Use multiprocessing [True/False]
+  NCPU : 4 # Number of cores to use for multiprocessing
+  LSF_DATA : 'lsf_MUSE-WFM' # Path of the file specifying the line-spread-function of the observational data. The specified path is relative to the configDir path in defaultDir.
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  OW_CONFIG : True #  Ignore configurations from previous runs which are saved in the CONFIG file in the output directory [True/False]
+  OW_OUTPUT : True # Overwrite any output files already present in the current output directory [True/False]
+
+# Read data module
+READ_DATA :
+  METHOD : 'MUSE_WFM' # Name of the routine in readData/ (without .py) to be used to read-in the input data.
+  DEBUG : FALSE # Switch to activate debug mode [True/False]: Pipeline runs on one, central line of pixels. Keep in mind to clean output directory after running in DEBUG mode!
+  ORIGIN : 14,14 # Origin of the coordinate system in pixel coordinates: x,y (Indexing starts at 0).
+  LMIN_TOT : 4800 # Spectra are shortened to the rest-frame wavelength range defined by LMIN_TOT and LMAX_TOT. Note that this wavelength range should be longer than all other wavelength ranges supplied to the modules [in Angst.]
+  LMAX_TOT : 5500
+  LMIN_SNR : 4800 # Rest-frame wavelength range used for the signal-to-noise calculation [in Angst.]
+  LMAX_SNR : 5500
+
+# Spatial masking module
+SPATIAL_MASKING :
+  METHOD : 'default' # Name of the routine in spatialMasking/ (without .py) to perform the tasks. Set 'False' to turn off module. Set 'default' to use the standard GIST implementation.
+  MIN_SNR : 20.0 # Spaxels below the isophote level which has this mean signal-to-noise level are masked.
+  MASK : 'NGC0000_mask.fits' # File containing a spatial mask (Set 'False' to not include a file).
+
+# Spatial binning module
+SPATIAL_BINNING :
+  METHOD : 'voronoi' # Name of the routine in spatialBinning/ (without .py) to perform the tasks. Set 'False' to turn off module. Set 'voronoi' to use the standard GIST implementation, exploiting the Voronoi tesselation routine of Cappellari & Copin (2003).
+  TARGET_SNR : 500.0 # Target signal-to-noise ratio for the Voronoi binning
+  COVARIANCE : 0.0 # Correct for spatial correlations of the noise during the Voronoi binning process according to the empirical equation SNR /= 1 + COVAR_VOR * np.log10(NSPAXEL) with NSPAXEL being the number of spaxels per bin (see e.g. Garcia-Benito et al. 2015).
+
+
+# Prepare spectra module
+PREPARE_SPECTRA :
+  METHOD : 'default'
+  VELSCALE : 70
+
+# Prepare templates module
+PREPARE_TEMPLATES :
+  METHOD : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
+
+# Stellar kinematics module
+KIN :
+  METHOD : 'ppxf'
+  SPEC_MASK : 'specMask_KIN'
+  LMIN : 4800
+  LMAX : 5500
+  SIGMA : 200
+  MOM : 4
+  ADEG : 8
+  MDEG : 0
+  REDDENING : null # As opposed to None
+  MC_PPXF : 0
+
+# Emission line fitting module
+GAS :
+  METHOD : 'gandalf'
+  LEVEL : 'BIN'
+  LMIN : 4800
+  LMAX : 5500
+  ERRORS : 0
+  REDDENING : 0.1,0.1
+  EBmV : null # As opposed to None
+  EMI_FILE : 'emissionLines.config'
+
+# Star formation histories module
+SFH :
+  METHOD : 'ppxf'
+  LMIN : 4800
+  LMAX : 5500
+  SPEC_MASK : 'specMask_SFH'
+  MOM : 4
+  MDEG : 4
+  REGUL_ERR : 1.
+  NOISE : 1.
+  FIXED : True
+
+# Line strenghts module
+LS :
+  METHOD : 'default'
+  TYPE : 'SPP'
+  LS_FILE : 'lsBands.config'
+  CONV_COR : 8.4
+  SPP_FILE : 'MILES_KB_LIS8.4.fits'
+  MC_LS : 30
+  NWALKER : 10
+  NCHAIN : 100
