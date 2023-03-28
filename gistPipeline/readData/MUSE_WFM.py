@@ -45,13 +45,13 @@ def readCube(config):
     s     = np.shape(data)
     spec  = np.reshape(data,[s[0],s[1]*s[2]])
 
-    # Read the error spectra if available. Otherwise estimate the errors with the der_snr algorithm
-    if len(hdu) == 3:
-        logging.info("Reading the error spectra from the cube")
+    # Read the variance spectra if available. Otherwise estimate the variance with the der_snr algorithm
+    if len(hdu) >= 3:
+        logging.info("Reading the error (variance) spectra from the cube")
         stat  = hdu[2].data
         espec = np.reshape(stat,[s[0],s[1]*s[2]])
     elif len(hdu) == 2:
-        logging.info("No error extension found. Estimating the error spectra with the der_snr algorithm")
+        logging.info("No error (variance) extension found. Estimating the variance spectra with the der_snr algorithm")
         espec = np.zeros( spec.shape )
         for i in range( 0, spec.shape[1] ):
             espec[:,i] = der_snr.der_snr( spec[:,i] )
@@ -86,13 +86,11 @@ def readCube(config):
     logging.info("Shortening spectra to the wavelength range from "+str(config['READ_DATA']['LMIN_TOT'])+"A to "+str(config['READ_DATA']['LMAX_TOT'])+"A.")
 
     # Computing the SNR per spaxel
+    
     idx_snr = np.where( np.logical_and( wave >= config['READ_DATA']['LMIN_SNR'], wave <= config['READ_DATA']['LMAX_SNR'] ) )[0]
     signal  = np.nanmedian(spec[idx_snr,:],axis=0)
-    if len(hdu) == 3:
-        noise  = np.abs(np.nanmedian(np.sqrt(espec[idx_snr,:]),axis=0))
-    elif len(hdu) == 2:
-        noise = espec[0,:]    # DER_SNR returns constant error spectra
-    snr    = signal / noise
+    noise  = np.sqrt(np.nanmedian(espec[idx_snr,:],axis=0))
+    snr    = np.nanmedian(spec[idx_snr,:]/np.sqrt(espec[idx_snr,:]),axis=0)
     logging.info("Computing the signal-to-noise ratio in the wavelength range from "+str(config['READ_DATA']['LMIN_SNR'])+"A to "+str(config['READ_DATA']['LMAX_SNR'])+"A.")
 
     # Storing everything into a structure

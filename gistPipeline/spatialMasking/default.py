@@ -55,16 +55,21 @@ def maskDefunctSpaxels(cube):
     return(masked)
 
 
-def applySNRThreshold(snr, signal, min_snr):
+def applySNRThreshold(snr, signal, min_snr, threshold_method = 'isophote'):
     """ 
     Mask those spaxels that are above the isophote level with a mean 
     signal-to-noise ratio of MIN_SNR. 
     """
-    idx_snr = np.where( np.abs(snr - min_snr) < 2. )[0]
-    meanmin_signal = np.mean( signal[idx_snr] )
-    idx_inside  = np.where( signal >= meanmin_signal )[0]
-    idx_outside = np.where( signal < meanmin_signal )[0]
+    if threshold_method == 'isophote':
+        idx_snr = np.where( np.abs(snr - min_snr) < 2. )[0]
+        meanmin_signal = np.mean( signal[idx_snr] )
+        idx_inside  = np.where( signal >= meanmin_signal )[0]
+        idx_outside = np.where( signal < meanmin_signal )[0]
 
+    if threshold_method == 'actual':
+        idx_inside  = np.where( snr >= min_snr )[0]
+        idx_outside = np.where( snr < min_snr )[0]
+        
     if len(idx_inside) == 0 and len(idx_outside) == 0:
         idx_inside = np.arange( len(snr) )
         idx_outside = np.array([], dtype=np.int64)
