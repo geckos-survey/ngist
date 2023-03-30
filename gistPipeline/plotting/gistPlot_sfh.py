@@ -22,38 +22,38 @@ register_sauron_colormap()
 
 """
 PURPOSE:
-  Plot maps of the stellar population properties. This can be applied to SPP 
-  from both full-spectral fitting (PPXF module) and line-strength indices 
+  Plot maps of the stellar population properties. This can be applied to SPP
+  from both full-spectral fitting (PPXF module) and line-strength indices
   (LS module).
-  
+
   Note that this routine will be executed automatically during runtime of the
-  pipeline, but can also be run independently of the pipeline. 
+  pipeline, but can also be run independently of the pipeline.
 """
 
 
-def TicklabelFormatter(x, pos):
-    return( "${}$".format(int(x)).replace("-", r"\textendash") )
+# def TicklabelFormatter(x, pos): # AFM comment out 
+#     return( "${}$".format(int(x)).replace("-", r"\textendash") )
 
 def setup_plot(usetex=False):
 
     fontsize = 18
     dpi = 300
-    
+
     plt.rc('font', family='serif')
     plt.rc('text', usetex=False)
-    
+
     plt.rcParams['axes.labelsize'] = fontsize
     plt.rcParams['legend.fontsize'] = fontsize-3
     plt.rcParams['legend.fancybox'] = True
     plt.rcParams['font.size'] = fontsize
-    
+
     plt.rcParams['xtick.major.pad'] = '7'
     plt.rcParams['ytick.major.pad'] = '7'
-    
+
     plt.rcParams['savefig.bbox'] = 'tight'
     plt.rcParams['savefig.dpi'] = dpi
     plt.rcParams['savefig.pad_inches'] = 0.3
-    
+
     # plt.rcParams['text.latex.preamble'] = [r'\boldmath']
 
 
@@ -69,7 +69,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
     Y           = np.array( table_hdu[1].data.Y[idx_inside]      )
     FLUX        = np.array( table_hdu[1].data.FLUX[idx_inside]   )
     binNum_long = np.array( table_hdu[1].data.BIN_ID[idx_inside] )
-    ubins       = np.unique( binNum_long ) 
+    ubins       = np.unique( binNum_long )
     pixelsize   = table_hdu[0].header['PIXSIZE']
 
     # Check spatial coordinates
@@ -96,7 +96,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         result[:,0] = np.array(ls_hdu[1].data.AGE)
         result[:,1] = np.array(ls_hdu[1].data.METAL)
         result[:,2] = np.array(ls_hdu[1].data.ALPHA)
-        if "ALPHA" in ls_hdu[1].data.columns.names: 
+        if "ALPHA" in ls_hdu[1].data.columns.names:
             labellist = ['AGE', 'METAL', 'ALPHA']
         else:
             labellist = ['AGE', 'METAL']
@@ -124,7 +124,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         contour_offset = input("Enter value of minimum isophote [Previously: {:.2f}]: ".format(contour_offset_saved))
         if contour_offset == '': contour_offset = contour_offset_saved
         else:                    contour_offset = float(contour_offset)
-    else: 
+    else:
         contour_offset = contour_offset_saved
 
     for iterate in range(0,nplots):
@@ -166,7 +166,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
         image[i,j] = val
-      
+
         # Plot map and colorbar
         image = grid[iterate].imshow(np.rot90(image), cmap='sauron', interpolation=None, vmin=vmin, vmax=vmax, \
             extent=[xmin-pixelsize/2, xmax+pixelsize/2, ymin-pixelsize/2, ymax+pixelsize/2])
@@ -179,9 +179,11 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         grid[iterate].tricontour(XY_Triangulation, np.log10(FLUX), levels=levels, linewidths=1, colors='k')
 
         # Label vmin and vmax
-        if iterate in [0,1,2]: 
-            grid[iterate].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' '+r'{:.2f}'.format(vmax).replace("-", r"\textendash\,"), \
-                    horizontalalignment='right', verticalalignment='bottom', transform = grid[iterate].transAxes, fontsize=16)
+        if iterate in [0,1,2]:
+            # grid[iterate].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' '+r'{:.2f}'.format(vmax).replace("-", r"\textendash\,"), \ # AFM replace
+            #         horizontalalignment='right', verticalalignment='bottom', transform = grid[iterate].transAxes, fontsize=16)
+            grid[iterate].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' / '+r'{:.2f}'.format(vmax), \
+                    horizontalalignment='right',fontweight='bold', verticalalignment='bottom', transform = grid[iterate].transAxes, fontsize=16)
 
     # Remove ticks and labels from colorbar
     for cax in grid.cbar_axes:
@@ -190,7 +192,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
 
     # Set age, metallicity labels
     grid[0].text(0.02,  0.98,  r'Age $\mathrm{[Gyr]}$',  horizontalalignment='left',  verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
-    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
+    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
     grid[1].text(0.02,  0.98,  r'[M/H]',                 horizontalalignment='left',  verticalalignment='top', transform = grid[1].transAxes, fontsize=16)
     if nplots == 3:
         grid[2].text(0.02,  0.98,  r'[$\alpha$/Fe]',     horizontalalignment='left',  verticalalignment='top', transform = grid[2].transAxes, fontsize=16)
@@ -199,12 +201,12 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
     grid[0].set_ylabel(r'$\Delta \delta$ [arcsec]')
     grid[0].set_xlabel(r'$\Delta \alpha$ [arcsec]')
     grid[1].set_xlabel(r'$\Delta \alpha$ [arcsec]')
-    if nplots == 3: 
+    if nplots == 3:
         grid[2].set_xlabel(r'$\Delta \alpha$ [arcsec]')
 
-    # Fix minus sign in ticklabels
-    grid[0].xaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
-    grid[0].yaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
+    # # Fix minus sign in ticklabels
+    # grid[0].xaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
+    # grid[0].yaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
 
     # Invert x-axis
     for i in range( nplots ):
@@ -222,7 +224,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         inp = input(" Save plot [y/n]? ")
         print("")
         if inp == 'y' or inp == 'Y' or inp == 'yes' or inp == 'YES':
-            # To save plot with previously selected values: 
+            # To save plot with previously selected values:
             #   Call function again with previously chosen values for vmin and vmax, then save figure to file without prompting again
             plotMaps(flag, runname, INTERACTIVE=False, vminmax=vminmax, contour_offset_saved=contour_offset, SAVE_AFTER_INTERACTIVE=True)
         elif inp == 'n' or inp == 'N' or inp == 'no' or inp == 'NO':
@@ -263,4 +265,3 @@ def main(args=None):
 if __name__ == '__main__':
     # Call the main function
     main()
-

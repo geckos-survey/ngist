@@ -27,47 +27,47 @@ except NameError:
 
 """
 PURPOSE:
-  Plot maps of the absorption line-strength indices. 
-  
+  Plot maps of the absorption line-strength indices.
+
   Note that this routine will be executed automatically during runtime of the
-  pipeline, but can also be run independently of the pipeline. 
+  pipeline, but can also be run independently of the pipeline.
 """
 
-
-def TicklabelFormatter(x, pos):
-    return( "${}$".format(int(x)).replace("-", r"\textendash") )
+#
+# def TicklabelFormatter(x, pos): # AFM - commented out for now
+#     return( "${}$".format(int(x)).replace("-", r"\textendash") )
 
 def setup_plot(usetex=False):
 
     fontsize = 18
     dpi = 300
-    
+
     plt.rc('font', family='serif')
     plt.rc('text', usetex=False)
-    
+
     plt.rcParams['axes.labelsize'] = fontsize
     plt.rcParams['legend.fontsize'] = fontsize-3
     plt.rcParams['legend.fancybox'] = True
     plt.rcParams['font.size'] = fontsize
-    
+
     plt.rcParams['xtick.major.pad'] = '7'
     plt.rcParams['ytick.major.pad'] = '7'
-    
+
     plt.rcParams['savefig.bbox'] = 'tight'
     plt.rcParams['savefig.dpi'] = dpi
     plt.rcParams['savefig.pad_inches'] = 0.3
-    
+
     # plt.rcParams['text.latex.preamble'] = [r'\boldmath']
 
 def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_offset_saved=0.20, SAVE_AFTER_INTERACTIVE=False):
 
     labellist = ['Hbeta_o', 'Fe5015', 'Mgb']
 
-    runname  = outdir 
+    runname  = outdir
     rootname = outdir.rstrip('/').split('/')[-1]
 
     # Read LS-Results
-    if RESOLUTION == "ORIGINAL": 
+    if RESOLUTION == "ORIGINAL":
         ls_hdu      = fits.open(os.path.join(outdir,rootname)+'_ls_OrigRes.fits')
     elif RESOLUTION == "ADAPTED":
         ls_hdu      = fits.open(os.path.join(outdir,rootname)+'_ls_AdapRes.fits')
@@ -75,7 +75,7 @@ def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), con
     result      = np.empty((len(ubins),3))
     result[:,0] = np.array( ls_hdu[1].data.Hbeta_o )
     result[:,1] = np.array( ls_hdu[1].data.Fe5015 )
-    result[:,2] = np.array( ls_hdu[1].data.Mgb    ) 
+    result[:,2] = np.array( ls_hdu[1].data.Mgb    )
 
     # Read bintable
     table_hdu   = fits.open(os.path.join(outdir,rootname)+'_table.fits')
@@ -114,7 +114,7 @@ def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), con
         contour_offset = input("Enter value of minimum isophote [Previously: {:.2f}]: ".format(contour_offset_saved))
         if contour_offset == '': contour_offset = contour_offset_saved
         else:                    contour_offset = float(contour_offset)
-    else: 
+    else:
         contour_offset = contour_offset_saved
 
     for iterate in range(0,3):
@@ -156,7 +156,7 @@ def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), con
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32)
         image = np.full( (npixels_x, npixels_y), np.nan )
         image[i,j] = val
-      
+
         # Plot map and colorbar
         image = grid[iterate].imshow(np.rot90(image), cmap='sauron', interpolation=None, vmin=vmin, vmax=vmax, \
             extent=[xmin-pixelsize/2, xmax+pixelsize/2, ymin-pixelsize/2, ymax+pixelsize/2])
@@ -169,20 +169,21 @@ def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), con
         grid[iterate].tricontour(XY_Triangulation, np.log10(FLUX), levels=levels, linewidths=1, colors='k')
 
         # Label vmin and vmax
-        if iterate in [0,1,2]: 
-            grid[iterate].text(0.985,0.008, r'{:.2f}'.format(vmin).replace("-", r"- ")+r' '+r'{:.2f}'.format(vmax).replace("-", r"\textendash\,"), \
-                    horizontalalignment='right', verticalalignment='bottom', transform = grid[iterate].transAxes, fontsize=16)
-
+        if iterate in [0,1,2]:
+            # grid[iterate].text(0.985,0.008, r'{:.2f}'.format(vmin).replace("-", r"- ")+r' '+r'{:.2f}'.format(vmax).replace("-", r"\textendash\,"), \ # AFM replaced for now
+            #         horizontalalignment='right', verticalalignment='bottom', transform = grid[iterate].transAxes, fontsize=16)
+            grid[iterate].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' / '+r'{:.2f}'.format(vmax), \
+                    horizontalalignment='right',fontweight='bold', verticalalignment='bottom', transform = grid[iterate].transAxes, fontsize=16)
     # Remove ticks and labels from colorbar
     for cax in grid.cbar_axes:
         cax.toggle_label(False)
         cax.yaxis.set_ticks([])
 
     # Set HBeta, Mgb and Fe5015 labels
-    grid[0].text(0.02,  0.98,  r'H$\beta_{\circ}$}',      horizontalalignment='left',  verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
-    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
-    grid[1].text(0.02,  0.98,  r'Fe5015}',                horizontalalignment='left',  verticalalignment='top', transform = grid[1].transAxes, fontsize=16)
-    grid[2].text(0.02,  0.98,  r'Mg\,b}',                 horizontalalignment='left',  verticalalignment='top', transform = grid[2].transAxes, fontsize=16)
+    grid[0].text(0.02,  0.98,  r'H$\beta$',      horizontalalignment='left',  verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
+    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
+    grid[1].text(0.02,  0.98,  r'Fe5015',                horizontalalignment='left',  verticalalignment='top', transform = grid[1].transAxes, fontsize=16)
+    grid[2].text(0.02,  0.98,  r'Mgb',                 horizontalalignment='left',  verticalalignment='top', transform = grid[2].transAxes, fontsize=16)
 
     # Set xlabel and ylabel
     grid[0].set_ylabel(r'$\Delta \delta$ [arcsec]', fontweight = 'bold')
@@ -190,9 +191,9 @@ def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), con
     grid[1].set_xlabel(r'$\Delta \alpha$ [arcsec]', fontweight = 'bold')
     grid[2].set_xlabel(r'$\Delta \alpha$ [arcsec]', fontweight = 'bold')
 
-    # Fix minus sign in ticklabels
-    grid[0].xaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
-    grid[0].yaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
+    # # Fix minus sign in ticklabels # AFM - commented out for now
+    # grid[0].xaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
+    # grid[0].yaxis.set_major_formatter(FuncFormatter(TicklabelFormatter))
 
     # Invert x-axis
     grid[0].invert_xaxis()
@@ -211,7 +212,7 @@ def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), con
         inp = input(" Save plot [y/n]? ")
         print("")
         if inp == 'y' or inp == 'Y' or inp == 'yes' or inp == 'YES':
-            # To save plot with previously selected values: 
+            # To save plot with previously selected values:
             #   Call function again with previously chosen values for vmin and vmax, then save figure to file without prompting again
             plotMaps(runname, RESOLUTION, INTERACTIVE=False, vminmax=vminmax, contour_offset_saved=contour_offset, SAVE_AFTER_INTERACTIVE=True)
         elif inp == 'n' or inp == 'N' or inp == 'no' or inp == 'NO':
@@ -248,8 +249,7 @@ def main(args=None):
 
     plotMaps(options.runname, options.resolution, INTERACTIVE=True)
 
-    
+
 if __name__ == '__main__':
     # Call the main function
     main()
-
