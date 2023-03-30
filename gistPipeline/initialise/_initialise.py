@@ -66,7 +66,7 @@ def readMasterConfig(filename, galindex):
     """
     Read the MasterConfig file and stores all parameters in the configs dictionary.
     """
-    # Amelia edited this module to instead of reading in the old MasterConfig, to read in MasterConfig.yaml 
+    # Amelia edited this module to instead of reading in the old MasterConfig, to read in MasterConfig.yaml
     with open(filename, 'r') as f:
         configs = yaml.safe_load(f)
 
@@ -160,7 +160,23 @@ def printConfig(config):
     headerString = (
     "\n"
     "\033[0;37m"+"************************************************************"+"\033[0;39m\n"
-    "\033[0;37m"+"*            T H E   G I S T   P I P E L I N E  WOO           *"+"\033[0;39m\n"
+    "\033[0;37m"+"*    T H E   G I S T   P I P E L I N E  - GECKOS VERSION  *"+"\033[0;39m\n"
+    "\033[0;37m"+"*               ____...---...___                           *"+"\033[0;39m\n"
+    "\033[0;37m"+"* ___.....---"""        .       ""--..____                 *"+"\033[0;39m\n"
+    "\033[0;37m"+"*      .                  .            .                   *"+"\033[0;39m\n"
+    "\033[0;37m"+"*  .             _.--._       /|                           *"+"\033[0;39m\n"
+    "\033[0;37m"+"*         .    .'()..()`.    / /                           *"+"\033[0;39m\n"
+    "\033[0;37m"+"*             ( `-.__.-' )  ( (    .                       *"+"\033[0;39m\n"
+    "\033[0;37m"+"*    .         \        /    \ \                           *"+"\033[0;39m\n"
+    "\033[0;37m"+"*        .      \      /      ) )        .                 *"+"\033[0;39m\n"
+    "\033[0;37m"+"*             .' -.__.- `.-.-'_.'                          *"+"\033[0;39m\n"
+    "\033[0;37m"+"*  .        .'  /-____-\  `.-'       .                     *"+"\033[0;39m\n"
+    "\033[0;37m"+"*           \  /-.____.-\  /-.                             *"+"\033[0;39m\n"
+    "\033[0;37m"+"*            \ \`-.__.-'/ /\|\|           .                *"+"\033[0;39m\n"
+    "\033[0;37m"+"*           .'  `.    .'  `.                               *"+"\033[0;39m\n"
+    "\033[0;37m"+"*           |/\/\|    |/\/\|                               *"+"\033[0;39m\n"
+    "\033[0;37m"+"*                                                          *"+"\033[0;39m\n"
+    "\033[0;37m"+"*                                                          *"+"\033[0;39m\n"
     "\033[0;37m"+"************************************************************"+"\033[0;39m\n"
     )
     infoString = ""
