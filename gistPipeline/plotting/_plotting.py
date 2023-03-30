@@ -16,7 +16,7 @@ def generatePlots(config, module):
         try:
             printStatus.running("Producing stellar kinematics maps")
             gistPlot_kin.plotMaps('KIN', config['GENERAL']['OUTPUT'])
-            gistPlot_lambdar.plotMaps(config['GENERAL']['OUTPUT'])
+            #gistPlot_lambdar.plotMaps(config['GENERAL']['OUTPUT']) # Don't want to plot lambda
             printStatus.updateDone("Producing stellar kinematics maps")
             logging.info("Produced stellar kinematics maps")
         except Exception as e:
@@ -25,9 +25,9 @@ def generatePlots(config, module):
             logging.error("Failed to produce stellar kinematics maps.")
 
 
-    # - - - - - EMISSION LINES MODULE - - - - - 
+    # - - - - - EMISSION LINES MODULE - - - - -
     if module == 'GAS':
-        try: 
+        try:
             printStatus.running("Producing maps from the emission-line analysis")
             if os.path.isfile(outputPrefix+"_gas_BIN.fits") == True:
                 gistPlot_gas.plotMaps(config['GENERAL']['OUTPUT'], 'BIN', True)
@@ -72,5 +72,3 @@ def generatePlots(config, module):
 
     # Return
     return(None)
-
-
