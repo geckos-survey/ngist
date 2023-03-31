@@ -50,7 +50,6 @@ map_files = ["NGC0000Example_sfh.pdf",
 		"NGC0000Example_gas-Hb_4861.32_S_BIN.pdf",
 		"NGC0000Example_gas-Hb_4861.32_V_BIN.pdf",
 		"NGC0000Example_kin.pdf",
-		"NGC0000Example_lambda.pdf",
 		"NGC0000Example_ls_AdapRes.pdf",
 		"NGC0000Example_ls_OrigRes.pdf",
 		"NGC0000Example_ls-spp.pdf"]
