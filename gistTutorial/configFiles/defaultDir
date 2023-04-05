@@ -10,6 +10,6 @@
 # user-defined modules. inputDir and outputDir are applied to all active GIST modules. 
 #
 inputDir=./inputData
-outputDir=./output
+outputDir=./results
 configDir=./configFiles
 templateDir=./spectralTemplates
