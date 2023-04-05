@@ -1,6 +1,6 @@
 #!/usr/bin/env pythonw
 
-from PyQt6 import QtCore, QtGui, QtWidgets as pyqt
+from PyQt5 import QtCore, QtGui, QtWidgets as pyqt
 
 import sys
 import warnings
@@ -65,7 +65,7 @@ class Mapviewer(pyqt.QMainWindow):
         _plotData.plotSSPGrid(self, alpha_idx, panel)
     def plotSFH(self, panel):
         _plotData.plotSFH(self, panel)
-    
+
     # Relevant helper functions
     def onpick(self, event):
         _helperFunctions.onpick(self,event)
@@ -80,7 +80,7 @@ class Mapviewer(pyqt.QMainWindow):
     def selectSpaxelIDfromDialog(self):
         _helperFunctions.selectSpaxelIDfromDialog(self)
 
-    # Dialogs 
+    # Dialogs
     def dialogAbout(self):
         _helperFunctions.dialogAbout(self)
     def dialogNotAvailable(self, which):
@@ -111,5 +111,3 @@ def main(args=None):
 if __name__ == '__main__':
     # Call the main function
     main()
-
-

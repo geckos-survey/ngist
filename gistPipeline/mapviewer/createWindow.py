@@ -1,11 +1,11 @@
-from PyQt6 import QtCore, QtGui, QtWidgets as pyqt
+from PyQt5 import QtCore, QtGui, QtWidgets as pyqt
 
 
 
 def returnPlotFunction(self, module, name):
-    """ 
+    """
     Function to connect the correct plotting routine for the maps to the entries
-    in the menu bar. 
+    in the menu bar.
     """
     return lambda: self.plotMap(module, name)
 
@@ -15,7 +15,7 @@ def createWindow(self):
     This function creates the menu bar which allows to plot the measured
     quantities as maps. The entries in the menu bar are automatically generated,
     depending on what columns are included in the output files. Note that this
-    allows to display any non-default output columns in Mapviewer. 
+    allows to display any non-default output columns in Mapviewer.
     """
 
     # Create main menu bar
@@ -30,7 +30,7 @@ def createWindow(self):
     lsMenu    = self.menuBar().addMenu('Line Strength')
     aboutMenu = self.menuBar().addMenu('About')
 
-    if self.forAleksandra == True: 
+    if self.forAleksandra == True:
         # This is an easter egg :)
         self.menuBar().setStyleSheet("""
           QMenuBar       { background-color: #FF00FF }
@@ -44,29 +44,29 @@ def createWindow(self):
     openButton = pyqt.QAction('Open', self)
     openButton.triggered.connect(self.dialogRunSelection)
     openButton.setShortcut('Ctrl+O')
-    fileMenu.addAction(openButton) 
+    fileMenu.addAction(openButton)
 
     settingsButton = pyqt.QAction('Settings', self)
     settingsButton.triggered.connect(self.dialogSettings)
     settingsButton.setShortcut('Ctrl+S')
-    fileMenu.addAction(settingsButton) 
+    fileMenu.addAction(settingsButton)
 
     binidButton = pyqt.QAction('Select ID', self)
     binidButton.triggered.connect(self.dialogBinID)
     binidButton.setShortcut('Ctrl+B')
-    fileMenu.addAction(binidButton) 
+    fileMenu.addAction(binidButton)
 
     InfoButton = pyqt.QAction('Info', self)
     InfoButton.triggered.connect(self.dialogInfo)
     InfoButton.setShortcut('Ctrl+I')
-    fileMenu.addAction(InfoButton) 
+    fileMenu.addAction(InfoButton)
 
     exitButton = pyqt.QAction('Exit', self)
     exitButton.setShortcut('Ctrl+W')
     exitButton.setStatusTip('Exit application')
     exitButton.triggered.connect(self.close)
     fileMenu.addSeparator()
-    fileMenu.addAction(exitButton) 
+    fileMenu.addAction(exitButton)
 
 
     # ====================
@@ -83,18 +83,18 @@ def createWindow(self):
         for name in self.Mask.names:
             button = maskMenu.addAction(name)
             button.triggered.connect(returnPlotFunction(self, 'MASK', name))
-    elif self.MASK == False: 
+    elif self.MASK == False:
         button = maskMenu.addAction("  Not available.  ")
         button.setDisabled(True)
 
 
     # ====================
     # stellarKinematics Menu
-    if self.KIN == True: 
+    if self.KIN == True:
         for name in self.kinResults.names:
             button = kinMenu.addAction(name)
             button.triggered.connect(returnPlotFunction(self, 'KIN', name))
-    elif self.KIN == False: 
+    elif self.KIN == False:
         button = kinMenu.addAction("  Not available.  ")
         button.setDisabled(True)
 
@@ -122,8 +122,8 @@ def createWindow(self):
                 if name in ['V', 'SIGMA', 'H3', 'H4', 'H5', 'H6']:
                     button = sfhKinematicsDiff.addAction(name+'_DIFF')
                     button.triggered.connect(returnPlotFunction(self, 'SFH', name+'_DIFF'))
-            sfhMenu.addMenu(sfhKinematicsDiff) 
-    elif self.SFH == False: 
+            sfhMenu.addMenu(sfhKinematicsDiff)
+    elif self.SFH == False:
         button = sfhMenu.addAction("  Not available.  ")
         button.setDisabled(True)
 
@@ -144,5 +144,3 @@ def createWindow(self):
     aboutButton = pyqt.QAction('About this pipeline', self)
     aboutButton.triggered.connect(self.dialogAbout)
     aboutMenu.addAction(aboutButton)
-
-
