@@ -34,7 +34,8 @@ output_files = ["CONFIG","LOGFILE",
 
 for file in output_files:
 	assert os.path.isfile(f"{output_dir}/{file}"), f"{file} not created, probably the module failed"
-
+for line in open(f"{output_dir}/LOGFILE"):
+	print(line)
 
 map_files = ["NGC0000Example_sfh.pdf",
 		"NGC0000Example_gas-[NI]_5200.39_A_BIN.pdf",
