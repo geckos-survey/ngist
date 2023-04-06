@@ -7,7 +7,6 @@ GENERAL :
   PARALLEL: True # Use multiprocessing [True/False]
   NCPU : 4 # Number of cores to use for multiprocessing
   LSF_DATA : 'lsf_MUSE-WFM' # Path of the file specifying the line-spread-function of the observational data. The specified path is relative to the configDir path in defaultDir.
-  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
   OW_CONFIG : True #  Ignore configurations from previous runs which are saved in the CONFIG file in the output directory [True/False]
   OW_OUTPUT : True # Overwrite any output files already present in the current output directory [True/False]
 
@@ -39,12 +38,6 @@ PREPARE_SPECTRA :
   METHOD : 'default'
   VELSCALE : 70
 
-# Prepare templates module
-PREPARE_TEMPLATES :
-  METHOD : 'miles'
-  LIBRARY : 'MILES/'
-  NORM_TEMP : 'LIGHT'
-
 # Stellar kinematics module
 KIN :
   METHOD : 'ppxf'
@@ -57,6 +50,10 @@ KIN :
   MDEG : 0
   REDDENING : null # As opposed to None
   MC_PPXF : 0
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
 
 # Emission line fitting module
 GAS :
@@ -68,6 +65,10 @@ GAS :
   REDDENING : 0.1,0.1
   EBmV : null # As opposed to None
   EMI_FILE : 'emissionLines.config'
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
 
 # Star formation histories module
 SFH :
@@ -80,6 +81,10 @@ SFH :
   REGUL_ERR : 1.
   NOISE : 1.
   FIXED : True
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
 
 # Line strenghts module
 LS :
@@ -91,3 +96,7 @@ LS :
   MC_LS : 30
   NWALKER : 10
   NCHAIN : 100
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
