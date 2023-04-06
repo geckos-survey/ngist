@@ -5,11 +5,12 @@ print(home_dir)
 output_dir = f"{home_dir}/work/gist-geckos/gist-geckos/NGC0000Example"
 
 #Check the output directory is created 
-assert os.path.isdir(output_dir), "Output dir not created"
-assert os.path.isdir(f"{output_dir}/maps"), "Maps dir not created"
 with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
 		print(line)
+assert os.path.isdir(output_dir), "Output dir not created"
+assert os.path.isdir(f"{output_dir}/maps"), "Maps dir not created"
+
 
 
 #Check the pipeline creates the correct files
