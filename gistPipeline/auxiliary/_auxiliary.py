@@ -11,24 +11,34 @@ from gistPipeline._version import __version__
 
 """
 This file contains a selection of functions that are needed at multiple locations in the framework. This includes
-functions to print the status of the GIST to stdout, read the line-spread-function from file, and create spectral masks. 
+functions to print the status of the GIST to stdout, read the line-spread-function from file, and create spectral masks.
 
 When developing user-defined modules, you can take advantage of these functions or simply include your own tools in the
-module. 
+module.
 """
 
 
 
-def getLSF(config):
+def getLSF(config, module_used):
     """
-    Function to read the given LSF's from file. 
+    Function to read the given LSF's from file.
+    Added option of module = 'KIN', 'GAS', 'SFH', or 'LS'
+    to account for differing template sets for the same run
     """
     # Read LSF of observation and templates and construct an interpolation function
     lsfDataFile = os.path.join(config['GENERAL']['CONFIG_DIR'], config['GENERAL']['LSF_DATA'])
-    lsfTempFile = os.path.join(config['GENERAL']['CONFIG_DIR'], config['GENERAL']['LSF_TEMP'])
+    if module_used == 'KIN':
+        lsfTempFile = os.path.join(config['GENERAL']['CONFIG_DIR'], config['KIN']['LSF_TEMP'])
+    elif module_used == 'GAS':
+        lsfTempFile = os.path.join(config['GENERAL']['CONFIG_DIR'], config['GAS']['LSF_TEMP'])
+    elif module_used == 'SFH':
+        lsfTempFile = os.path.join(config['GENERAL']['CONFIG_DIR'], config['SFH']['LSF_TEMP'])
+    elif module_used == 'LS':
+        lsfTempFile = os.path.join(config['GENERAL']['CONFIG_DIR'], config['LS']['LSF_TEMP'])
     LSF           = np.genfromtxt(lsfDataFile, comments='#')
     LSF[:,0]      = LSF[:,0] / (1 + config['GENERAL']['REDSHIFT'])
     LSF[:,1]      = LSF[:,1] / (1 + config['GENERAL']['REDSHIFT'])
+    LSF[LSF[:,1] / (1 + config['GENERAL']['REDSHIFT']) < 2.51,1] = 2.54*(1 + config['GENERAL']['REDSHIFT'])
     LSF_Data      = interp1d(LSF[:,0], LSF[:,1], 'linear', fill_value = 'extrapolate')
     LSF           = np.genfromtxt(lsfTempFile, comments='#')
     LSF_Templates = interp1d(LSF[:,0], LSF[:,1], 'linear', fill_value = 'extrapolate')
@@ -50,7 +60,7 @@ def spectralMasking(config, file, logLam):
     for i in range( mask.shape[0] ):
 
         # Check for sky-lines
-        if maskComment[i] == 'sky'  or  maskComment[i] == 'SKY'  or  maskComment[i] == 'Sky': 
+        if maskComment[i] == 'sky'  or  maskComment[i] == 'SKY'  or  maskComment[i] == 'Sky':
             mask[i,0] = mask[i,0] / (1+config['GENERAL']['REDSHIFT'])
 
         # Define masked pixel range
@@ -59,7 +69,7 @@ def spectralMasking(config, file, logLam):
 
         # Handle border of wavelength range
         if minimumPixel < 0:            minimumPixel = 0
-        if maximumPixel < 0:            maximumPixel = 0 
+        if maximumPixel < 0:            maximumPixel = 0
         if minimumPixel >= len(logLam): minimumPixel = len(logLam)-1
         if maximumPixel >= len(logLam): maximumPixel = len(logLam)-1
 
@@ -73,14 +83,14 @@ def spectralMasking(config, file, logLam):
 
 def addGISTHeaderComment(config):
     """
-    Add a GIST header comment in all fits output files. 
+    Add a GIST header comment in all fits output files.
     """
-    filelist = glob.glob(os.path.join(config['GENERAL']['OUTPUT'],"*.fits")) 
+    filelist = glob.glob(os.path.join(config['GENERAL']['OUTPUT'],"*.fits"))
 
     for file in filelist:
         hdu = fits.open(file)
         for o in range(len(hdu)):
-            if "Generated with the GIST pipeline" not in str(hdu[o].header): 
+            if "Generated with the GIST pipeline" not in str(hdu[o].header):
 
                 fits.setval(file, 'COMMENT', value="" , ext=o)
                 fits.setval(file, 'COMMENT', value="------------------------------------------------------------------------", ext=o)
@@ -104,5 +114,3 @@ def saveConfigToHeader(hdu, config):
     for i in config.keys():
         hdu.header[i] = config[i]
     return(hdu)
-
-
