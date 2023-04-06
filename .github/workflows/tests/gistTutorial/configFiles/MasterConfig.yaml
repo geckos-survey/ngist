@@ -1,4 +1,4 @@
-# This is a test config file UPDATED 06/04/2023
+# This is a test config file Updated 06/04/2023
 GENERAL :
   RUN_ID : 'NGC0000Example' # Name of the analysis run. A subdirectory of this name within the output directory will be created. This identifier further serves as a prefix to all output files.
   INPUT : 'NGC0000.fits' # Input file for this analysis run. The specified path is relative to the input path given in defaultDir.
@@ -54,7 +54,7 @@ KIN :
   TEMPLATE_SET : 'miles'
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
-
+  
 # Emission line fitting module
 GAS :
   METHOD : 'gandalf'
@@ -69,7 +69,7 @@ GAS :
   TEMPLATE_SET : 'miles'
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
-
+  
 # Star formation histories module
 SFH :
   METHOD : 'ppxf'
@@ -85,7 +85,7 @@ SFH :
   TEMPLATE_SET : 'miles'
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
-
+  
 # Line strenghts module
 LS :
   METHOD : 'default'
@@ -100,3 +100,4 @@ LS :
   TEMPLATE_SET : 'miles'
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
+  
