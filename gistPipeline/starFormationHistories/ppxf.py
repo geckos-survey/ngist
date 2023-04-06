@@ -7,7 +7,7 @@ import os
 import glob
 import logging
 
-from printStatus import printStatus 
+from printStatus import printStatus
 
 from gistPipeline.prepareTemplates import _prepareTemplates
 from gistPipeline.auxiliary import _auxiliary
@@ -20,26 +20,26 @@ C = 299792.458 # speed of light in km/s
 
 
 """
-PURPOSE: 
+PURPOSE:
   This module performs the extraction of non-parametric star-formation histories
   by full-spectral fitting.  Basically, it acts as an interface between pipeline
   and the pPXF routine from Cappellari & Emsellem 2004
   (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
-  ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C). 
+  ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
 
 
 def workerPPXF(inQueue, outQueue):
     """
     Defines the worker process of the parallelisation with multiprocessing.Queue
-    and multiprocessing.Process. 
+    and multiprocessing.Process.
     """
     for templates, galaxy, noise, velscale, start, goodPixels_sfh, mom, dv,\
         mdeg, regul_err, fixed, velscale_ratio, npix, ncomb, nbins, i\
-        in iter(inQueue.get, 'STOP'): 
+        in iter(inQueue.get, 'STOP'):
 
         sol, w_row, bestfit, formal_error = run_ppxf(templates, galaxy, noise, velscale, start, goodPixels_sfh, mom, \
-                                            dv, mdeg, regul_err, fixed, velscale_ratio, npix, ncomb, nbins, i) 
+                                            dv, mdeg, regul_err, fixed, velscale_ratio, npix, ncomb, nbins, i)
 
         outQueue.put(( i, sol, w_row, bestfit, formal_error ))
 
@@ -47,34 +47,34 @@ def workerPPXF(inQueue, outQueue):
 def run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, nmom, dv, mdeg,\
              regul_err, fixed, velscale_ratio, npix, ncomb, nbins, i):
     """
-    Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004 
-    (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C; 
+    Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
+    (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
     ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
-    non-parametric star-formation histories. 
-    """ 
+    non-parametric star-formation histories.
+    """
     printStatus.progressBar(i, nbins, barLength = 50)
 
     try:
 
 #        noise_i = noise_i * np.sqrt(  / len(goodPixels) )
-#        regul_err = 
+#        regul_err =
 
         pp = ppxf(templates, galaxy_i, noise_i, velscale, start, goodpixels=goodPixels, plot=False, quiet=True,\
               moments=nmom, degree=-1, vsyst=dv, mdegree=mdeg, regul=1./regul_err, fixed=fixed, velscale_ratio=velscale_ratio)
-    
-#        if i == 0: 
+
+#        if i == 0:
 #            print()
 #            print( i, pp.chi2 )
 #            print( len( goodPixels ) )
 #            print( np.sqrt(2 * len(goodPixels)) )
 #            print()
-     
+
         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum()
-        w_row   = np.reshape(weights, ncomb) 
-    
+        w_row   = np.reshape(weights, ncomb)
+
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)
-    
+
         return(pp.sol, w_row, pp.bestfit, formal_error)
 
     except:
@@ -83,7 +83,7 @@ def run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, nmom, dv
 
 def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
     """
-    Calculate the mean age, metallicity and alpha enhancement in each bin. 
+    Calculate the mean age, metallicity and alpha enhancement in each bin.
     """
     mean = np.zeros( (nbins,3) ); mean[:,:] = np.nan
 
@@ -91,7 +91,7 @@ def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
         mean[i,0] = np.sum(w_row[i] * ageGrid.ravel())   / np.sum(w_row[i])
         mean[i,1] = np.sum(w_row[i] * metalGrid.ravel()) / np.sum(w_row[i])
         mean[i,2] = np.sum(w_row[i] * alphaGrid.ravel()) / np.sum(w_row[i])
-    
+
     return(mean)
 
 
@@ -119,7 +119,7 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
         if np.any(kin[:,3]) != 0: cols.append(fits.Column(name='H4', format='D', array=kin[:,3]))
         if np.any(kin[:,4]) != 0: cols.append(fits.Column(name='H5', format='D', array=kin[:,4]))
         if np.any(kin[:,5]) != 0: cols.append(fits.Column(name='H6', format='D', array=kin[:,5]))
-    
+
         cols.append(fits.Column(name='FORM_ERR_V',     format='D', array=formal_error[:,0]))
         cols.append(fits.Column(name='FORM_ERR_SIGMA', format='D', array=formal_error[:,1]))
         if np.any(formal_error[:,2]) != 0: cols.append(fits.Column(name='FORM_ERR_H3', format='D', array=formal_error[:,2]))
@@ -225,7 +225,7 @@ def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alp
 
 
 def extractStarFormationHistories(config):
-    """ 
+    """
     Starts the computation of non-parametric star-formation histories with
     pPXF.  A spectral template library sorted in a three-dimensional grid of
     age, metallicity, and alpha-enhancement is loaded.  Emission-subtracted
@@ -236,13 +236,13 @@ def extractStarFormationHistories(config):
     """
 
     # Read LSF information
-    LSF_Data, LSF_Templates = _auxiliary.getLSF(config)
+    LSF_Data, LSF_Templates = _auxiliary.getLSF(config, 'SFH')
 
     # Prepare template library
     velscale = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+"_BinSpectra.fits")[0].header['VELSCALE']
     velscale_ratio = 2
     templates, lamRange_temp, logLam_template, ntemplates, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha = \
-            _prepareTemplates.prepareTemplates_Module(config, config['SFH']['LMIN'], config['SFH']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates, sortInGrid=True)
+            _prepareTemplates.prepareTemplates_Module(config, config['SFH']['LMIN'], config['SFH']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates, 'SFH', sortInGrid=True)
 
     # Read spectra
     if os.path.isfile(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_gas-cleaned_BIN.fits') == True:
@@ -300,35 +300,35 @@ def extractStarFormationHistories(config):
     # Run PPXF
     start_time = time.time()
     if config['GENERAL']['PARALLEL'] == True:
-        printStatus.running("Running PPXF in parallel mode")            
+        printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
 
         # Create Queues
         inQueue  = Queue()
         outQueue = Queue()
-    
+
         # Create worker processes
         ps = [Process(target=workerPPXF, args=(inQueue, outQueue))
               for _ in range(config['GENERAL']['NCPU'])]
-    
+
         # Start worker processes
         for p in ps: p.start()
-    
+
         # Fill the queue
         for i in range(nbins):
             inQueue.put( ( templates, galaxy[i,:], noise, velscale, start[i,:], goodPixels_sfh, config['SFH']['MOM'], dv,\
                            config['SFH']['MDEG'], config['SFH']['REGUL_ERR'], fixed, velscale_ratio, npix,\
                            ncomb, nbins, i ) )
-    
+
         # now get the results with indices
         ppxf_tmp = [outQueue.get() for _ in range(nbins)]
-    
+
         # send stop signal to stop iteration
         for _ in range(config['GENERAL']['NCPU']): inQueue.put('STOP')
 
         # stop processes
         for p in ps: p.join()
-    
+
         # Get output
         index = np.zeros(nbins)
         for i in range(0, nbins):
@@ -347,7 +347,7 @@ def extractStarFormationHistories(config):
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
     if config['GENERAL']['PARALLEL'] == False:
-        printStatus.running("Running PPXF in serial mode")            
+        printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
         for i in range(nbins):
             kin[i,:config['SFH']['MOM']], w_row[i,:], bestfit[i,:], formal_error[i,:config['SFH']['MOM']] = run_ppxf\
@@ -378,5 +378,3 @@ def extractStarFormationHistories(config):
 
     # Return
     return(None)
-
-

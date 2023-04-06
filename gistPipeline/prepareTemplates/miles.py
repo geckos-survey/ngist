@@ -14,7 +14,7 @@ def age_metal_alpha(passedFiles):
     Function to extract the values of age, metallicity, and alpha-enhancement
     from standard MILES filenames. Note that this function can automatically
     distinguish between template libraries that do or do not include
-    alpha-enhancement. 
+    alpha-enhancement.
     """
 
     out = np.zeros((len(passedFiles),3)); out[:,:] = np.nan
@@ -27,7 +27,7 @@ def age_metal_alpha(passedFiles):
         # Ages
         t = s.find('T')
         age = float( s[t+1 : t+8] )
-    
+
         # Metals
         metal = s[s.find('Z')+1 : t]
         if "m" in metal:
@@ -36,7 +36,7 @@ def age_metal_alpha(passedFiles):
             metal = float(metal[1:])
         else:
             raise ValueError("             This is not a standard MILES filename")
-    
+
         # Alpha
         if s.find('baseFe') == -1:
             EMILES = False
@@ -78,19 +78,21 @@ def age_metal_alpha(passedFiles):
     return( np.log10(Age), Metal, Alpha, metal_str, alpha_str, nAges, nMetal, nAlpha, ncomb )
 
 
-def prepareSpectralTemplateLibrary(config, lmin, lmax, velscale, LSF_Data, LSF_Templates, sortInGrid):
+def prepareSpectralTemplateLibrary(config, lmin, lmax, velscale, LSF_Data, LSF_Templates, module_used, sortInGrid):
     """
     Prepares the spectral template library. The templates are loaded from disk,
     shortened to meet the spectral range in consideration, convolved to meet the
     resolution of the observed spectra (according to the LSF), log-rebinned, and
     normalised. In addition, they are sorted in a three-dimensional array
-    sampling the parameter space in age, metallicity and alpha-enhancement. 
+    sampling the parameter space in age, metallicity and alpha-enhancement.
     """
     printStatus.running("Preparing the stellar population templates")
     cvel  = 299792.458
 
     # SSP model library
-    sp_models = glob.glob(os.path.join(config['GENERAL']['TEMPLATE_DIR'],config['PREPARE_TEMPLATES']['LIBRARY'])+'*.fits')
+    sp_models = glob.glob(os.path.join(config['GENERAL']['TEMPLATE_DIR'],config[module_used]['LIBRARY'])+'*.fits')
+
+
     sp_models.sort()
     ntemplates = len(sp_models)
 
@@ -104,11 +106,11 @@ def prepareSpectralTemplateLibrary(config, lmin, lmax, velscale, LSF_Data, LSF_T
     template_overhead = np.zeros(2)
     if lmin - lamRange_spmod[0] > 150.:
         template_overhead[0] = 150.
-    else: 
+    else:
         template_overhead[0] = lmin - lamRange_spmod[0] - 5
     if lamRange_spmod[1] - lmax > 150.:
         template_overhead[1] = 150.
-    else: 
+    else:
         template_overhead[1] = lamRange_spmod[1] - lmax - 5
 
     # Shorten templates to size of data
@@ -147,22 +149,22 @@ def prepareSpectralTemplateLibrary(config, lmin, lmax, velscale, LSF_Data, LSF_T
             ssp_data = np.squeeze(hdu[0].data)[idx_lam]
             ssp_data = gaussian_filter1d(ssp_data, sigma)
             templates[:, j], logLam_spmod, _ = log_rebin(lamRange_spmod, ssp_data, velscale=velscale)
-   
+
         # Normalise templates in such a way to get mass-weighted results
-        if config['PREPARE_TEMPLATES']['NORM_TEMP'] == 'MASS':
+        if config[module_used]['NORM_TEMP'] == 'MASS':
             templates = templates / np.mean( templates )
-    
+
         # Normalise templates in such a way to get light-weighted results
-        if config['PREPARE_TEMPLATES']['NORM_TEMP'] == 'LIGHT':
+        if config[module_used]['NORM_TEMP'] == 'LIGHT':
             for i in range( templates.shape[1] ):
                 templates[:,i] = templates[:,i] / np.mean(templates[:,i], axis=0)
-    
+
         printStatus.updateDone("Preparing the stellar population templates")
         logging.info("Prepared the stellar population templates")
-    
+
         return( templates, [lamRange_spmod[0],lamRange_spmod[1]], logLam_spmod, ntemplates, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan )
 
-    
+
     # Sort the templates in a cube of age, metal, alpha for the SFH module
     elif sortInGrid == True:
 
@@ -171,12 +173,12 @@ def prepareSpectralTemplateLibrary(config, lmin, lmax, velscale, LSF_Data, LSF_T
 
         templates          = np.zeros((sspNew.size, nAges, nMetal, nAlpha))
         templates[:,:,:,:] = np.nan
-    
+
         # Arrays to store properties of the models
         logAge_grid = np.empty((nAges, nMetal, nAlpha))
         metal_grid  = np.empty((nAges, nMetal, nAlpha))
         alpha_grid  = np.empty((nAges, nMetal, nAlpha))
-    
+
         # Sort the templates in the cube of age, metal, alpha
         # This sorts for alpha
         for i, a in enumerate(alpha_str):
@@ -189,24 +191,22 @@ def prepareSpectralTemplateLibrary(config, lmin, lmax, velscale, LSF_Data, LSF_T
                     ssp = np.squeeze(hdu[0].data)[idx_lam]
                     ssp = gaussian_filter1d(ssp, sigma)
                     sspNew, logLam2, _ = log_rebin(lamRange_spmod, ssp, velscale=velscale)
-    
+
                     logAge_grid[j, k, i] = logAge[j]
                     metal_grid[j, k, i]  = metal[k]
                     alpha_grid[j, k, i]  = alpha[i]
-    
+
                     # Normalise templates for light-weighted results
-                    if config['PREPARE_TEMPLATES']['NORM_TEMP'] == 'LIGHT':
+                    if config[module_used]['NORM_TEMP'] == 'LIGHT':
                         templates[:, j, k, i] = sspNew / np.mean(sspNew)
                     else:
-                        templates[:, j, k, i] = sspNew 
-    
+                        templates[:, j, k, i] = sspNew
+
         # Normalise templates for mass-weighted results
-        if config['PREPARE_TEMPLATES']['NORM_TEMP'] == 'MASS':
+        if config[module_used]['NORM_TEMP'] == 'MASS':
             templates = templates / np.mean( templates )
 
         printStatus.updateDone("Preparing the stellar population templates")
         logging.info("Prepared the stellar population templates")
-    
+
         return(templates, [lamRange_spmod[0],lamRange_spmod[1]], logLam2, ntemplates, logAge_grid, metal_grid, alpha_grid, ncomb, nAges, nMetal, nAlpha)
-
-

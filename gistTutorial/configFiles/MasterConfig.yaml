@@ -1,4 +1,5 @@
 # This is a test config file
+# AMELIA don't use this one!!!
 GENERAL :
   RUN_ID : 'NGC0000Example' # Name of the analysis run. A subdirectory of this name within the output directory will be created. This identifier further serves as a prefix to all output files.
   INPUT : 'NGC0000.fits' # Input file for this analysis run. The specified path is relative to the input path given in defaultDir.
@@ -7,7 +8,6 @@ GENERAL :
   PARALLEL: True # Use multiprocessing [True/False]
   NCPU : 4 # Number of cores to use for multiprocessing
   LSF_DATA : 'lsf_MUSE-WFM' # Path of the file specifying the line-spread-function of the observational data. The specified path is relative to the configDir path in defaultDir.
-  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
   OW_CONFIG : True #  Ignore configurations from previous runs which are saved in the CONFIG file in the output directory [True/False]
   OW_OUTPUT : True # Overwrite any output files already present in the current output directory [True/False]
 
@@ -17,7 +17,7 @@ READ_DATA :
   DEBUG : FALSE # Switch to activate debug mode [True/False]: Pipeline runs on one, central line of pixels. Keep in mind to clean output directory after running in DEBUG mode!
   ORIGIN : 14,14 # Origin of the coordinate system in pixel coordinates: x,y (Indexing starts at 0).
   LMIN_TOT : 4800 # Spectra are shortened to the rest-frame wavelength range defined by LMIN_TOT and LMAX_TOT. Note that this wavelength range should be longer than all other wavelength ranges supplied to the modules [in Angst.]
-  LMAX_TOT : 5500
+  LMAX_TOT : 6900
   LMIN_SNR : 4800 # Rest-frame wavelength range used for the signal-to-noise calculation [in Angst.]
   LMAX_SNR : 5500
 
@@ -39,39 +39,45 @@ PREPARE_SPECTRA :
   METHOD : 'default'
   VELSCALE : 70
 
-# Prepare templates module
-PREPARE_TEMPLATES :
-  METHOD : 'miles'
-  LIBRARY : 'MILES/'
-  NORM_TEMP : 'LIGHT'
+# # Prepare templates module
+# PREPARE_TEMPLATES :
+
 
 # Stellar kinematics module
 KIN :
-  METHOD : 'ppxf'
+  METHOD : 'ppxf' # Options: 'ppxf' or False
   SPEC_MASK : 'specMask_KIN'
   LMIN : 4800
-  LMAX : 5500
+  LMAX : 6900
   SIGMA : 200
   MOM : 4
   ADEG : 8
   MDEG : 0
   REDDENING : null # As opposed to None
   MC_PPXF : 0
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  METHOD : 'miles' # current options: miles,
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
 
 # Emission line fitting module
 GAS :
-  METHOD : 'gandalf'
+  METHOD : 'gandalf' # Options: 'gandalf' or False
   LEVEL : 'BIN'
   LMIN : 4800
-  LMAX : 5500
+  LMAX : 6900
   ERRORS : 0
   REDDENING : 0.1,0.1
   EBmV : null # As opposed to None
   EMI_FILE : 'emissionLines.config'
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  METHOD : 'miles' # current options: miles,
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
 
 # Star formation histories module
 SFH :
-  METHOD : 'ppxf'
+  METHOD : 'ppxf' # Options: 'ppxf' or False
   LMIN : 4800
   LMAX : 5500
   SPEC_MASK : 'specMask_SFH'
@@ -80,10 +86,14 @@ SFH :
   REGUL_ERR : 1.
   NOISE : 1.
   FIXED : True
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  METHOD : 'miles' # current options: miles,
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
 
 # Line strenghts module
 LS :
-  METHOD : 'default'
+  METHOD : 'default' # Options: 'default' or False
   TYPE : 'SPP'
   LS_FILE : 'lsBands.config'
   CONV_COR : 8.4
@@ -91,3 +101,7 @@ LS :
   MC_LS : 30
   NWALKER : 10
   NCHAIN : 100
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  METHOD : 'miles' # current options: miles,
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'

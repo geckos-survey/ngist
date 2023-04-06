@@ -8,7 +8,7 @@ import os
 
 from printStatus import printStatus
 
-from gistPipeline.auxiliary import _auxiliary 
+from gistPipeline.auxiliary import _auxiliary
 
 from gistPipeline.lineStrengths import lsindex_spec as lsindex
 from gistPipeline.lineStrengths import ssppop_fitting as ssppop
@@ -20,33 +20,33 @@ cvel  = 299792.458
 
 
 """
-PURPOSE: 
+PURPOSE:
   This module executes the measurement of line strength indices in the pipeline.
   Basically, it acts as an interface between pipeline and the line strength
   measurement routines of Kuntschner et al. 2006
   (ui.adsabs.harvard.edu/?#abs/2006MNRAS.369..497K) and their conversion to
   single stellar population equivalent population properties with the MCMC
   algorithm of Martin-Navaroo et al. 2018
-  (ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M). 
+  (ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M).
 """
 
 
 def workerLS(inQueue, outQueue):
     """
     Defines the worker process of the parallelisation with multiprocessing.Queue
-    and multiprocessing.Process. 
+    and multiprocessing.Process.
     """
     for wave, spec, espec, redshift, config, lickfile, names, index_names,\
         model_indices, params, tri, labels, nbins, i, MCMC\
         in iter(inQueue.get, 'STOP'):
 
-        if MCMC == True: 
+        if MCMC == True:
             indices, errors, vals, percentile = run_ls( wave, spec, espec, redshift, config, lickfile, names, index_names,\
             model_indices, params, tri, labels, nbins, i, MCMC )
 
             outQueue.put(( i, indices, errors, vals, percentile ))
 
-        elif MCMC == False: 
+        elif MCMC == False:
             indices, errors = run_ls( wave, spec, espec, redshift, config, lickfile, names, index_names,\
             model_indices, params, tri, labels, nbins, i, MCMC )
 
@@ -54,13 +54,13 @@ def workerLS(inQueue, outQueue):
 
 
 def run_ls(wave, spec, espec, redshift, config, lickfile, names, index_names,\
-           model_indices, params, tri, labels, nbins, i, MCMC): 
+           model_indices, params, tri, labels, nbins, i, MCMC):
     """
     Calls a Python version of the line strength measurement routine of
     Kuntschner et al. 2006 (ui.adsabs.harvard.edu/?#abs/2006MNRAS.369..497K),
     and if required, the MCMC algorithm from Martin-Navaroo et al. 2018
     (ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M) to determine SSP
-    properties. 
+    properties.
     """
     printStatus.progressBar(i, nbins, barLength = 50)
     nindex = len(index_names)
@@ -69,7 +69,7 @@ def run_ls(wave, spec, espec, redshift, config, lickfile, names, index_names,\
         # Measure the LS indices
         names, indices, errors = lsindex.lsindex\
                     (wave, spec, espec, redshift[0], lickfile, sims=config['LS']['MC_LS'], z_err=redshift[1], plot=0)
-    
+
         # Get the indices in consideration
         data  = np.zeros(nindex)
         error = np.zeros(nindex)
@@ -77,44 +77,44 @@ def run_ls(wave, spec, espec, redshift, config, lickfile, names, index_names,\
             idx = np.where( names == index_names[o] )[0]
             data[o]  = indices[idx]
             error[o] = errors[idx]
-    
-        if MCMC == True: 
+
+        if MCMC == True:
             # Run the conversion of LS indices to SSP properties
             vals   = np.zeros(len(labels)*3+2)
             chains = np.zeros((int(config['LS']['NWALKER']*config['LS']['NCHAIN']/2), len(labels)))
             vals[:], chains[:,:] = ssppop.ssppop_fitting\
                 (data, error, model_indices, params, tri, labels, config['LS']['NWALKER'], config['LS']['NCHAIN'], False, 0, i, nbins, "")
-        
+
             percentiles = np.percentile( chains, np.arange(101), axis=0 )
-    
+
             return(indices, errors, vals, percentiles)
-    
-        elif MCMC == False: 
+
+        elif MCMC == False:
             return(indices, errors)
 
     except:
-        if MCMC == True: 
+        if MCMC == True:
             return( np.nan, np.nan, np.nan, np.nan )
-        elif MCMC == False: 
+        elif MCMC == False:
             return( np.nan, np.nan )
 
 
 def save_ls(names, ls_indices, ls_errors, index_names, labels, RESOLUTION, MCMC, totalFWHM_flag, config, vals=None, percentile=None ):
     """ Saves all results to disk. """
     # Save results
-    if RESOLUTION == 'ORIGINAL': 
+    if RESOLUTION == 'ORIGINAL':
         outfits = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_ls_OrigRes.fits'
         printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_ls_OrigRes.fits')
-    if RESOLUTION == 'ADAPTED': 
+    if RESOLUTION == 'ADAPTED':
         outfits = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_ls_AdapRes.fits'
         printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_ls_AdapRes.fits')
-   
+
     # Primary HDU
     priHDU = fits.PrimaryHDU()
 
     # Extension 1: Table HDU with results
     cols = []
-    if MCMC == True: 
+    if MCMC == True:
         nparam = len(labels)
         for i in range(nparam):
             cols.append(fits.Column(name=labels[i], format='D', array=percentile[:,50,i]))
@@ -135,7 +135,7 @@ def save_ls(names, ls_indices, ls_errors, index_names, labels, RESOLUTION, MCMC,
         nparam = len(labels)
         for i in range(nparam):
             cols.append(fits.Column(name=labels[i]+'_PERCENTILES', format='101D', array=percentile[:,:,i]))
-        percentilesHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols)) 
+        percentilesHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
         percentilesHDU.anem = "PERCENTILES"
 
     # Create HDUList
@@ -145,9 +145,9 @@ def save_ls(names, ls_indices, ls_errors, index_names, labels, RESOLUTION, MCMC,
     # Write HDU list to file
     HDUList.writeto(outfits, overwrite=True)
 
-    if RESOLUTION == 'ORIGINAL': 
+    if RESOLUTION == 'ORIGINAL':
         printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_ls_OrigRes.fits')
-    if RESOLUTION == 'ADAPTED': 
+    if RESOLUTION == 'ADAPTED':
         printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_ls_AdapRes.fits')
     logging.info("Wrote: "+outfits)
 
@@ -156,10 +156,10 @@ def saveCleanedLinearSpectra(spec, espec, wave, npix, config):
     """ Save emission-subtracted, linearly binned spectra to disk. """
     outfits = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_ls-cleaned_linear.fits'
     printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_ls-cleaned_linear.fits')
-    
+
     # Primary HDU
     priHDU = fits.PrimaryHDU()
-    
+
     # Extension 1: Table HDU with cleaned, linear spectra
     cols = []
     cols.append( fits.Column(name='SPEC',  format=str(npix)+'D', array=spec ) )
@@ -172,11 +172,11 @@ def saveCleanedLinearSpectra(spec, espec, wave, npix, config):
     cols.append( fits.Column(name='LAM', format='D', array=wave) )
     logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     logLamHDU.name = 'LAM'
-     
+
     # Create HDU list and write to file
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
     HDUList.writeto(outfits, overwrite=True)
-    
+
     printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_ls-cleaned_linear.fits')
     logging.info("Wrote: "+outfits)
 
@@ -186,7 +186,7 @@ def log_unbinning(lamRange, spec, oversample=1, flux=True):
     This function transforms logarithmically binned spectra back to linear
     binning. It is a Python translation of Michele Cappellari's
     "log_rebin_invert" function. Thanks to Michele Cappellari for his permission
-    to include this function in the pipeline. 
+    to include this function in the pipeline.
     """
     # Length of arrays
     n = len(spec)
@@ -196,7 +196,7 @@ def log_unbinning(lamRange, spec, oversample=1, flux=True):
     dLam = (lamRange[1]-lamRange[0]) / (n - 1)             # Step in log-space
     lim = lamRange + np.array([-0.5, 0.5])*dLam            # Min and max wavelength in log-space
     borders = np.linspace( lim[0], lim[1], n+1 )           # OLD logLam in log-space
-    
+
     # Wavelength domain
     logLim     = np.exp(lim)                               # Min and max wavelength in Angst.
     lamNew     = np.linspace( logLim[0], logLim[1], m+1 )  # new logLam in Angstroem
@@ -210,7 +210,7 @@ def log_unbinning(lamRange, spec, oversample=1, flux=True):
     for j in range(0, m-1):
         a = (newBorders[j]   - borders[k[j]])   / dLam
         b = (borders[k[j+1]] - newBorders[j+1]) / dLam
-        
+
         specNew[j] = np.sum( spec[k[j]:k[j+1]] ) - a*spec[k[j]] - b*spec[k[j+1]]
 
     # Rescale flux
@@ -229,16 +229,16 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
     spectra are rebinned from logarithmic to linear scale, and the spectra
     convolved to meet the LIS measurement resolution. After the measurement of
     line strength indices and, if required, the estimation of SSP properties,
-    the results are saved to file. 
+    the results are saved to file.
     """
     # Run MCMC only on the indices measured from convoluted spectra
-    if config['LS']['TYPE'] == 'SPP'  and  RESOLUTION == "ADAPTED": 
+    if config['LS']['TYPE'] == 'SPP'  and  RESOLUTION == "ADAPTED":
         MCMC = True
-    else: 
+    else:
         MCMC = False
 
     # Read LSF information
-    LSF_Data, LSF_Templates = _auxiliary.getLSF(config)
+    LSF_Data, LSF_Templates = _auxiliary.getLSF(config, 'LS')
 
     # Read the log-rebinned spectra and log-unbin them
     if os.path.isfile(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_ls-cleaned_linear.fits') == False:
@@ -246,7 +246,7 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
         # Read spectra
         if os.path.isfile(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_gas-cleaned_BIN.fits') == True:
             logging.info('Using emission-subtracted spectra at '+os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_gas-cleaned_BIN.fits')
-            printStatus.done("Using emission-subtracted spectra")            
+            printStatus.done("Using emission-subtracted spectra")
             hdu_spec = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_gas-cleaned_BIN.fits')
         else:
             logging.info('Using regular spectra without any emission-correction at '+os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_BinSpectra.fits')
@@ -282,9 +282,9 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
 
         # Save cleaned, linear spectra
         saveCleanedLinearSpectra(spec, espec, wave, npix, config)
-    
+
     # Read the linearly-binned, cleaned spectra provided by previous LS-run
-    else: 
+    else:
         logging.info("Reading "+os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_ls-cleaned_linear.fits')
         hdu   = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_ls-cleaned_linear.fits')
         spec  = np.array( hdu[1].data.SPEC  )
@@ -316,7 +316,7 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
             printStatus.progressBar(i, nbins, barLength = 50)
 
             # Convert velocity dispersion of galaxy (from PPXF) to Angstrom
-            veldisp_kin_Angst = veldisp_kin[i] * wave / cvel * 2.355  
+            veldisp_kin_Angst = veldisp_kin[i] * wave / cvel * 2.355
 
             # Total dispersion for this bin
             total_dispersion = np.sqrt( LSF_Data(wave)**2 + veldisp_kin_Angst**2 )
@@ -331,7 +331,7 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
             idx = np.where( np.isnan( sigma ) == True )[0]
             if len( idx ) > 0:
                 sigma[idx] = 0.0
-                totalFWHM_flag[i] = 1 
+                totalFWHM_flag[i] = 1
 
             # Convolve spectra pixel-wise
             spec[i,:]  = gaussian_filter1d(spec[i,:],  sigma)
@@ -343,37 +343,37 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
     index_names = tab['names'][idx].tolist()
 
     # Loading model predictions
-    if MCMC == True: 
+    if MCMC == True:
         modelfile = os.path.join(config['GENERAL']['TEMPLATE_DIR'],config['LS']['SPP_FILE'])
         model_indices, params, tri, labels = ssppop.load_models(modelfile, index_names)
         logging.info("Loading LS model file at "+modelfile)
-    elif MCMC == False: 
+    elif MCMC == False:
         model_indices, params, tri, labels = "dummy", "dummy", "dummy", "dummy"
 
     # Arrays to store results
     ls_indices = np.zeros((nbins, len(names)))
     ls_errors  = np.zeros((nbins, len(names)))
-    if MCMC == True: 
+    if MCMC == True:
         vals       = np.zeros((nbins, len(labels)*3+2))
         percentile = np.zeros((nbins, 101, len(labels)))
 
     # Run LS Measurements
     start_time = time.time()
     if config['GENERAL']['PARALLEL'] == True:
-        printStatus.running("Running lineStrengths in parallel mode")            
-        logging.info("Running lineStrengths in parallel mode")            
+        printStatus.running("Running lineStrengths in parallel mode")
+        logging.info("Running lineStrengths in parallel mode")
 
         # Create Queues
         inQueue  = Queue()
         outQueue = Queue()
-    
+
         # Create worker processes
         ps = [Process(target=workerLS, args=(inQueue, outQueue))
               for _ in range(config['GENERAL']['NCPU'])]
-    
+
         # Start worker processes
         for p in ps: p.start()
-    
+
         # Fill the queue
         for i in range(nbins):
             inQueue.put( ( wave, spec[i,:], espec[i,:], redshift[i,:], config, lickfile, names, index_names,\
@@ -381,20 +381,20 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
 
         # now get the results with indices
         ls_tmp = [outQueue.get() for _ in range(nbins)]
-    
+
         # send stop signal to stop iteration
         for _ in range(config['GENERAL']['NCPU']): inQueue.put('STOP')
 
         # stop processes
         for p in ps: p.join()
-    
+
         # Get output
         index = np.zeros(nbins)
         for i in range(0, nbins):
             index[i]          = ls_tmp[i][0]
             ls_indices[i,:]   = ls_tmp[i][1]
             ls_errors[i,:]    = ls_tmp[i][2]
-            if MCMC == True: 
+            if MCMC == True:
                 vals[i,:]         = ls_tmp[i][3]
                 percentile[i,:,:] = ls_tmp[i][4]
 
@@ -402,22 +402,22 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
         argidx = np.argsort( index )
         ls_indices = ls_indices[argidx,:]
         ls_errors  = ls_errors[argidx,:]
-        if MCMC == True: 
+        if MCMC == True:
             vals       = vals[argidx,:]
             percentile = percentile[argidx,:,:]
 
         printStatus.updateDone("Running lineStrengths in parallel mode", progressbar=True)
 
     if config['GENERAL']['PARALLEL'] == False:
-        printStatus.running("Running lineStrengths in serial mode")            
-        logging.info("Running lineStrengths in serial mode")            
+        printStatus.running("Running lineStrengths in serial mode")
+        logging.info("Running lineStrengths in serial mode")
 
         if MCMC == True:
             for i in range(nbins):
                 ls_indices[i,:], ls_errors[i,:], vals[i,:], percentile[i,:,:] = run_ls\
                         (wave, spec[i,:], espec[i,:], redshift[i,:], config, lickfile, names, index_names,\
                         model_indices, params, tri, labels, nbins, i, MCMC)
-        elif MCMC == False: 
+        elif MCMC == False:
             for i in range(nbins):
                 ls_indices[i,:], ls_errors[i,:] = run_ls\
                         (wave, spec[i,:], espec[i,:], redshift[i,:], config, lickfile, names, index_names,\
@@ -441,9 +441,9 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
     print("")
 
     # Save Results
-    if MCMC == True: 
+    if MCMC == True:
         save_ls(names, ls_indices, ls_errors, index_names, labels, RESOLUTION, MCMC, totalFWHM_flag, config, vals=vals, percentile=percentile)
-    elif MCMC == False: 
+    elif MCMC == False:
         save_ls(names, ls_indices, ls_errors, index_names, labels, RESOLUTION, MCMC, totalFWHM_flag, config)
 
     # Repeat analysis with adapted spectral resolution
@@ -452,5 +452,3 @@ def measureLineStrengths(config, RESOLUTION='ORIGINAL'):
 
     # Return
     return(None)
-
-

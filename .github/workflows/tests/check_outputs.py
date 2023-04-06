@@ -4,6 +4,10 @@ home_dir = os.path.expanduser('~')
 print(home_dir)
 output_dir = f"{home_dir}/work/gist-geckos/gist-geckos/NGC0000Example"
 
+with open(f"{output_dir}/LOGFILE") as f:
+	for line in f:
+		print(line)
+print('I got up to here!')
 #Check the output directory is created 
 with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
