@@ -67,8 +67,8 @@ def plotMap(self, module, maptype):
     ymin = np.nanmin(self.table.Y[idxMap])-1;  ymax = np.nanmax(self.table.Y[idxMap])+1
     npixels_x = int( np.round( (xmax - xmin)/self.pixelsize ) + 1 )
     npixels_y = int( np.round( (ymax - ymin)/self.pixelsize ) + 1 )
-    i = np.array( np.round( (self.table.X[idxMap] - xmin)/self.pixelsize ), dtype=np.int )
-    j = np.array( np.round( (self.table.Y[idxMap] - ymin)/self.pixelsize ), dtype=np.int )
+    i = np.array( np.round( (self.table.X[idxMap] - xmin)/self.pixelsize ), dtype=int )
+    j = np.array( np.round( (self.table.Y[idxMap] - ymin)/self.pixelsize ), dtype=int )
     image = np.full( (npixels_x, npixels_y), np.nan )
     image[i,j] = val
 
