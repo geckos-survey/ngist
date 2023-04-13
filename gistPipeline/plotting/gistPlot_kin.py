@@ -64,7 +64,7 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
     # Read bintable
     table_hdu = fits.open(os.path.join(outdir,rootname)+'_table.fits')
     idx_inside  = np.where( table_hdu[1].data.BIN_ID >= 0        )[0]
-    X           = np.array( table_hdu[1].data.X[idx_inside]      ) * -1
+    X           = np.array( table_hdu[1].data.X[idx_inside]    ) * -1
     Y           = np.array( table_hdu[1].data.Y[idx_inside]      )
     FLUX        = np.array( table_hdu[1].data.FLUX[idx_inside]   )
     binNum_long = np.array( table_hdu[1].data.BIN_ID[idx_inside] )
@@ -96,31 +96,44 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
     result = result_long
     result[:,0] = result[:,0] - np.nanmedian( result[:,0] )
 
-    ####### Adding the ability to output maps as fits files
-    primary_hdu = fits.PrimaryHDU()
-    hdu1 = fits.HDUList([primary_hdu])
-    if flag == 'KIN':
-        names = ['V', 'SIG', 'H3', 'H4']
-        for iterate in range(0,len(names)):
-            # Prepare main plot
-            val = result[:,iterate]
-            # Create image in pixels
-            xmin = np.nanmin(X)-6;  xmax = np.nanmax(X)+6
-            ymin = np.nanmin(Y)-6;  ymax = np.nanmax(Y)+6
-            npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
-            npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
-            i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
-            j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
-            image = np.full( (npixels_x, npixels_y), np.nan )
-            image[i,j] = val
-            image_hdu = fits.ImageHDU(image, name=names[iterate])
-            # Append fits image
-            hdu1.append(image_hdu)
-        hdu1.writeto(os.path.join(outdir,rootname)+'_stellkinmaps.fits', overwrite=True)
-
-
-
-    #######
+    # ####### Adding the ability to output maps as fits files
+    # primary_hdu = fits.PrimaryHDU()
+    # hdu1 = fits.HDUList([primary_hdu])
+    # if flag == 'KIN':
+    #     names = ['V', 'SIG', 'H3', 'H4']
+    #     for iterate in range(0,len(names)):
+    #         # Prepare main plot
+    #         val = result[:,iterate]
+    #         # Create image in pixels
+    #         #xmin = np.nanmin(X)-6;  xmax = np.nanmax(X)+6
+    #         #ymin = np.nanmin(Y)-6;  ymax = np.nanmax(Y)+6
+    #         print(X.shape)
+    #         print(np.min(X))
+    #         print(np.nanmin(X))
+    #         print(np.max(X))
+    #         print(np.nanmax(X))
+    #         print('hello')
+    #         xmin = np.min(X);  xmax = np.max(X)
+    #         ymin = np.min(Y);  ymax = np.max(Y)
+    #         #print(X)
+    #         #xmin = X[0];  xmax = X[-1] # or is it shape(X)[0]?
+    #         #print('shape X = %s' % (shape(X)))
+    #         #ymin = Y[0];  ymax = Y[-1]
+    #         npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
+    #         #print('npixels_x=%s' % (npixels_x))
+    #         npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
+    #         i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
+    #         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
+    #         image = np.full( (npixels_x, npixels_y), np.nan )
+    #         image[i,j] = val
+    #         image_hdu = fits.ImageHDU(image, name=names[iterate])
+    #         # Append fits image
+    #         hdu1.append(image_hdu)
+    #     hdu1.writeto(os.path.join(outdir,rootname)+'_stellkinmaps.fits', overwrite=True)
+    #
+    #
+    #
+    # #######
 
     # Create/Set output directory
     if os.path.isdir(os.path.join(outdir,'maps/')) == False:
@@ -261,6 +274,70 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
 
     fig.clf()
     plt.close()
+
+# def savefitsmaps(flag, outdir):
+#     labellist = ['V', 'SIGMA', 'H3', 'H4']
+#
+#     runname  = outdir
+#     rootname = outdir.rstrip('/').split('/')[-1]
+#
+#     # Read bintable
+#     table_hdu = fits.open(os.path.join(outdir,rootname)+'_table.fits')
+#     idx_inside  = np.where( table_hdu[1].data.BIN_ID >= 0        )[0]
+#     X           = np.array( table_hdu[1].data.X    ) * -1
+#     Y           = np.array( table_hdu[1].data.Y      )
+#     FLUX        = np.array( table_hdu[1].data.FLUX   )
+#     binNum_long = np.array( table_hdu[1].data.BIN_ID )
+#     ubins       = np.unique( np.abs( np.array( table_hdu[1].data.BIN_ID ) ) )
+#     pixelsize   = table_hdu[0].header['PIXSIZE']
+#
+#     # Check spatial coordinates
+#     if len( np.where( np.logical_or( X == 0.0, np.isnan(X) == True ) )[0] ) == len(X):
+#         print('All X-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!')
+#     if len( np.where( np.logical_or( Y == 0.0, np.isnan(Y) == True ) )[0] ) == len(Y):
+#         print('All Y-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!\n')
+#
+#     # Read Results
+#     if flag == 'KIN':
+#         hdu = fits.open(os.path.join(outdir,rootname)+'_kin.fits')
+#     elif flag == 'SFH':
+#         hdu = fits.open(os.path.join(outdir,rootname)+'_sfh.fits')
+#     result      = np.zeros((len(ubins),4))
+#     result[:,0] = np.array( hdu[1].data.V     )
+#     result[:,1] = np.array( hdu[1].data.SIGMA )
+#     if hasattr(hdu[1].data, 'H3'): result[:,2] = np.array(hdu[1].data.H3)
+#     if hasattr(hdu[1].data, 'H4'): result[:,3] = np.array(hdu[1].data.H4)
+#
+#     # Convert results to long version
+#     result_long  = np.zeros( (len(binNum_long), result.shape[1]) ); result_long[:,:] = np.nan
+#     for i in range( len(ubins) ):
+#         idx = np.where( ubins[i] == np.abs(binNum_long) )[0]
+#         result_long[idx,:]  = result[i,:]
+#     result = result_long
+#     result[:,0] = result[:,0] - np.nanmedian( result[:,0] )
+#
+#     ####### Adding the ability to output maps as fits files
+#     primary_hdu = fits.PrimaryHDU()
+#     hdu1 = fits.HDUList([primary_hdu])
+#     if flag == 'KIN':
+#         names = ['V', 'SIG', 'H3', 'H4']
+#         for iterate in range(0,len(names)):
+#             # Prepare main plot
+#             val = result[:,iterate]
+#             # Create image in pixels
+#             xmin = np.min(X);  xmax = np.max(X)
+#             ymin = np.min(Y);  ymax = np.max(Y)
+#             npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
+#             npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
+#             i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
+#             j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
+#             image = np.full( (npixels_x, npixels_y), np.nan )
+#             image[i,j] = val
+#             image_hdu = fits.ImageHDU(image, name=names[iterate])
+#             # Append fits image
+#             hdu1.append(image_hdu)
+#         hdu1.writeto(os.path.join(outdir,rootname)+'_stellkinmaps.fits', overwrite=True)
+#         hdu1.close()
 
 # ==============================================================================
 # If plot routine is run independently of pipeline

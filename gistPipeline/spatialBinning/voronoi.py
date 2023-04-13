@@ -13,10 +13,10 @@ from vorbin.voronoi_2d_binning import voronoi_2d_binning
 
 
 """
-PURPOSE: 
-  This file contains a collection of functions necessary to Voronoi-bin the data. 
+PURPOSE:
+  This file contains a collection of functions necessary to Voronoi-bin the data.
   The Voronoi-binning makes use of the algorithm from Cappellari & Copin 2003
-  (ui.adsabs.harvard.edu/?#abs/2003MNRAS.342..345C). 
+  (ui.adsabs.harvard.edu/?#abs/2003MNRAS.342..345C).
 """
 
 
@@ -31,7 +31,7 @@ def sn_func(index, signal=None, noise=None, covar_vor=0.00 ):
        correlations in the noise by applying an empirical equation (see e.g.
        Garcia-Benito et al. 2015;
        ui.adsabs.harvard.edu/?#abs/2015A&A...576A.135G) together with the
-       parameter defined in the Config-file. 
+       parameter defined in the Config-file.
     """
 
     # Add the noise in the spaxels to obtain the noise in the bin
@@ -54,7 +54,7 @@ def generateSpatialBins(config, cube):
     from the Voronoi-binning, but are assigned a negative BIN_ID, with the
     absolute value of the BIN_ID corresponding to the nearest Voronoi-bin that
     satisfies the minimum SNR threshold.  All results are saved in a dedicated
-    table to provide easy means of matching spaxels and bins. 
+    table to provide easy means of matching spaxels and bins.
     """
     # Pass a function for the SNR calculation to the Voronoi-binning algorithm,
     # in order to account for spatial correlations in the noise
@@ -85,14 +85,14 @@ def generateSpatialBins(config, cube):
     except ValueError as e:
 
         # Sufficient SNR and no binning needed
-        if str(e) == 'All pixels have enough S/N and binning is not needed': 
+        if str(e) == 'All pixels have enough S/N and binning is not needed':
 
             printStatus.updateWarning("Defining the Voronoi bins")
             print("             "+"The Voronoi-binning routine of Cappellari & Copin (2003) returned the following error:")
             print("             "+str(e))
             printStatus.warning("Analysis will continue without Voronoi-binning!")
             print("             "+str(len(idxUnmasked))+" spaxels will be treated as Voronoi-bins.")
-            
+
             logging.warning("Defining the Voronoi bins failed. The Voronoi-binning routine of Cappellari & Copin "+\
                             "(2003) returned the following error: \n"+str(e))
             logging.info("Analysis will continue without Voronoi-binning! "+str(len(idxUnmasked))+" spaxels will be treated as Voronoi-bins.")
@@ -110,7 +110,7 @@ def generateSpatialBins(config, cube):
     # Find the nearest Voronoi bin for the pixels outside the Voronoi region
     binNum_outside = find_nearest_voronoibin( cube['x'], cube['y'], idxMasked, xNode, yNode )
 
-    # Generate extended binNum-list: 
+    # Generate extended binNum-list:
     #   Positive binNum (including zero) indicate the Voronoi bin of the spaxel (for unmasked spaxels)
     #   Negative binNum indicate the nearest Voronoi bin of the spaxel (for masked spaxels)
     ubins = np.unique(binNum)
@@ -127,9 +127,9 @@ def generateSpatialBins(config, cube):
 
 
 def noBinning(x, y, snr, idx_inside):
-    """ 
+    """
     In case no Voronoi-binning is required/possible, treat spaxels in the input
-    data as Voronoi bins, in order to continue the analysis. 
+    data as Voronoi bins, in order to continue the analysis.
     """
     binNum  = np.arange( 0, len(idx_inside) )
     xNode   = x[idx_inside]
@@ -143,27 +143,29 @@ def noBinning(x, y, snr, idx_inside):
 def find_nearest_voronoibin(x, y, idx_outside, xNode, yNode):
     """
     This function determines the nearest Voronoi-bin for all spaxels which do
-    not satisfy the minimum SNR threshold. 
+    not satisfy the minimum SNR threshold.
     """
     x = x[idx_outside]
     y = y[idx_outside]
     pix_coords = np.concatenate( (x.reshape((len(x),1)),         y.reshape((len(y),1))),         axis=1 )
     bin_coords = np.concatenate( (xNode.reshape((len(xNode),1)), yNode.reshape((len(yNode),1))), axis=1 )
 
-    dists = dist.cdist( pix_coords, bin_coords, 'euclidean' ) 
+    dists = dist.cdist( pix_coords, bin_coords, 'euclidean' )
     closest = np.argmin( dists, axis=1 )
 
     return(closest)
 
 
 def save_table(config, x, y, signal, snr, binNum_new, ubins, xNode, yNode, sn, nPixels, pixelsize):
-    """ 
+    """
     Save all relevant information about the Voronoi binning to disk. In
-    particular, this allows to later match spaxels and their corresponding bins. 
+    particular, this allows to later match spaxels and their corresponding bins.
     """
     outfits_table = os.path.join(config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID']) + '_table.fits'
     printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_table.fits')
-
+    xshape = x.shape
+    yshape = y.shape
+    printStatus.running('size of the input array=' + str(xshape) + str(yshape))
     # Expand data to spaxel level
     xNode_new = np.zeros( len(x) )
     yNode_new = np.zeros( len(x) )
@@ -178,7 +180,6 @@ def save_table(config, x, y, signal, snr, binNum_new, ubins, xNode, yNode, sn, n
 
     # Primary HDU
     priHDU = fits.PrimaryHDU()
-    
     # Table HDU with output data
     cols = []
     cols.append(fits.Column(name='ID',        format='J',   array=np.arange(len(x)) ))
@@ -202,5 +203,3 @@ def save_table(config, x, y, signal, snr, binNum_new, ubins, xNode, yNode, sn, n
 
     printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_table.fits')
     logging.info("Wrote Voronoi table: "+outfits_table)
-
-

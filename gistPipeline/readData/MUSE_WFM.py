@@ -20,7 +20,7 @@ def set_debug(cube, xext, yext):
     cube['snr']    = cube['snr'   ][  int(yext/2)*xext:(int(yext/2)+1)*xext]
     cube['signal'] = cube['signal'][  int(yext/2)*xext:(int(yext/2)+1)*xext]
     cube['noise']  = cube['noise' ][  int(yext/2)*xext:(int(yext/2)+1)*xext]
-    
+
     cube['spec']   = cube['spec'  ][:,int(yext/2)*xext:(int(yext/2)+1)*xext]
     cube['error']  = cube['error' ][:,int(yext/2)*xext:(int(yext/2)+1)*xext]
 
@@ -43,6 +43,7 @@ def readCube(config):
     hdr   = hdu[1].header
     data  = hdu[1].data
     s     = np.shape(data)
+    print(s)
     spec  = np.reshape(data,[s[0],s[1]*s[2]])
 
     # Read the variance spectra if available. Otherwise estimate the variance with the der_snr algorithm
@@ -58,7 +59,7 @@ def readCube(config):
 
     # Getting the wavelength info
     wave = hdr['CRVAL3']+(np.arange(s[0]))*hdr['CD3_3']
-    
+
     # Getting the spatial coordinates
     origin = [ float(config['READ_DATA']['ORIGIN'].split(',')[0].strip()), float(config['READ_DATA']['ORIGIN'].split(',')[1].strip()) ]
     xaxis = (np.arange(s[2]) - origin[0]) * hdr['CD2_2']*3600.0
@@ -67,11 +68,10 @@ def readCube(config):
     x     = np.reshape(x,[s[1]*s[2]])
     y     = np.reshape(y,[s[1]*s[2]])
     pixelsize = hdr['CD2_2']*3600.0
-
     logging.info("Extracting spatial information:\n"\
             +loggingBlanks+"* Spatial coordinates are centred to "+str(origin)+"\n"\
             +loggingBlanks+"* Spatial pixelsize is "+str(pixelsize))
-  
+
     # De-redshift spectra
     wave = wave / (1+config['GENERAL']['REDSHIFT'])
     logging.info("Shifting spectra to rest-frame, assuming a redshift of "+str(config['GENERAL']['REDSHIFT']))
@@ -86,7 +86,7 @@ def readCube(config):
     logging.info("Shortening spectra to the wavelength range from "+str(config['READ_DATA']['LMIN_TOT'])+"A to "+str(config['READ_DATA']['LMAX_TOT'])+"A.")
 
     # Computing the SNR per spaxel
-    
+
     idx_snr = np.where( np.logical_and( wave >= config['READ_DATA']['LMIN_SNR'], wave <= config['READ_DATA']['LMAX_SNR'] ) )[0]
     signal  = np.nanmedian(spec[idx_snr,:],axis=0)
     noise  = np.sqrt(np.nanmedian(espec[idx_snr,:],axis=0))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from   astropy.io import fits
+from astropy.table import Table
 import numpy      as np
 import os
 import optparse
@@ -27,10 +28,10 @@ except NameError:
 
 """
 PURPOSE:
-  Plot maps of the emission-line analysis. 
-  
+  Plot maps of the emission-line analysis.
+
   Note that this routine will be executed automatically during runtime of the
-  pipeline, but can also be run independently of the pipeline. 
+  pipeline, but can also be run independently of the pipeline.
 """
 
 
@@ -41,22 +42,22 @@ def setup_plot(usetex=False):
 
     fontsize = 18
     dpi = 300
-    
+
     plt.rc('font', family='serif')
     plt.rc('text', usetex=False)
-    
+
     plt.rcParams['axes.labelsize'] = fontsize
     plt.rcParams['legend.fontsize'] = fontsize-3
     plt.rcParams['legend.fancybox'] = True
     plt.rcParams['font.size'] = fontsize
-    
+
     plt.rcParams['xtick.major.pad'] = '7'
     plt.rcParams['ytick.major.pad'] = '7'
-    
+
     plt.rcParams['savefig.bbox'] = 'tight'
     plt.rcParams['savefig.dpi'] = dpi
     plt.rcParams['savefig.pad_inches'] = 0.3
-    
+
     # plt.rcParams['text.latex.preamble'] = [r'\boldmath']
 
 
@@ -72,7 +73,7 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
         contour_offset = input("Enter value of minimum isophote [default: 0.20]: ")
         if contour_offset == '': contour_offset = 0.20
         else:                    contour_offset = float(contour_offset)
-    else: 
+    else:
         contour_offset = 0.20
 
     # Do not produce empty plots
@@ -127,10 +128,10 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
     grid[0].tricontour(XY_Triangulation, np.log10(FLUX), levels=levels, linewidths=1, colors='k')
 
     # Label vmin and vmax
-    if lineIdentifier.split('_')[-1] in ['V', 'S']: 
+    if lineIdentifier.split('_')[-1] in ['V', 'S']:
         grid[0].text(0.985,0.008 ,r'{:.0f}'.format(vmin).replace("-", r"- ")+r' / '+r'{:.0f}'.format(vmax), \
                 horizontalalignment='right', verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
-    if lineIdentifier.split('_')[-1] in ['F', 'A']: 
+    if lineIdentifier.split('_')[-1] in ['F', 'A']:
         grid[0].text(0.985,0.008 ,r'{:.2f}'.format(vmin).replace("-", r"- ")+r' / '+r'{:.2f}'.format(vmax), \
                 horizontalalignment='right', verticalalignment='bottom', transform = grid[0].transAxes, fontsize=16)
 
@@ -140,7 +141,7 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
         cax.yaxis.set_ticks([])
 
     # Set labels
-    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)    
+    grid[0].text(0.985, 0.975, r'{}'.format(rootname), horizontalalignment='right', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
     if lineIdentifier.split('_')[-1] == 'V':
         grid[0].text(0.02, 0.98, r'$V \mathrm{[km/s]}$',      horizontalalignment='left', verticalalignment='top', transform = grid[0].transAxes, fontsize=16)
     elif lineIdentifier.split('_')[-1] == 'S':
@@ -182,7 +183,7 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
         inp = input(" Save plot [y/n]? ")
         print("")
         if inp == 'y' or inp == 'Y' or inp == 'yes' or inp == 'YES':
-            # To save plot with previously selected values: 
+            # To save plot with previously selected values:
             #   Call function again with previously chosen values for vmin and vmax, then save figure to file without prompting again
             plt.close(); fig.clf()
             plot_line(val, LEVEL, FROM_PIPELINE, False, True, lineIdentifier, vminmax, contour_offset_saved, X, Y, FLUX, pixelsize, outdir, rootname)
@@ -201,7 +202,7 @@ def plot_line(val, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, li
     else:
         # Save plot in non-interactive mode or when called from within the pipeline
         plt.savefig(os.path.join(outdir,rootname)+'_gas-'+lineIdentifier+'_'+LEVEL+'.pdf', bbox_inches='tight', pad_inches=0.3)
-          
+
 
 def plotMaps(outdir, LEVEL, FROM_PIPELINE, INTERACTIVE=False, vminmax=np.zeros(2), SAVE_AFTER_INTERACTIVE=False, AoNThreshold=4, lineIdentifier=None):
 
@@ -230,14 +231,48 @@ def plotMaps(outdir, LEVEL, FROM_PIPELINE, INTERACTIVE=False, vminmax=np.zeros(2
     # Read Gandalf results
     if LEVEL == 'SPAXEL':
         results = fits.open(os.path.join(outdir,rootname)+'_gas_SPAXEL.fits')[1].data[~maskedSpaxel]
+        results2 = Table.read(os.path.join(outdir,rootname)+'_gas_SPAXEL.fits') # Need the column names
     elif LEVEL == 'BIN':
         results = fits.open(os.path.join(outdir,rootname)+'_gas_BIN.fits')[1].data
-
+        results2 = Table.read(os.path.join(outdir,rootname)+'_gas_BIN.fits')
     # Convert results to long version
     if LEVEL == 'BIN':
         _, idxConvert = np.unique( np.abs(binNum_long), return_inverse=True )
         results = results[idxConvert]
 
+    ####### Add ability to print maps files to fits file
+
+    primary_hdu = fits.PrimaryHDU()
+    hdu1 = fits.HDUList([primary_hdu])
+    names = results2.colnames # This should be a list of ALL the column names
+    fluxnames = names[0::5] # splitting them into the various types of map
+    ampnames = names[1::5]
+    velnames = names[2::5]
+    sigmanames = names[3::5]
+    aonnames = names[4::5]
+
+    for iterate in range(0,len(fluxnames)):
+        # Prepare main plot
+        lineIdentifier = names[iterate]
+        val = results[lineIdentifier]
+        xmin = np.nanmin(X)-6;  xmax = np.nanmax(X)+6
+        ymin = np.nanmin(Y)-6;  ymax = np.nanmax(Y)+6
+        npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
+        npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
+        i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int )
+        j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int )
+        image = np.full( (npixels_x, npixels_y), np.nan )
+        image[i,j] = val
+        image_hdu = fits.ImageHDU(image, name=better_names[iterate])
+        # Append fits image
+        hdu1.append(image_hdu)
+    hdu1.writeto('/Users/00104486/Documents/2023/gist-geckos/gistTutorial/results/IC3392_MASS_SN100/IC3392_MASS_SN100_gas_AONmaps.fits')
+    #hdu1.writeto('/Users/00104486/Documents/gist/gistTutorial/results/IC986/IC986_emline_vels.fits', clobber='True')
+    hdu1.close()
+    hdu.close()
+
+
+        #######
     # Create/Set output directory
     if os.path.isdir(os.path.join(outdir,'maps/')) == False:
         os.mkdir(os.path.join(outdir,'maps/'))
@@ -250,7 +285,7 @@ def plotMaps(outdir, LEVEL, FROM_PIPELINE, INTERACTIVE=False, vminmax=np.zeros(2
         data[ np.where(data_aon < AoNThreshold)[0] ] = np.nan
         data[ np.where(data == -1)[0] ] = np.nan
 
-        if lineIdentifier.split('_')[-1] == 'V': 
+        if lineIdentifier.split('_')[-1] == 'V':
             data = data - np.nanmedian(data)
 
         plot_line(data, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, lineIdentifier, vminmax, 0.20, X, Y, FLUX, pixelsize, outdir, rootname)
@@ -268,7 +303,7 @@ def plotMaps(outdir, LEVEL, FROM_PIPELINE, INTERACTIVE=False, vminmax=np.zeros(2
             data[ np.where(data_aon < AoNThreshold)[0] ] = np.nan
             data[ np.where(data == -1)[0] ] = np.nan
 
-            if line.split('_')[-1] == 'V': 
+            if line.split('_')[-1] == 'V':
                 data = data - np.nanmedian(data)
 
             plot_line(data, LEVEL, FROM_PIPELINE, INTERACTIVE, SAVE_AFTER_INTERACTIVE, line, vminmax, 0.20, X, Y, FLUX, pixelsize, outdir, rootname)
@@ -294,4 +329,3 @@ def main(args=None):
 if __name__ == '__main__':
     # Cal the main function
     main()
-
