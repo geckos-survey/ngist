@@ -240,36 +240,36 @@ def plotMaps(outdir, LEVEL, FROM_PIPELINE, INTERACTIVE=False, vminmax=np.zeros(2
         _, idxConvert = np.unique( np.abs(binNum_long), return_inverse=True )
         results = results[idxConvert]
 
-    ####### Add ability to print maps files to fits file
+    #     ####### Add ability to print maps files to fits file
 
-    primary_hdu = fits.PrimaryHDU()
-    hdu1 = fits.HDUList([primary_hdu])
-    names = results2.colnames # This should be a list of ALL the column names
-    fluxnames = names[0::5] # splitting them into the various types of map
-    ampnames = names[1::5]
-    velnames = names[2::5]
-    sigmanames = names[3::5]
-    aonnames = names[4::5]
+    #     primary_hdu = fits.PrimaryHDU()
+    #     hdu1 = fits.HDUList([primary_hdu])
+    #     names = results2.colnames # This should be a list of ALL the column names
+    #     fluxnames = names[0::5] # splitting them into the various types of map
+    #     ampnames = names[1::5]
+    #     velnames = names[2::5]
+    #     sigmanames = names[3::5]
+    #     aonnames = names[4::5]
 
-    for iterate in range(0,len(fluxnames)):
-        # Prepare main plot
-        lineIdentifier = names[iterate]
-        val = results[lineIdentifier]
-        xmin = np.nanmin(X)-6;  xmax = np.nanmax(X)+6
-        ymin = np.nanmin(Y)-6;  ymax = np.nanmax(Y)+6
-        npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
-        npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
-        i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int )
-        j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int )
-        image = np.full( (npixels_x, npixels_y), np.nan )
-        image[i,j] = val
-        image_hdu = fits.ImageHDU(image, name=better_names[iterate])
-        # Append fits image
-        hdu1.append(image_hdu)
-    hdu1.writeto('/Users/00104486/Documents/2023/gist-geckos/gistTutorial/results/IC3392_MASS_SN100/IC3392_MASS_SN100_gas_AONmaps.fits')
-    #hdu1.writeto('/Users/00104486/Documents/gist/gistTutorial/results/IC986/IC986_emline_vels.fits', clobber='True')
-    hdu1.close()
-    hdu.close()
+    #     for iterate in range(0,len(fluxnames)):
+    #         # Prepare main plot
+    #         lineIdentifier = names[iterate]
+    #         val = results[lineIdentifier]
+    #         xmin = np.nanmin(X)-6;  xmax = np.nanmax(X)+6
+    #         ymin = np.nanmin(Y)-6;  ymax = np.nanmax(Y)+6
+    #         npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
+    #         npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
+    #         i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
+    #         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
+    #         image = np.full( (npixels_x, npixels_y), np.nan )
+    #         image[i,j] = val
+    #         image_hdu = fits.ImageHDU(image, name=better_names[iterate])
+    #         # Append fits image
+    #         hdu1.append(image_hdu)
+    #     # hdu1.writeto('/Users/00104486/Documents/2023/gist-geckos/gistTutorial/results/IC3392_MASS_SN100/IC3392_MASS_SN100_gas_AONmaps.fits')
+    #     #hdu1.writeto('/Users/00104486/Documents/gist/gistTutorial/results/IC986/IC986_emline_vels.fits', clobber='True')
+    #     hdu1.close()
+    #     hdu.close()
 
 
         #######
