@@ -62,6 +62,8 @@ def generatePlots(config, module):
             printStatus.running("Producing line strength maps")
             gistPlot_ls.plotMaps(config['GENERAL']['OUTPUT'], 'ORIGINAL')
             gistPlot_ls.plotMaps(config['GENERAL']['OUTPUT'], 'ADAPTED')
+            save_maps_fits.savefitsmaps_LSmodule('LS', config['GENERAL']['OUTPUT'], 'ORIGINAL')
+            save_maps_fits.savefitsmaps_LSmodule('LS', config['GENERAL']['OUTPUT'], 'ADAPTED')
             if config['LS']['TYPE'] == 'SPP':
                 gistPlot_sfh.plotMaps('LS', config['GENERAL']['OUTPUT'])
             printStatus.updateDone("Producing line strength maps")
