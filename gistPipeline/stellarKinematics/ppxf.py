@@ -318,6 +318,11 @@ def save_ppxf(config, ppxf_result, ppxf_reddening, mc_results, formal_error,\
     printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_kin-SpectralMask.fits')
     logging.info("Wrote: "+outfits)
 
+    # ============================
+    # SAVE CONTINUUM SUBTRACTED CUBE
+    saveContsubCube(config, ppxf_bestfit)
+
+
 
 
 def extractStellarKinematics(config):
@@ -487,3 +492,102 @@ def extractStellarKinematics(config):
 
     # Return
     return(None)
+
+
+
+
+
+def saveContsubCube(config, ppxf_bestfit):
+    printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_kin-ContSubCube.fits')
+    outfits = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_kin-ContSubCube.fits'
+    logging.info("Wrote: "+outfits)
+
+
+    hdu = fits.open(os.path.join(config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID']) + '_table.fits')
+    spaxID = np.array( hdu[1].data.ID )
+    binID = np.array( hdu[1].data.BIN_ID )
+
+
+    hdu      = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_AllSpectra.fits')
+    bin_data = np.array( hdu[1].data.SPEC.T )
+    # bin_err  = np.array( hdu[1].data.ESPEC.T )
+    logLam   = np.array( hdu[2].data.LOGLAM )
+    idx_lam  = np.where( np.logical_and( np.exp(logLam) > config['KIN']['LMIN'], np.exp(logLam) < config['KIN']['LMAX'] ) )[0]
+    bin_data = bin_data[idx_lam,:]
+    # bin_err  = bin_err[idx_lam,:]
+    logLam   = logLam[idx_lam]
+
+    hdu   = fits.open(config['GENERAL']['INPUT'])
+    cubeHeader   = hdu[1].header
+    hdu.close()
+    NX = cubeHeader['NAXIS1']
+    NY = cubeHeader['NAXIS2']
+
+
+    contSubCube = np.full([len(logLam),NY*NX],np.nan)
+
+ 
+
+    for s in spaxID:
+        binID_spax = binID[s]
+        obsSpectrum = bin_data[:,s]
+        idx_snr = np.where( np.logical_and( np.exp(logLam) >= config['READ_DATA']['LMIN_SNR'], np.exp(logLam) <= config['READ_DATA']['LMAX_SNR'] ) )[0]
+        obsSignal  = np.nanmedian(obsSpectrum[idx_snr])
+
+        if binID_spax < 0:
+            fitSpectrum = np.zeros(len(obsSpectrum))
+        elif binID_spax >= 0:
+            fitSpectrum = ppxf_bestfit[binID_spax,:]
+            fitSignal = np.nanmedian(fitSpectrum[idx_snr])
+
+            fitSpectrum *= obsSignal / fitSignal
+
+
+        contSubCube[:,s] = obsSpectrum - fitSpectrum
+
+    cubeHeader['NAXIS3'] = len(logLam)
+    cubeHeader['CRVAL3'] = logLam[0]
+    cubeHeader['CRPIX3'] = 1
+    if any(key == "CDELT3" for key in cubeHeader.keys()):
+        cubeHeader['CDELT3'] = np.abs(np.diff(logLam))[0]
+    else:
+        cubeHeader['CD3_3'] = np.abs(np.diff(logLam))[0]
+
+    cubeHeader['CTYPE3'] = "AWAV-LOG"
+
+    primary_hdu = fits.PrimaryHDU(header = fits.Header())
+    continuum_cube_hdu = fits.ImageHDU(contSubCube.reshape((len(logLam),NY,NX)),
+                          name='contsub',
+                          header = cubeHeader)
+    hdul = fits.HDUList([primary_hdu,
+                              continuum_cube_hdu])
+    hdul.writeto(outfits,overwrite=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
