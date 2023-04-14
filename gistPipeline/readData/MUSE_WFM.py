@@ -1,4 +1,5 @@
 from   astropy.io          import fits
+from   astropy.wcs         import WCS
 import numpy               as np
 
 import os
@@ -43,8 +44,9 @@ def readCube(config):
     hdr   = hdu[1].header
     data  = hdu[1].data
     s     = np.shape(data)
-    print(s)
     spec  = np.reshape(data,[s[0],s[1]*s[2]])
+    
+    wcshdr = WCS(hdr).to_header()
 
     # Read the variance spectra if available. Otherwise estimate the variance with the der_snr algorithm
     if len(hdu) >= 3:
@@ -94,7 +96,7 @@ def readCube(config):
     logging.info("Computing the signal-to-noise ratio in the wavelength range from "+str(config['READ_DATA']['LMIN_SNR'])+"A to "+str(config['READ_DATA']['LMAX_SNR'])+"A.")
 
     # Storing everything into a structure
-    cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr, 'signal':signal, 'noise':noise, 'pixelsize':pixelsize}
+    cube = {'x':x, 'y':y, 'wave':wave, 'spec':spec, 'error':espec, 'snr':snr, 'signal':signal, 'noise':noise, 'pixelsize':pixelsize, 'wcshdr':wcshdr}
 
     # Constrain cube to one central row if switch DEBUG is set
     if config['READ_DATA']['DEBUG'] == True: cube = set_debug(cube, s[2], s[1])

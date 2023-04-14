@@ -121,7 +121,7 @@ def generateSpatialBins(config, cube):
     binNum_long[idxMasked]   = -1 * binNum_outside
 
     # Save bintable: data for *ALL* spectra inside and outside of the Voronoi region!
-    save_table(config, cube['x'], cube['y'], cube['signal'], cube['snr'], binNum_long, ubins, xNode, yNode, sn, nPixels, cube['pixelsize'])
+    save_table(config, cube['x'], cube['y'], cube['signal'], cube['snr'], binNum_long, ubins, xNode, yNode, sn, nPixels, cube['pixelsize'], cube['wcshdr'])
 
     return(None)
 
@@ -156,7 +156,7 @@ def find_nearest_voronoibin(x, y, idx_outside, xNode, yNode):
     return(closest)
 
 
-def save_table(config, x, y, signal, snr, binNum_new, ubins, xNode, yNode, sn, nPixels, pixelsize):
+def save_table(config, x, y, signal, snr, binNum_new, ubins, xNode, yNode, sn, nPixels, pixelsize, wcshdr):
     """
     Save all relevant information about the Voronoi binning to disk. In
     particular, this allows to later match spaxels and their corresponding bins.
@@ -196,8 +196,11 @@ def save_table(config, x, y, signal, snr, binNum_new, ubins, xNode, yNode, sn, n
     tbhdu = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     tbhdu.name = "TABLE"
 
+    # create empty imageHDU with wcs header info
+    imghdu = fits.ImageHDU(data=None, header=wcshdr)
+    
     # Create HDU list and write to file
-    HDUList = fits.HDUList([priHDU, tbhdu])
+    HDUList = fits.HDUList([priHDU, tbhdu, imghdu])
     HDUList.writeto(outfits_table, overwrite=True)
     fits.setval(outfits_table, "PIXSIZE", value=pixelsize)
 

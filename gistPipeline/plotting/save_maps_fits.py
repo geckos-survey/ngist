@@ -29,7 +29,8 @@ def savefitsmaps(flag, outdir):
     binNum_long = np.array( table_hdu[1].data.BIN_ID )
     ubins       = np.unique( np.abs( np.array( table_hdu[1].data.BIN_ID ) ) )
     pixelsize   = table_hdu[0].header['PIXSIZE']
-
+    wcshdr      = table_hdu[2].header
+    
     # Check spatial coordinates
     if len( np.where( np.logical_or( X == 0.0, np.isnan(X) == True ) )[0] ) == len(X):
         print('All X-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!')
@@ -83,7 +84,7 @@ def savefitsmaps(flag, outdir):
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
         image[i,j] = val
-        image_hdu = fits.ImageHDU(image, name=names[iterate])
+        image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
     hdu1.writeto(os.path.join(outdir,rootname)+'_'+flag +'_maps.fits', overwrite=True)
@@ -145,7 +146,7 @@ def savefitsmaps_LSmodule(flag, outdir, RESOLUTION):
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
         image[i,j] = val
-        image_hdu = fits.ImageHDU(image, name=names[iterate])
+        image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
     hdu1.writeto(os.path.join(outdir,rootname)+'_'+flag +'_maps' + RESOLUTION +'.fits', overwrite=True)
