@@ -103,7 +103,8 @@ def savefitsmaps_LSmodule(flag, outdir, RESOLUTION):
     binNum_long = np.array( table_hdu[1].data.BIN_ID )
     ubins       = np.unique( np.abs( np.array( table_hdu[1].data.BIN_ID ) ) )
     pixelsize   = table_hdu[0].header['PIXSIZE']
-
+    wcshdr      = table_hdu[2].header
+    
     # Check spatial coordinates
     if len( np.where( np.logical_or( X == 0.0, np.isnan(X) == True ) )[0] ) == len(X):
         print('All X-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!')
