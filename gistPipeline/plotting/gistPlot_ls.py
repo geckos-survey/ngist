@@ -99,6 +99,8 @@ def plotMaps(outdir, RESOLUTION, INTERACTIVE=False, vminmax=np.zeros((4,2)), con
         result_long[idx,:]  = result[i,:]
     result = result_long
 
+
+
     # Create/Set output directory
     if os.path.isdir(os.path.join(outdir,'maps/')) == False:
         os.mkdir(os.path.join(outdir,'maps/'))

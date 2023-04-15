@@ -31,7 +31,7 @@ PURPOSE:
 """
 
 
-# def TicklabelFormatter(x, pos): # AFM comment out 
+# def TicklabelFormatter(x, pos): # AFM comment out
 #     return( "${}$".format(int(x)).replace("-", r"\textendash") )
 
 def setup_plot(usetex=False):
@@ -107,6 +107,29 @@ def plotMaps(flag, outdir, INTERACTIVE=False, vminmax=np.zeros((4,2)), contour_o
         idx = np.where( ubins[i] == np.abs(binNum_long) )[0]
         result_long[idx,:]  = result[i,:]
     result = result_long
+
+    # ####### Adding the ability to output maps as fits files
+    # primary_hdu = fits.PrimaryHDU()
+    # hdu1 = fits.HDUList([primary_hdu])
+    # names = labellist
+    # for iterate in range(0,len(names)):
+    #     val = result[:,iterate]
+    #     # Create image in pixels
+    #     xmin = np.nanmin(X)-5;  xmax = np.nanmax(X)+5
+    #     ymin = np.nanmin(Y)-5;  ymax = np.nanmax(Y)+5
+    #     npixels_x = int( np.round( (xmax - xmin)/pixelsize ) + 1 )
+    #     npixels_y = int( np.round( (ymax - ymin)/pixelsize ) + 1 )
+    #     i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
+    #     j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
+    #     image = np.full( (npixels_x, npixels_y), np.nan )
+    #     image[i,j] = val
+    #     image_hdu = fits.ImageHDU(image, name = names[iterate])
+    #     hdu1.append(image_hdu)
+    #     if flag == 'SFH':
+    #         hdu1.writeto(os.path.join(outdir,rootname)+'_sfhmaps.fits', overwrite=True)
+    #     elif flag == 'LS':
+    #         hdu1.writeto(os.path.join(outdir,rootname)+'_lsmaps.fits', overwrite=True)
+    # ######
 
     # Create/Set output directory
     if os.path.isdir(os.path.join(outdir,'maps/')) == False:
