@@ -6,14 +6,7 @@ import os
 import optparse
 import warnings
 warnings.filterwarnings('ignore')
-from matplotlib.tri import Triangulation, TriAnalyzer
 
-import matplotlib.pyplot       as     plt
-from   mpl_toolkits.axes_grid1 import AxesGrid
-from   matplotlib.ticker       import MultipleLocator, FuncFormatter
-
-from plotbin.sauron_colormap import register_sauron_colormap
-register_sauron_colormap()
 
 def savefitsmaps(flag, outdir):
 
@@ -83,7 +76,18 @@ def savefitsmaps(flag, outdir):
         i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
-        image[i,j] = val
+        
+        # Reverse the index to flip the image
+        # since WCS transformations - like FITS files - assume
+        # that the origin is the lower left pixel of the image 
+        # (origin is in top left for numpy arrays)
+        image[i[::-1], j] = val
+
+        # Transpose x and y because numpy uses arr[row, col] and FITS uses 
+        # im[ra, dec] = arr[col, row]
+        image = image.T
+
+        # make HDU
         image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
@@ -135,6 +139,7 @@ def savefitsmaps_LSmodule(flag, outdir, RESOLUTION):
     primary_hdu = fits.PrimaryHDU()
     hdu1 = fits.HDUList([primary_hdu])
     names = labellist
+    
     for iterate in range(0,len(names)):
         # Prepare main plot
         val = result[:,iterate]
@@ -146,7 +151,18 @@ def savefitsmaps_LSmodule(flag, outdir, RESOLUTION):
         i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
-        image[i,j] = val
+        
+        # Reverse the index to flip the image
+        # since WCS transformations - like FITS files - assume
+        # that the origin is the lower left pixel of the image 
+        # (origin is in top left for numpy arrays)
+        image[i[::-1], j] = val
+
+        # Transpose x and y because numpy uses arr[row, col] and FITS uses 
+        # im[ra, dec] = arr[col, row]
+        image = image.T
+        
+        # make HDU
         image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
