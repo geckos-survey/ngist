@@ -78,9 +78,7 @@ def savefitsmaps(flag, outdir):
         image = np.full( (npixels_x, npixels_y), np.nan )
         
         # Reverse the index to flip the image
-        # since WCS transformations - like FITS files - assume
-        # that the origin is the lower left pixel of the image 
-        # (origin is in top left for numpy arrays)
+        # since ra increases left to right 
         image[i[::-1], j] = val
 
         # Transpose x and y because numpy uses arr[row, col] and FITS uses 
@@ -153,9 +151,7 @@ def savefitsmaps_LSmodule(flag, outdir, RESOLUTION):
         image = np.full( (npixels_x, npixels_y), np.nan )
         
         # Reverse the index to flip the image
-        # since WCS transformations - like FITS files - assume
-        # that the origin is the lower left pixel of the image 
-        # (origin is in top left for numpy arrays)
+        # since ra increases left to right 
         image[i[::-1], j] = val
 
         # Transpose x and y because numpy uses arr[row, col] and FITS uses 
