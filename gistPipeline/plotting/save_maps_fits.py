@@ -77,8 +77,8 @@ def savefitsmaps(flag, outdir):
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
         
-        # Reverse the index to flip the image
-        # since ra increases left to right 
+        # Reverse the i index to each row of the image
+        # because ra increases West-East (right-left in image plane)
         image[i[::-1], j] = val
 
         # Transpose x and y because numpy uses arr[row, col] and FITS uses 
@@ -150,11 +150,11 @@ def savefitsmaps_LSmodule(flag, outdir, RESOLUTION):
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
         
-        # Reverse the index to flip the image
-        # since ra increases left to right 
+        # Reverse the i index to each row of the image
+        # because ra increases West-East (right-left in image plane)
         image[i[::-1], j] = val
 
-        # Transpose x and y because numpy uses arr[row, col] and FITS uses 
+        # Transpose x and y to reorient the image correctly
         # im[ra, dec] = arr[col, row]
         image = image.T
         
