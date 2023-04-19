@@ -4,8 +4,7 @@ import logging
 
 from printStatus import printStatus
 
-from gistPipeline.plotting import _plotting
-
+from gistPipeline.writeFITS import _writeFITS
 
 
 def lineStrengths_Module(config):
@@ -47,7 +46,7 @@ def lineStrengths_Module(config):
     # Execute the chosen lineStrengths routine
     try:
         module.measureLineStrengths(config)
-        _plotting.generatePlots(config, 'LS')
+        _writeFITS.generateFITS(config, 'LS')
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = "lineStrengths routine '"+config['LS']['METHOD']+".py' failed."

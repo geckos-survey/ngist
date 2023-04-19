@@ -4,7 +4,7 @@ import logging
 
 from printStatus import printStatus
 
-from gistPipeline.plotting import _plotting
+from gistPipeline.writeFITS import _writeFITS
 
 
 
@@ -67,7 +67,7 @@ def emissionLines_Module(config):
     # Execute the chosen emissionLines routine
     try:
         module.performEmissionLineAnalysis(config)
-        _plotting.generatePlots(config, 'GAS')
+        _writeFITS.generateFITS(config, 'GAS')
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = "emissionLine routine '"+config['GAS']['METHOD']+".py' failed."
