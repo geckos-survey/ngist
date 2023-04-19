@@ -97,7 +97,11 @@ def applyMaskFile(config, cube):
         maskfile = os.path.join(os.path.dirname(config['GENERAL']['INPUT']), config['SPATIAL_MASKING']['MASK'])
     
         if os.path.isfile(maskfile) == True:
-            mask = fits.open(maskfile)[1].data
+            hdu = fits.open(maskfile)
+            if len(hdu) == 1:
+                mask = hdu[0].data
+            else:
+                mask = hdu[1].data
             s = np.shape(mask)
             mask = np.reshape(mask, s[0]*s[1])
         
