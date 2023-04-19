@@ -27,7 +27,6 @@ def set_debug(cube, xext, yext):
 
     return(cube)
 
-
 # ======================================
 # Routine to load MUSE-cubes
 # ======================================
@@ -41,8 +40,14 @@ def readCube(config):
 
     # Reading the cube
     hdu   = fits.open(config['GENERAL']['INPUT'])
-    hdr   = hdu[1].header
-    data  = hdu[1].data
+    if len(hdu) == 1:
+        ihdu = 0
+        printStatus.running("data in first HDU")
+    else:
+        ihdu = 1
+    
+    hdr   = hdu[ihdu].header
+    data  = hdu[ihdu].data
     s     = np.shape(data)
     spec  = np.reshape(data,[s[0],s[1]*s[2]])
     
@@ -53,7 +58,7 @@ def readCube(config):
         logging.info("Reading the error (variance) spectra from the cube")
         stat  = hdu[2].data
         espec = np.reshape(stat,[s[0],s[1]*s[2]])
-    elif len(hdu) == 2:
+    elif len(hdu) <= 2:
         logging.info("No error (variance) extension found. Estimating the variance spectra with the der_snr algorithm")
         espec = np.zeros( spec.shape )
         for i in range( 0, spec.shape[1] ):
@@ -81,14 +86,13 @@ def readCube(config):
     # Shorten spectra to required wavelength range
     lmin  = config['READ_DATA']['LMIN_TOT']
     lmax  = config['READ_DATA']['LMAX_TOT']
-    idx   = np.where( np.logical_and( wave >= lmin, wave <= lmax ) )[0]
+    idx   = np.where(np.logical_and( wave >= lmin, wave <= lmax ) )[0]
     spec  = spec[idx,:]
     espec = espec[idx,:]
     wave  = wave[idx]
     logging.info("Shortening spectra to the wavelength range from "+str(config['READ_DATA']['LMIN_TOT'])+"A to "+str(config['READ_DATA']['LMAX_TOT'])+"A.")
 
     # Computing the SNR per spaxel
-
     idx_snr = np.where( np.logical_and( wave >= config['READ_DATA']['LMIN_SNR'], wave <= config['READ_DATA']['LMAX_SNR'] ) )[0]
     signal  = np.nanmedian(spec[idx_snr,:],axis=0)
     noise  = np.sqrt(np.nanmedian(espec[idx_snr,:],axis=0))
