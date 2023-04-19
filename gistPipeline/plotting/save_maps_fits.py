@@ -68,6 +68,7 @@ def savefitsmaps(flag, outdir):
     for iterate in range(0,len(names)):
         # Prepare main plot
         val = result[:,iterate]
+        
         # Create image in pixels
         xmin = np.min(X);  xmax = np.max(X)
         ymin = np.min(Y);  ymax = np.max(Y)
@@ -76,11 +77,9 @@ def savefitsmaps(flag, outdir):
         i = np.array( np.round( (X - xmin)/pixelsize ), dtype=np.int32 )
         j = np.array( np.round( (Y - ymin)/pixelsize ), dtype=np.int32 )
         image = np.full( (npixels_x, npixels_y), np.nan )
-        
         # Reverse the i index to each row of the image
         # because ra increases West-East (right-left in image plane)
-        image[i[::-1], j] = val
-
+        image[i[::-1][idx_inside], j[idx_inside]] = val[idx_inside]
         # Transpose x and y because numpy uses arr[row, col] and FITS uses 
         # im[ra, dec] = arr[col, row]
         image = image.T
@@ -89,7 +88,7 @@ def savefitsmaps(flag, outdir):
         image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
-    hdu1.writeto(os.path.join(outdir,rootname)+'_'+flag +'_maps.fits', overwrite=True)
+    hdu1.writeto(os.path.join(outdir,rootname)+'_'+flag +'_maps_test.fits', overwrite=True)
     hdu1.close()
     
     
