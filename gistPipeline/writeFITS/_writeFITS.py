@@ -1,9 +1,7 @@
 import logging
 import os
 
-from gistPipeline.writeFITS import (
-    save_maps_fits,
-)
+from gistPipeline.writeFITS import save_maps_fits
 
 from printStatus import printStatus
 
@@ -15,9 +13,10 @@ def generateFITS(config, module):
 
     # - - - - - STELLAR KINEMATICS MODULE - - - - -
     if module == "KIN":
+        print(config["GENERAL"]["OUTPUT"])
         try:
             printStatus.running("Producing stellar kinematics maps in FITS format")
-            save_maps_fits.savefitsmaps("kin", config["GENERAL"]["OUTPUT"])
+            save_maps_fits.savefitsmaps("KIN", config["GENERAL"]["OUTPUT"])
             printStatus.updateDone("Producing stellar kinematics maps in FITS format")
             logging.info("Produced stellar kinematics maps in FITS format")
         except Exception as e:
@@ -30,7 +29,6 @@ def generateFITS(config, module):
         try:
             printStatus.running("Producing FITS maps from the emission-line analysis")
             if os.path.isfile(outputPrefix + "_gas_BIN.fits") == True:
-                # gistPlot_gas.plotMaps(config['GENERAL']['OUTPUT'], 'BIN', True)
                 save_maps_fits.savefitsmaps_GASmodule(
                     "gas",
                     config["GENERAL"]["OUTPUT"],
@@ -55,7 +53,6 @@ def generateFITS(config, module):
     if module == "SFH":
         try:
             printStatus.running("Producing SFH maps in FITS format")
-            # gistPlot_sfh.plotMaps('SFH', config['GENERAL']['OUTPUT'])
             save_maps_fits.savefitsmaps("sfh", config["GENERAL"]["OUTPUT"])
             printStatus.updateDone("Producing SFH maps in FITS format")
             logging.info("Produced SFH maps in FITS format")
@@ -68,16 +65,12 @@ def generateFITS(config, module):
     if module == "LS":
         try:
             printStatus.running("Producing line strength maps in FITS format")
-            # gistPlot_ls.plotMaps(config['GENERAL']['OUTPUT'], 'ORIGINAL')
-            # gistPlot_ls.plotMaps(config['GENERAL']['OUTPUT'], 'ADAPTED')
             save_maps_fits.savefitsmaps_LSmodule(
                 "LS", config["GENERAL"]["OUTPUT"], "ORIGINAL"
             )
             save_maps_fits.savefitsmaps_LSmodule(
                 "LS", config["GENERAL"]["OUTPUT"], "ADAPTED"
             )
-            # if config['LS']['TYPE'] == 'SPP':
-            # gistPlot_sfh.plotMaps('LS', config['GENERAL']['OUTPUT'])
             printStatus.updateDone("Producing line strength maps in FITS format")
             logging.info("Produced line strength maps in FITS format")
         except Exception as e:
@@ -85,5 +78,4 @@ def generateFITS(config, module):
             logging.error(e, exc_info=True)
             logging.error("Failed to produce line strength maps.")
 
-    # Return
     return None

@@ -88,7 +88,7 @@ def savefitsmaps(flag, outdir):
         image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
-    hdu1.writeto(os.path.join(outdir,rootname)+'_'+flag +'_maps_test.fits', overwrite=True)
+    hdu1.writeto(os.path.join(outdir,rootname)+'_'+flag +'_maps.fits', overwrite=True)
     hdu1.close()
     
     
@@ -103,13 +103,16 @@ def savefitsmaps_GASmodule(flag, outdir, LEVEL=None, AoNThreshold = 4):
 
     # Read bintable
     table_hdu = fits.open(os.path.join(outdir,rootname)+'_table.fits')
-    X           = np.array( table_hdu[1].data.X[~maskedSpaxel] ) * -1
-    Y           = np.array( table_hdu[1].data.Y[~maskedSpaxel] )
-    FLUX        = np.array( table_hdu[1].data.FLUX[~maskedSpaxel] )
-    binNum_long = np.array( table_hdu[1].data.BIN_ID[~maskedSpaxel] )
+    idx_inside  = np.where( table_hdu[1].data.BIN_ID >= 0        )[0]
+    X           = np.array( table_hdu[1].data.X) * -1
+    Y           = np.array( table_hdu[1].data.Y )
+    FLUX        = np.array( table_hdu[1].data.FLUX )
+    binNum_long = np.array( table_hdu[1].data.BIN_ID )
     ubins       = np.unique( np.abs(binNum_long) )
     pixelsize   = table_hdu[0].header['PIXSIZE']
     wcshdr      = table_hdu[2].header
+    
+    maskedSpaxel = maskedSpaxel[idx_inside]
 
     # Check spatial coordinates
     if len( np.where( np.logical_or( X == 0.0, np.isnan(X) == True ) )[0] ) == len(X):
@@ -129,6 +132,7 @@ def savefitsmaps_GASmodule(flag, outdir, LEVEL=None, AoNThreshold = 4):
     # Convert results to long version
     if LEVEL == 'BIN':
         _, idxConvert = np.unique( np.abs(binNum_long), return_inverse=True )
+        print(len(results), len(idxConvert))
         results = results[idxConvert]
     
     primary_hdu = fits.PrimaryHDU()
@@ -161,7 +165,7 @@ def savefitsmaps_GASmodule(flag, outdir, LEVEL=None, AoNThreshold = 4):
         # since WCS transformations - like FITS files - assume
         # that the origin is the lower left pixel of the image 
         # (origin is in top left for numpy arrays)
-        image[col[::-1], row] = data
+        image[col[::-1][idx_inside][~maskedSpaxel], row[idx_inside][~maskedSpaxel]] = data[idx_inside][~maskedSpaxel] 
 
         # Transpose x and y because numpy uses arr[row, col] and FITS uses im[ra, dec] = arr[col, row]
         image = image.T
