@@ -7,21 +7,21 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 V5.0	   2023-04-06	CHANGED:
-			* Created the ability to use multiple stellar template libraries in the one GIST
-			call. This will be useful is you for e.g. want to use one template set for 
-			the stellar kinematics, and another for the emission lines and stellar populations.
-			* MasterConfig.yaml now has a slightly different format, where you define the 
-			template set used for each module individually.
+			 * Created the ability to use multiple stellar template libraries in the one GIST
+			 call. This will be useful is you for e.g. want to use one template set for 
+			 the stellar kinematics, and another for the emission lines and stellar populations.
+			 * MasterConfig.yaml now has a slightly different format, where you define the 
+			 template set used for each module individually.
 			
 V4.0.1	   2023-03-27	 FIXED:
-                           * Fixed bug in MUSE_WFM.py to accept cubes with more than 2 
-                             extensions. 
-                           * Fixed calculation of SNR, which was done as median(flux)/median(error)
-                             but should be defined as median(flux/error)
-                           * Updated spatialMasking default.py script to allow for using actual 
-                             SNR cutoff of spaxels instead of isophote based SNR. Two choices are 
-                             the default threshold_method = 'isophote' and threshold_method = 
-                            'actual'. Two choices are NOT available within yaml file just yet.
+             * Fixed bug in MUSE_WFM.py to accept cubes with more than 2 
+               extensions. 
+             * Fixed calculation of SNR, which was done as median(flux)/median(error)
+               but should be defined as median(flux/error)
+             * Updated spatialMasking default.py script to allow for using actual 
+               SNR cutoff of spaxels instead of isophote based SNR. Two choices are 
+               the default threshold_method = 'isophote' and threshold_method = 
+              'actual'. Two choices are NOT available within yaml file just yet.
 	                    
 V4.0	   2023-03-09	 First version of the gist-geckos pipeline! 
 			 CHANGED:
@@ -130,4 +130,3 @@ V1.1.0     2019-08-16    ADDED:
 			  * *_gandalf-residuals_*.fits output
 
 V1.0.0     2019-06-11    Release of first version
-
