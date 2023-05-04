@@ -12,6 +12,17 @@ V5.0	   2023-04-06	CHANGED:
 			the stellar kinematics, and another for the emission lines and stellar populations.
 			* MasterConfig.yaml now has a slightly different format, where you define the 
 			template set used for each module individually.
+			
+V4.0.1	   2023-03-27	 FIXED:
+                           * Fixed bug in MUSE_WFM.py to accept cubes with more than 2 
+                             extensions. 
+                           * Fixed calculation of SNR, which was done as median(flux)/median(error)
+                             but should be defined as median(flux/error)
+                           * Updated spatialMasking default.py script to allow for using actual 
+                             SNR cutoff of spaxels instead of isophote based SNR. Two choices are 
+                             the default threshold_method = 'isophote' and threshold_method = 
+                            'actual'. Two choices are NOT available within yaml file just yet.
+	                    
 V4.0	   2023-03-09	 First version of the gist-geckos pipeline! 
 			 CHANGED:
 			 * Updated the MasterConfig file to MasterConfig.yaml to make more 
