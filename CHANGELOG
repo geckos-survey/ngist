@@ -6,9 +6,14 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.1       2023-05-05   FIXED:
+			 * Fixed bugs in mapviewer/createFigure.py and mapviewer/helperFunctions.py 
+			 by changing all references of PyQT to PyQT5,
+			 * Fixed bug in mapviewer/plotData.py by changing np.int to np.int32
+
 V5.0	   2023-04-06	CHANGED:
 			 * Created the ability to use multiple stellar template libraries in the one GIST
-			 call. This will be useful is you for e.g. want to use one template set for 
+             call. This will be useful is you for e.g. want to use one template set for 
 			 the stellar kinematics, and another for the emission lines and stellar populations.
 			 * MasterConfig.yaml now has a slightly different format, where you define the 
 			 template set used for each module individually.
