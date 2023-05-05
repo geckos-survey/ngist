@@ -2,7 +2,7 @@ import numpy as np
 import os
 import yaml
 
-from PyQt6 import QtCore, QtGui, QtWidgets as pyqt
+from PyQt5 import QtCore, QtGui, QtWidgets as pyqt
 
 from gistPipeline._version import __version__
 
