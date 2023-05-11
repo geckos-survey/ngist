@@ -2,11 +2,21 @@ import logging
 import os
 
 from gistPipeline.writeFITS import save_maps_fits
-
 from printStatus import printStatus
 
 
 def generateFITS(config, module):
+    """
+    generateFITS _summary_
+
+    Args:
+        config (_type_): _description_
+        module (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+
     outputPrefix = os.path.join(
         config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]
     )
@@ -42,10 +52,14 @@ def generateFITS(config, module):
                     LEVEL=config["GAS"]["LEVEL"],
                     AoNThreshold=4,
                 )
-            printStatus.updateDone("Producing FITS maps from the emission-line analysis")
+            printStatus.updateDone(
+                "Producing FITS maps from the emission-line analysis"
+            )
             logging.info("Producing FITS maps from the emission-line analysis")
         except Exception as e:
-            printStatus.updateFailed("Producing FITS maps from the emission-line analysis")
+            printStatus.updateFailed(
+                "Producing FITS maps from the emission-line analysis"
+            )
             logging.error(e, exc_info=True)
             logging.error("Failed to produce maps from the emission-line analysis.")
 
