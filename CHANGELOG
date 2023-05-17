@@ -6,6 +6,12 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.0.2       2023-05-17  FIXED:
+			 * Identified origing of LSF module crash which was due to a bug in
+			 ppxf_util.gaussian_filter1d(). This bug will be fixed in version 
+			 8.2.5 of pPXF. In older pPXF version replace line 665 in 
+			 ppxf_util.py with p = int(1.0 + 4*np.max(sig))
+			 
 V5.0.1       2023-05-05   FIXED:
 			 * Fixed bugs in mapviewer/createFigure.py and mapviewer/helperFunctions.py 
 			 by changing all references of PyQT to PyQT5,
