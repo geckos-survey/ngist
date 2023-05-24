@@ -6,6 +6,9 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.0.3.      2023-05-24  ADDED:
+			 Code to subtract the bestfit stellar continuum and construct a 
+			 continuum subtracted cube. 
 V5.0.2       2023-05-17  FIXED:
 			 * Identified origing of LSF module crash which was due to a bug in
 			 ppxf_util.gaussian_filter1d(). This bug will be fixed in version 
