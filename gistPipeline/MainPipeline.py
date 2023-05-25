@@ -166,9 +166,10 @@ def runGIST(dirPath, galindex):
 def main(args=None):
     # Capture command-line arguments
     parser = optparse.OptionParser(usage="%gistPipeline [options] arg")
+    jls_extract_var = "configFile"
     parser.add_option(
         "--config",
-        dest="configFile",
+        dest=jls_extract_var,
         type="string",
         help="State the absolute path of the MasterConfig file.",
     )
