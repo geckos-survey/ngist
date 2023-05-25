@@ -75,7 +75,7 @@ def readCube(config):
     else:
         cdelt2 = hdr["CD2_2"]
         cdelt3 = hdr["CD3_3"]
-        
+
     wave = hdr["CRVAL3"] + (np.arange(s[0])) * cdelt3
 
     # Getting the spatial coordinates
@@ -159,7 +159,7 @@ def readCube(config):
         cube = set_debug(cube, s[2], s[1])
 
     printStatus.updateDone("Reading the MUSE-WFM cube")
-    print("             Read " + str(len(cube["x"])) + " spectra!")
+    print("Read " + str(len(cube["x"])) + " spectra!")
     logging.info(
         "Finished reading the MUSE cube! Read a total of "
         + str(len(cube["x"]))
