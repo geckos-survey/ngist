@@ -11,3 +11,4 @@ build/
 .github/
 *.egg-info/
 *.egg
+**/*.ipynb_checkpoints/
