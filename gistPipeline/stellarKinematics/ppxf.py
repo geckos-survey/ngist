@@ -506,9 +506,7 @@ def saveContsubCube(config, ppxf_bestfit, logLam):
     logging.info("Wrote: "+outfits)
 
  
-    hdu   = fits.open(config['GENERAL']['INPUT'])
-    cubeHeader   = hdu[1].header
-    hdu.close()
+    cubeHeader   = fits.getheader(config['GENERAL']['INPUT'])
     NX = cubeHeader['NAXIS1']
     NY = cubeHeader['NAXIS2']
 
