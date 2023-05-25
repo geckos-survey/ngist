@@ -70,6 +70,7 @@ def savefitsmaps(module_id, outdir=""):
             labellist = ["AGE", "METAL"]
         else:
             labellist = ["AGE", "METAL", "ALPHA"]
+    
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
     result_long[:, :] = np.nan
@@ -77,7 +78,9 @@ def savefitsmaps(module_id, outdir=""):
         idx = np.where(ubins[i] == np.abs(binNum_long))[0]
         result_long[idx, :] = result[i, :]
     result = result_long
-    result[:, 0] = result[:, 0] - np.nanmedian(result[:, 0])
+    
+    # result[:, 0] = result[:, 0] - np.nanmedian(result[:, 0]) [median subtraction on products]
+    
     ####### Adding the ability to output maps as fits files
     primary_hdu = fits.PrimaryHDU()
     hdu1 = fits.HDUList([primary_hdu])
@@ -192,8 +195,9 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         data[np.where(data_aon < AoNThreshold)[0]] = np.nan
         data[np.where(data == -1)[0]] = np.nan
 
-        if line.split("_")[-1] == "V":
-            data = data - np.nanmedian(data)
+        # [median subtraction on products]
+        # if line.split("_")[-1] == "V":
+        #     data = data - np.nanmedian(data)
 
         # Create image in pixels
         xmin = np.min(X)
@@ -284,7 +288,9 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         idx = np.where(ubins[i] == np.abs(binNum_long))[0]
         result_long[idx, :] = result[i, :]
     result = result_long
-    result[:, 0] = result[:, 0] - np.nanmedian(result[:, 0])
+    
+    # result[:, 0] = result[:, 0] - np.nanmedian(result[:, 0]) [median subtraction on products]
+    
     ####### Adding the ability to output maps as fits files
     primary_hdu = fits.PrimaryHDU()
     hdu1 = fits.HDUList([primary_hdu])
