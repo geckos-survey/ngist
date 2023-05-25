@@ -47,17 +47,17 @@ def savefitsmaps(module_id, outdir=""):
 
     # Read Results
     if module_id == "KIN":
+        
+        # read results
         hdu = fits.open(os.path.join(outdir, rootname) + "_kin.fits")
-        # elif module_id == 'SFH':
-        #     hdu = fits.open(os.path.join(outdir,rootname)+'_sfh.fits')
-        result = np.zeros((len(ubins), 4))
+        names = list(hdu[1].data.dtype.names)
+        
+        result = np.zeros((len(ubins), len(names)))
         result[:, 0] = np.array(hdu[1].data.V)
         result[:, 1] = np.array(hdu[1].data.SIGMA)
-        if hasattr(hdu[1].data, "H3"):
-            result[:, 2] = np.array(hdu[1].data.H3)
-        if hasattr(hdu[1].data, "H4"):
-            result[:, 3] = np.array(hdu[1].data.H4)
-        labellist = ["V", "SIG", "H3", "H4"]
+                
+        for i, name in enumerate(names):
+            result[:, i] = np.array(hdu[1].data[name])
 
     elif module_id == "SFH":
         # Read results
@@ -66,10 +66,11 @@ def savefitsmaps(module_id, outdir=""):
         result[:, 0] = np.array(sfh_hdu[1].data.AGE)
         result[:, 1] = np.array(sfh_hdu[1].data.METAL)
         result[:, 2] = np.array(sfh_hdu[1].data.ALPHA)
-        if len(np.unique(result[:, 2])) == 1:
+        if len(np.unique(result[:, 2])) == 1: # propose change to simply names = list(hdu[1].data.dtype.names) but not yet tested
             labellist = ["AGE", "METAL"]
         else:
             labellist = ["AGE", "METAL", "ALPHA"]
+            names = labellist
     
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
@@ -84,7 +85,6 @@ def savefitsmaps(module_id, outdir=""):
     ####### Adding the ability to output maps as fits files
     primary_hdu = fits.PrimaryHDU()
     hdu1 = fits.HDUList([primary_hdu])
-    names = labellist
 
     for iterate in range(0, len(names)):
         # Prepare main plot
@@ -176,7 +176,6 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
     # Convert results to long version
     if LEVEL == "BIN":
         _, idxConvert = np.unique(np.abs(binNum_long), return_inverse=True)
-        print(len(results), len(idxConvert))
         results = results[idxConvert]
 
     primary_hdu = fits.PrimaryHDU()
@@ -226,7 +225,7 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         hdu1.append(image_hdu)
 
     hdu1.writeto(
-        os.path.join(outdir, rootname) + "_" + module_id + "_maps_" + LEVEL + ".fits",
+        os.path.join(outdir, rootname) + "_" + module_id + "_" + LEVEL + "_maps.fits",
         overwrite=True,
     )
     hdu1.close()
@@ -324,7 +323,7 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         # Append fits image
         hdu1.append(image_hdu)
     hdu1.writeto(
-        os.path.join(outdir, rootname) + "_" + module_id + "_maps" + RESOLUTION + ".fits",
+        os.path.join(outdir, rootname) + "_" + module_id + "_" + RESOLUTION + "_maps.fits",
         overwrite=True,
     )
     hdu1.close()
