@@ -84,7 +84,6 @@ def addPathsToConfig(config, dirPath): # Amrlia - I *think* the input here is th
             if not line.startswith('#'):
                 line = line.split('=')
                 line = [x.strip() for x in line]
-                # print(line)
                 if os.path.isdir(line[1]) == True:
                     if line[0] == 'inputDir':
                         config['GENERAL']['INPUT'] = os.path.join(line[1], config['GENERAL']['INPUT'])

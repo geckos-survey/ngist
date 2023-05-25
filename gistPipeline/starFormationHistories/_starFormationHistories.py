@@ -4,7 +4,7 @@ import logging
 
 from printStatus import printStatus
 
-from gistPipeline.plotting import _plotting
+from gistPipeline.writeFITS import _writeFITS
 
 
 
@@ -47,7 +47,7 @@ def starFormationHistories_Module(config):
     # Execute the chosen starFormationHistories routine
     try:
         module.extractStarFormationHistories(config)
-        _plotting.generatePlots(config, 'SFH')
+        _writeFITS.generateFITS(config, 'SFH')
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = "starFormationHistories routine '"+config['SFH']['METHOD']+".py' failed."
