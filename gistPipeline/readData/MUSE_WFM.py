@@ -68,19 +68,27 @@ def readCube(config):
             espec[:, i] = der_snr.der_snr(spec[:, i])
 
     # Getting the wavelength info
-    wave = hdr["CRVAL3"] + (np.arange(s[0])) * hdr["CD3_3"]
+    if "CD3_3" not in hdr.keys():
+        print("CD3_3 keyword not found in hdr. Trying CDELTN keywords instead.")
+        cdelt2 = hdr["CDELT3"]
+        cdelt3 = hdr["CDELT3"]
+    else:
+        cdelt2 = hdr["CD2_2"]
+        cdelt3 = hdr["CD3_3"]
+        
+    wave = hdr["CRVAL3"] + (np.arange(s[0])) * cdelt3
 
     # Getting the spatial coordinates
     origin = [
         float(config["READ_DATA"]["ORIGIN"].split(",")[0].strip()),
         float(config["READ_DATA"]["ORIGIN"].split(",")[1].strip()),
     ]
-    xaxis = (np.arange(s[2]) - origin[0]) * hdr["CD2_2"] * 3600.0
-    yaxis = (np.arange(s[1]) - origin[1]) * hdr["CD2_2"] * 3600.0
+    xaxis = (np.arange(s[2]) - origin[0]) * cdelt2 * 3600.0
+    yaxis = (np.arange(s[1]) - origin[1]) * cdelt2 * 3600.0
     x, y = np.meshgrid(xaxis, yaxis)
     x = np.reshape(x, [s[1] * s[2]])
     y = np.reshape(y, [s[1] * s[2]])
-    pixelsize = hdr["CD2_2"] * 3600.0
+    pixelsize = cdelt2 * 3600.0
     logging.info(
         "Extracting spatial information:\n"
         + loggingBlanks
