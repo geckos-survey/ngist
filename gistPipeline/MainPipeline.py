@@ -53,7 +53,7 @@ def skipGalaxy(config):
 
 def numberOfGalaxies(filename):
     """
-    Returns the number of galaxies to be analysed, as stated in the MasterConfig file.
+    Returns the number of galaxies to be analysed, as stated in the config file.
     """
     i = 0
     for line in open(filename):
@@ -69,7 +69,7 @@ def runGIST(dirPath, galindex):
 
     # - - - - - INITIALISE MODULE - - - - -
 
-    # Read MasterConfig
+    # Read config
     config = _initialise.readMasterConfig(dirPath.configFile, galindex)
     config = _initialise.addPathsToConfig(config, dirPath)
 
@@ -171,7 +171,7 @@ def main(args=None):
         "--config",
         dest=jls_extract_var,
         type="string",
-        help="State the absolute path of the MasterConfig file.",
+        help="State the path of the config file.",
     )
     parser.add_option(
         "--default-dir",
@@ -184,14 +184,14 @@ def main(args=None):
     # Check if required command-line argument is given
     if dirPath.configFile == None:
         printStatus.failed(
-            "Please specify the path of the MasterConfig file to be used. Exit!"
+            "Please specify the path of the config file to be used. Exit!"
         )
         exit(1)
 
     # Check if Config-file exists
     if os.path.isfile(dirPath.configFile) == False:
         printStatus.failed(
-            "MasterConfig file at " + dirPath.configFile + " not found. Exit!"
+            "Config file at " + dirPath.configFile + " not found. Exit!"
         )
         exit(1)
 
@@ -199,7 +199,7 @@ def main(args=None):
     ngalaxies = 1  # numberOfGalaxies(dirPath.configFile) - 2 # Amelia changed this because she changed the format of the config file. We can revisit should we ever need to run more than one galaxy per config file
     if ngalaxies <= 0:
         message = (
-            "The number of runs defined in the MasterConfig file seems to be 0. Exit."
+            "The number of runs defined in the config file seems to be 0. Exit."
         )
         printStatus.failed(message)
         exit(1)
