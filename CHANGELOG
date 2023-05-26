@@ -6,6 +6,10 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.0.4.	     2023-05-26  ADDED:
+			 MAGPI gandalf implementation sub-module. There are now two options 
+			 for GAS METHOD: 'gandalf' and 'MAGPI_gandalf'. Recommend adopting 
+			 'MAGPI_gandalf' from now on.
 V5.0.3.      2023-05-24  ADDED:
 			 Code to subtract the bestfit stellar continuum and construct a 
 			 continuum subtracted cube. 
