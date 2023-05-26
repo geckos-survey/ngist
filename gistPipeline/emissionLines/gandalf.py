@@ -383,7 +383,7 @@ def performEmissionLineAnalysis(config):
 
     # Read LSF information
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, 'GAS')
-       
+
     # Read data if we run on BIN level
     if currentLevel == 'BIN':
         # Read spectra from file
@@ -404,7 +404,7 @@ def performEmissionLineAnalysis(config):
         # Prepare templates
         logging.info("Using full spectral library for GANDALF on BIN level")
         templates, lamRange_spmod, logLam_template, n_templates = \
-                _prepareTemplates.prepareTemplates_Module(config, config['GAS']['LMIN'], config['GAS']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                _prepareTemplates.prepareTemplates_Module(config, config['GAS']['LMIN'], config['GAS']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates, 'GAS')[:4]
         templates = templates.reshape( (templates.shape[0], n_templates) )
 
         offset       = (logLam_template[0] - logLam_galaxy[0])*C # km/s
@@ -443,7 +443,7 @@ def performEmissionLineAnalysis(config):
         if config['GAS']['LEVEL'] == 'SPAXEL':
             logging.info("Using full spectral library for GANDALF on SPAXEL level")
             templates, lamRange_spmod, logLam_template, n_templates = \
-                    _prepareTemplates.prepareTemplates_Module(config, config['GAS']['LMIN'], config['GAS']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                    _prepareTemplates.prepareTemplates_Module(config, config['GAS']['LMIN'], config['GAS']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates, 'GAS')[:4]
             templates = templates.reshape( (templates.shape[0], n_templates) )
         if config['GAS']['LEVEL'] == 'BOTH':
             logging.info("Using previously extracted optimal templates from the GANDALF BIN level on SPAXEL level")

@@ -440,7 +440,7 @@ def performEmissionLineAnalysis(config):
         if config['GAS']['LEVEL'] == 'SPAXEL':
             logging.info("Using full spectral library for GANDALF on SPAXEL level")
             templates, lamRange_spmod, logLam_template, n_templates = \
-                    _prepareTemplates.prepareTemplates_Module(config, config['GAS']['LMIN'], config['GAS']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates)[:4]
+                    _prepareTemplates.prepareTemplates_Module(config, config['GAS']['LMIN'], config['GAS']['LMAX'], velscale/velscale_ratio, LSF_Data, LSF_Templates, 'GAS')[:4]
             templates = templates.reshape( (templates.shape[0], n_templates) )
         if config['GAS']['LEVEL'] == 'BOTH':
             logging.info("Using previously extracted optimal templates from the GANDALF BIN level on SPAXEL level")
