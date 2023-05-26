@@ -1,8 +1,9 @@
 import logging
 import os
 
-from gistPipeline.writeFITS import save_maps_fits
 from printStatus import printStatus
+
+from gistPipeline.writeFITS import save_maps_fits
 
 
 def generateFITS(config, module):

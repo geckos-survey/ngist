@@ -1,20 +1,17 @@
-from astropy.io import fits, ascii
-import numpy as np
-from multiprocess import Queue, Process
-
-import time
 import logging
 import os
+import time
 
+import numpy as np
+from astropy.io import ascii, fits
+from multiprocess import Process, Queue
+# Then use system installed version instead
+from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 
 from gistPipeline.auxiliary import _auxiliary
-
 from gistPipeline.lineStrengths import lsindex_spec as lsindex
 from gistPipeline.lineStrengths import ssppop_fitting as ssppop
-
-# Then use system installed version instead
-from ppxf.ppxf_util import gaussian_filter1d
 
 cvel = 299792.458
 

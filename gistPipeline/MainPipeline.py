@@ -30,6 +30,8 @@ import matplotlib
 
 matplotlib.use("pdf")
 
+from printStatus import printStatus
+
 from gistPipeline._version import __version__
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.emissionLines import _emissionLines
@@ -41,7 +43,6 @@ from gistPipeline.spatialBinning import _spatialBinning
 from gistPipeline.spatialMasking import _spatialMasking
 from gistPipeline.starFormationHistories import _starFormationHistories
 from gistPipeline.stellarKinematics import _stellarKinematics
-from printStatus import printStatus
 
 
 def skipGalaxy(config):
@@ -190,17 +191,13 @@ def main(args=None):
 
     # Check if Config-file exists
     if os.path.isfile(dirPath.configFile) == False:
-        printStatus.failed(
-            "Config file at " + dirPath.configFile + " not found. Exit!"
-        )
+        printStatus.failed("Config file at " + dirPath.configFile + " not found. Exit!")
         exit(1)
 
     # Iterate over galaxies in Config-file
     ngalaxies = 1  # numberOfGalaxies(dirPath.configFile) - 2 # Amelia changed this because she changed the format of the config file. We can revisit should we ever need to run more than one galaxy per config file
     if ngalaxies <= 0:
-        message = (
-            "The number of runs defined in the config file seems to be 0. Exit."
-        )
+        message = "The number of runs defined in the config file seems to be 0. Exit."
         printStatus.failed(message)
         exit(1)
     for galindex in range(ngalaxies):

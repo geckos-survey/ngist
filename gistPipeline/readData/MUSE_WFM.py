@@ -1,10 +1,9 @@
+import logging
+import os
+
+import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
-import numpy as np
-
-import os
-import logging
-
 from printStatus import printStatus
 
 from gistPipeline.readData import der_snr as der_snr
