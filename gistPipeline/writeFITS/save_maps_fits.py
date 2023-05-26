@@ -73,10 +73,9 @@ def savefitsmaps(module_id, outdir=""):
         if (
             len(np.unique(result[:, 2])) == 1
         ):  # propose change to simply names = list(hdu[1].data.dtype.names) but not yet tested
-            labellist = ["AGE", "METAL"]
+            names = ["AGE", "METAL"]
         else:
-            labellist = ["AGE", "METAL", "ALPHA"]
-            names = labellist
+            names = ["AGE", "METAL", "ALPHA"]
 
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
@@ -292,7 +291,7 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
     elif RESOLUTION == "ADAPTED":
         hdu = fits.open(os.path.join(outdir, rootname) + "_ls_AdapRes.fits")
 
-    labellist = list(hdu[1].data.dtype.names)
+    names = list(hdu[1].data.dtype.names)
 
     result = np.zeros((len(ubins), len(names)))
     for i, name in enumerate(names):
