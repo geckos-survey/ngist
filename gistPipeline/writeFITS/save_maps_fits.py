@@ -8,8 +8,10 @@ import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 
-warnings.filterwarnings("ignore")
+from scipy.interpolate import CubicSpline
+from gistPipeline.readData.MUSE_WFM import readCube
 
+warnings.filterwarnings("ignore")
 
 def savefitsmaps(module_id, outdir=""):
     """
@@ -348,3 +350,107 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         overwrite=True,
     )
     hdu1.close()
+
+
+def saveContLineCube(config):
+    """
+    saveContLineCubes _summary_
+    
+    Write continuum-only and line-only cubes to FITS files.
+
+    Parameters
+    ----------
+    config : str, optional
+        gistPipeline config
+    """ 
+
+    outfits = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_KIN_ContLineCube.fits"
+    )
+    
+    cubeHeader = fits.getheader(config["GENERAL"]["INPUT"])
+    NX = cubeHeader["NAXIS1"]
+    NY = cubeHeader["NAXIS2"]
+
+    inputCube = readCube(config)
+    spectra_all = inputCube["spec"]
+    linLam = inputCube["wave"]
+    idx_lam = np.where(
+        np.logical_and(linLam > config["KIN"]["LMIN"], linLam < config["KIN"]["LMAX"])
+    )[0]
+    spectra_all = spectra_all[idx_lam, :]
+    linLam = linLam[idx_lam]
+
+    # get PPXF best fit continuum from kinematics module
+    ppxf_bestfit = fits.open(
+        os.path.join(
+            config["GENERAL"]["OUTPUT"],
+            config["GENERAL"]["RUN_ID"] + "_kin-bestfit.fits",
+        )
+    )[1].data.BESTFIT
+    
+    # get logLam from Bin Spectra HDU
+    logLam = fits.open(
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_BinSpectra.fits"
+    )[2].data.LOGLAM
+
+    # table HDU
+    tablehdu = fits.open(
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_table.fits"
+    )
+    spaxID = np.array(tablehdu[1].data.ID)
+    binID = np.array(tablehdu[1].data.BIN_ID)
+
+    contCube = np.full([len(linLam), NY * NX], np.nan)
+    lineCube = np.full([len(linLam), NY * NX], np.nan)
+
+    idx_snr = np.where(
+        np.logical_and(
+            linLam >= config["READ_DATA"]["LMIN_SNR"],
+            linLam <= config["READ_DATA"]["LMAX_SNR"],
+        )
+    )[0]
+
+    for s in spaxID:
+        binID_spax = binID[s]
+        obsSpec_lin = spectra_all[:, s]
+        obsSignal = np.nanmedian(obsSpec_lin[idx_snr])
+
+        if binID_spax < 0:
+            fitSpec_lin = np.zeros(len(obsSpec_lin))
+        elif binID_spax >= 0:
+            fitSpec = ppxf_bestfit[binID_spax, :]
+
+            fitSpec_func = CubicSpline(np.exp(logLam), fitSpec, extrapolate=False)
+
+            fitSpec_lin = fitSpec_func(linLam)
+            fitSignal = np.nanmedian(fitSpec_lin[idx_snr])
+
+            fitSpec_lin *= obsSignal / fitSignal
+
+        # assign continuum fits and emission lines (obs - cont) to cube
+        contCube[:, s] = fitSpec_lin
+        lineCube[:, s] = obsSpec_lin - fitSpec_lin
+
+    cubeHeader["NAXIS3"] = len(linLam)
+    cubeHeader["CRVAL3"] = linLam[0]
+    cubeHeader["CRPIX3"] = 1
+    if any(key == "CDELT3" for key in cubeHeader.keys()):
+        cubeHeader["CDELT3"] = np.abs(np.diff(linLam))[0]
+    else:
+        cubeHeader["CD3_3"] = np.abs(np.diff(linLam))[0]
+
+    cubeHeader["CTYPE3"] = "AWAV"
+
+    primary_hdu = fits.PrimaryHDU(header=fits.Header())
+    contCube_hdu = fits.ImageHDU(
+        contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=cubeHeader
+    )
+    lineCube_hdu = fits.ImageHDU(
+        lineCube.reshape((len(linLam), NY, NX)), name="line-only", header=cubeHeader
+    )
+    hdul = fits.HDUList([primary_hdu, contCube_hdu, lineCube_hdu])
+    hdul.writeto(outfits, overwrite=True)

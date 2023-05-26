@@ -69,7 +69,6 @@ def runGIST(dirPath, galindex):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # - - - - - INITIALISE MODULE - - - - -
-
     # Read config
     config = _initialise.readMasterConfig(dirPath.configFile, galindex)
     config = _initialise.addPathsToConfig(config, dirPath)

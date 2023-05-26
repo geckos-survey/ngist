@@ -24,7 +24,6 @@ def generateFITS(config, module):
 
     # - - - - - STELLAR KINEMATICS MODULE - - - - -
     if module == "KIN":
-        print(config["GENERAL"]["OUTPUT"])
         try:
             printStatus.running("Producing stellar kinematics maps in FITS format")
             save_maps_fits.savefitsmaps("KIN", config["GENERAL"]["OUTPUT"])
@@ -34,6 +33,16 @@ def generateFITS(config, module):
             printStatus.updateFailed("Producing stellar kinematics maps in FITS format")
             logging.error(e, exc_info=True)
             logging.error("Failed to produce stellar kinematics maps.")
+            
+        try:
+            printStatus.running("Producing continuum-only and line-only cubes in FITS format")
+            save_maps_fits.saveContLineCube(config)
+            printStatus.updateDone("Producing continuum-only and line-only cubes in FITS format")
+            logging.info("Produced continuum-only and line-only cubes in FITS format")
+        except Exception as e:
+            printStatus.updateFailed("Producing continuum-only and line-only cubes in FITS format")
+            logging.error(e, exc_info=True)
+            logging.error("Failed to produce continuum-only and line-only cubes in FITS format")
 
     # - - - - - EMISSION LINES MODULE - - - - -
     if module == "GAS":
