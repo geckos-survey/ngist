@@ -135,7 +135,6 @@ def loadConfig(outdir):
     """
     Load configurations from a saved CONFIG file in the output directory of the current run.
     """
-    print(outdir)
     with open(os.path.join(outdir, 'CONFIG'), "r") as file:
         loadedConfig = yaml.load(file, Loader=yaml.FullLoader)
     return(loadedConfig)
