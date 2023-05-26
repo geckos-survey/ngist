@@ -6,8 +6,10 @@ import warnings
 
 import numpy as np
 from astropy.io import fits
+from astropy.wcs import WCS
 
 warnings.filterwarnings("ignore")
+
 
 def savefitsmaps(module_id, outdir=""):
     """
@@ -33,7 +35,13 @@ def savefitsmaps(module_id, outdir=""):
     binNum_long = np.array(table_hdu[1].data.BIN_ID)
     ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
     pixelsize = table_hdu[0].header["PIXSIZE"]
-    wcshdr = table_hdu[2].header
+    wcshdr = table_hdu[2].header.copy()
+
+    # make sure celesital keys are correct
+    wcshdr.update(WCS(wcshdr).celestial.to_header())
+    keys3d = {"CDELT3", "CRPIX3", "CRVAL3", "CTYPE3", "CUNIT3"}
+    for key in keys3d:
+        wcshdr.pop(key)
 
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
@@ -47,15 +55,11 @@ def savefitsmaps(module_id, outdir=""):
 
     # Read Results
     if module_id == "KIN":
-        
         # read results
         hdu = fits.open(os.path.join(outdir, rootname) + "_kin.fits")
         names = list(hdu[1].data.dtype.names)
-        
+
         result = np.zeros((len(ubins), len(names)))
-        result[:, 0] = np.array(hdu[1].data.V)
-        result[:, 1] = np.array(hdu[1].data.SIGMA)
-                
         for i, name in enumerate(names):
             result[:, i] = np.array(hdu[1].data[name])
 
@@ -66,12 +70,14 @@ def savefitsmaps(module_id, outdir=""):
         result[:, 0] = np.array(sfh_hdu[1].data.AGE)
         result[:, 1] = np.array(sfh_hdu[1].data.METAL)
         result[:, 2] = np.array(sfh_hdu[1].data.ALPHA)
-        if len(np.unique(result[:, 2])) == 1: # propose change to simply names = list(hdu[1].data.dtype.names) but not yet tested
+        if (
+            len(np.unique(result[:, 2])) == 1
+        ):  # propose change to simply names = list(hdu[1].data.dtype.names) but not yet tested
             labellist = ["AGE", "METAL"]
         else:
             labellist = ["AGE", "METAL", "ALPHA"]
             names = labellist
-    
+
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
     result_long[:, :] = np.nan
@@ -79,9 +85,9 @@ def savefitsmaps(module_id, outdir=""):
         idx = np.where(ubins[i] == np.abs(binNum_long))[0]
         result_long[idx, :] = result[i, :]
     result = result_long
-    
+
     # result[:, 0] = result[:, 0] - np.nanmedian(result[:, 0]) [median subtraction on products]
-    
+
     ####### Adding the ability to output maps as fits files
     primary_hdu = fits.PrimaryHDU()
     hdu1 = fits.HDUList([primary_hdu])
@@ -149,7 +155,13 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
     binNum_long = np.array(table_hdu[1].data.BIN_ID)
     ubins = np.unique(np.abs(binNum_long))
     pixelsize = table_hdu[0].header["PIXSIZE"]
-    wcshdr = table_hdu[2].header
+    wcshdr = table_hdu[2].header.copy()
+
+    # make sure celesital keys are correct
+    wcshdr.update(WCS(wcshdr).celestial.to_header())
+    keys3d = {"CDELT3", "CRPIX3", "CRVAL3", "CTYPE3", "CUNIT3"}
+    for key in keys3d:
+        wcshdr.pop(key)
 
     maskedSpaxel = maskedSpaxel[idx_inside]
 
@@ -256,7 +268,13 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
     binNum_long = np.array(table_hdu[1].data.BIN_ID)
     ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
     pixelsize = table_hdu[0].header["PIXSIZE"]
-    wcshdr = table_hdu[2].header
+    wcshdr = table_hdu[2].header.copy()
+
+    # make sure celesital keys are correct
+    wcshdr.update(WCS(wcshdr).celestial.to_header())
+    keys3d = {"CDELT3", "CRPIX3", "CRVAL3", "CTYPE3", "CUNIT3"}
+    for key in keys3d:
+        wcshdr.pop(key)
 
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
@@ -273,12 +291,12 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         hdu = fits.open(os.path.join(outdir, rootname) + "_ls_OrigRes.fits")
     elif RESOLUTION == "ADAPTED":
         hdu = fits.open(os.path.join(outdir, rootname) + "_ls_AdapRes.fits")
-    result = np.zeros((len(ubins), 3))
-    result[:, 0] = np.array(hdu[1].data.Hbeta_o)
-    result[:, 1] = np.array(hdu[1].data.Fe5015)
-    result[:, 2] = np.array(hdu[1].data.Mgb)
 
-    labellist = ["Hbeta_o", "Fe5015", "Mgb"]
+    labellist = list(hdu[1].data.dtype.names)
+
+    result = np.zeros((len(ubins), len(names)))
+    for i, name in enumerate(names):
+        result[:, i] = np.array(hdu[1].data[name])
 
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
@@ -287,13 +305,12 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         idx = np.where(ubins[i] == np.abs(binNum_long))[0]
         result_long[idx, :] = result[i, :]
     result = result_long
-    
+
     # result[:, 0] = result[:, 0] - np.nanmedian(result[:, 0]) [median subtraction on products]
-    
+
     ####### Adding the ability to output maps as fits files
     primary_hdu = fits.PrimaryHDU()
     hdu1 = fits.HDUList([primary_hdu])
-    names = labellist
 
     for iterate in range(0, len(names)):
         # Prepare main plot
@@ -323,7 +340,12 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         # Append fits image
         hdu1.append(image_hdu)
     hdu1.writeto(
-        os.path.join(outdir, rootname) + "_" + module_id + "_" + RESOLUTION + "_maps.fits",
+        os.path.join(outdir, rootname)
+        + "_"
+        + module_id
+        + "_"
+        + RESOLUTION
+        + "_maps.fits",
         overwrite=True,
     )
     hdu1.close()
