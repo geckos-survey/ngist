@@ -369,9 +369,15 @@ def saveContLineCube(config):
         + "_KIN_ContLineCube.fits"
     )
     
-    cubeHeader = fits.getheader(config["GENERAL"]["INPUT"])
-    NX = cubeHeader["NAXIS1"]
-    NY = cubeHeader["NAXIS2"]
+    # read cube header - check extension contains WCS
+    cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=0)
+    if 'NAXIS1' not in cubehdr:
+        cubehdr = fits.getheader("/arc/projects/mauve/cubes/IC3392.fits", ext=1)
+    elif 'NAXIS1' not in cubehdr:
+        cubehdr = fits.getheader("/arc/projects/mauve/cubes/IC3392.fits", ext=2)
+   
+    NX = cubehdr["NAXIS1"]
+    NY = cubehdr["NAXIS2"]
 
     inputCube = readCube(config)
     spectra_all = inputCube["spec"]
@@ -435,22 +441,24 @@ def saveContLineCube(config):
         contCube[:, s] = fitSpec_lin
         lineCube[:, s] = obsSpec_lin - fitSpec_lin
 
-    cubeHeader["NAXIS3"] = len(linLam)
-    cubeHeader["CRVAL3"] = linLam[0]
-    cubeHeader["CRPIX3"] = 1
-    if any(key == "CDELT3" for key in cubeHeader.keys()):
-        cubeHeader["CDELT3"] = np.abs(np.diff(linLam))[0]
-    else:
-        cubeHeader["CD3_3"] = np.abs(np.diff(linLam))[0]
+    cubehdr["NAXIS3"] = len(linLam)
+    cubehdr["CRVAL3"] = linLam[0]
+    cubehdr["CRPIX3"] = 1
+    cubehdr["CDELT3"] = np.abs(np.diff(linLam))[0]
+    
+    # CDi_ja hdr keyword is an alternate specification of the linear transformation matrix,
+    # maintained for historical compatibility
+    if any(key == "CD3_3" for key in cubehdr.keys()):
+        cubehdr["CD3_3"] = np.abs(np.diff(linLam))[0]
 
-    cubeHeader["CTYPE3"] = "AWAV"
+    cubehdr["CTYPE3"] = "AWAV"
 
     primary_hdu = fits.PrimaryHDU(header=fits.Header())
     contCube_hdu = fits.ImageHDU(
-        contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=cubeHeader
+        contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=cubehdr
     )
     lineCube_hdu = fits.ImageHDU(
-        lineCube.reshape((len(linLam), NY, NX)), name="line-only", header=cubeHeader
+        lineCube.reshape((len(linLam), NY, NX)), name="line-only", header=cubehdr
     )
     hdul = fits.HDUList([primary_hdu, contCube_hdu, lineCube_hdu])
     hdul.writeto(outfits, overwrite=True)
