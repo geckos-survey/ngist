@@ -444,15 +444,19 @@ def saveContLineCube(config):
     cubehdr["NAXIS3"] = len(linLam)
     cubehdr["CRVAL3"] = linLam[0]
     cubehdr["CRPIX3"] = 1
+    cubehdr["CTYPE3"] = "AWAV"
     cubehdr["CDELT3"] = np.abs(np.diff(linLam))[0]
     
+    # set the WCS keywords to the current FITS standard
+    cubehdr.update(WCS(cubehdr).to_header())
+    
     # CDi_ja hdr keyword is an alternate specification of the linear transformation matrix,
-    # maintained for historical compatibility
-    if any(key == "CD3_3" for key in cubehdr.keys()):
-        cubehdr["CD3_3"] = np.abs(np.diff(linLam))[0]
-
-    cubehdr["CTYPE3"] = "AWAV"
-
+    # maintained for historical compatibility. However, CDi_ja should not formally coexist
+    # with PCi_j and CDELTi which are the modern standard implemented above
+    keys3d = {"CD1_1", "CD1_2", "CD1_3", "CD2_1", "CD2_2", "CD2_3", "CD3_1", "CD3_2", "CD1_3",}
+    for key in keys3d:
+        wcshdr.pop(key)
+    
     primary_hdu = fits.PrimaryHDU(header=fits.Header())
     contCube_hdu = fits.ImageHDU(
         contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=cubehdr
