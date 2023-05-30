@@ -372,9 +372,9 @@ def saveContLineCube(config):
     # read cube header - check extension contains WCS
     cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=0)
     if 'NAXIS1' not in cubehdr:
-        cubehdr = fits.getheader("/arc/projects/mauve/cubes/IC3392.fits", ext=1)
+        cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=1)
     elif 'NAXIS1' not in cubehdr:
-        cubehdr = fits.getheader("/arc/projects/mauve/cubes/IC3392.fits", ext=2)
+        cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=2)
    
     NX = cubehdr["NAXIS1"]
     NY = cubehdr["NAXIS2"]
@@ -420,7 +420,10 @@ def saveContLineCube(config):
         )
     )[0]
 
+    # loop over spaxels
     for s in spaxID:
+        
+        # bin ID of spaxel s
         binID_spax = binID[s]
         obsSpec_lin = spectra_all[:, s]
         obsSignal = np.nanmedian(obsSpec_lin[idx_snr])
