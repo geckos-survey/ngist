@@ -11,6 +11,8 @@ from astropy.wcs import WCS
 from scipy.interpolate import CubicSpline
 from gistPipeline.readData.MUSE_WFM import readCube
 
+from gistPipeline.utils.wcs_utils import strip_wcs_from_header, diagonal_wcs_to_cdelt
+
 warnings.filterwarnings("ignore")
 
 def savefitsmaps(module_id, outdir=""):
@@ -37,13 +39,12 @@ def savefitsmaps(module_id, outdir=""):
     binNum_long = np.array(table_hdu[1].data.BIN_ID)
     ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
     pixelsize = table_hdu[0].header["PIXSIZE"]
-    wcshdr = table_hdu[2].header.copy()
+    oldwcshdr = table_hdu[2].header.copy()
 
-    # make sure celesital keys are correct
-    wcshdr.update(WCS(wcshdr).celestial.to_header())
-    keys3d = {"CDELT3", "CRPIX3", "CRVAL3", "CTYPE3", "CUNIT3"}
-    for key in keys3d:
-        wcshdr.pop(key)
+    # update WCS
+    wcs = WCS(oldwcshdr).celestial
+    hdr = strip_wcs_from_header(oldwcshdr)
+    wcshdr = hdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
 
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
@@ -123,7 +124,6 @@ def savefitsmaps(module_id, outdir=""):
     )
     hdu1.close()
 
-
 def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4):
     """
     savefitsmaps_GASmodule _summary_
@@ -156,13 +156,12 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
     binNum_long = np.array(table_hdu[1].data.BIN_ID)
     ubins = np.unique(np.abs(binNum_long))
     pixelsize = table_hdu[0].header["PIXSIZE"]
-    wcshdr = table_hdu[2].header.copy()
+    oldwcshdr = table_hdu[2].header.copy()
 
-    # make sure celesital keys are correct
-    wcshdr.update(WCS(wcshdr).celestial.to_header())
-    keys3d = {"CDELT3", "CRPIX3", "CRVAL3", "CTYPE3", "CUNIT3"}
-    for key in keys3d:
-        wcshdr.pop(key)
+    # update WCS
+    wcs = WCS(oldwcshdr).celestial
+    hdr = strip_wcs_from_header(oldwcshdr)
+    wcshdr = hdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
 
     maskedSpaxel = maskedSpaxel[idx_inside]
 
@@ -269,13 +268,12 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
     binNum_long = np.array(table_hdu[1].data.BIN_ID)
     ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
     pixelsize = table_hdu[0].header["PIXSIZE"]
-    wcshdr = table_hdu[2].header.copy()
+    oldwcshdr = table_hdu[2].header.copy()
 
-    # make sure celesital keys are correct
-    wcshdr.update(WCS(wcshdr).celestial.to_header())
-    keys3d = {"CDELT3", "CRPIX3", "CRVAL3", "CTYPE3", "CUNIT3"}
-    for key in keys3d:
-        wcshdr.pop(key)
+    # update WCS
+    wcs = WCS(oldwcshdr).celestial
+    hdr = strip_wcs_from_header(oldwcshdr)
+    wcshdr = hdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
 
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
@@ -450,22 +448,17 @@ def saveContLineCube(config):
     cubehdr["CTYPE3"] = "AWAV"
     cubehdr["CDELT3"] = np.abs(np.diff(linLam))[0]
     
-    # set the WCS keywords to the current FITS standard
-    cubehdr.update(WCS(cubehdr).to_header())
-    
-    # CDi_ja hdr keyword is an alternate specification of the linear transformation matrix,
-    # maintained for historical compatibility. However, CDi_ja should not formally coexist
-    # with PCi_j and CDELTi which are the modern standard implemented above
-    keys3d = {"CD1_1", "CD1_2", "CD1_3", "CD2_1", "CD2_2", "CD2_3", "CD3_1", "CD3_2", "CD1_3",}
-    for key in keys3d:
-        wcshdr.pop(key)
+    # set the WCS keywords to CDELT standard format
+    cdi_j_wcs = WCS(cubehdr)
+    newcubehdr = strip_wcs_from_header(cubehdr) # remove all WCS keys from header
+    newcubehdr.update(diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()) # replace with CDELT standard keys
     
     primary_hdu = fits.PrimaryHDU(header=fits.Header())
     contCube_hdu = fits.ImageHDU(
-        contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=cubehdr
+        contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=newcubehdr
     )
     lineCube_hdu = fits.ImageHDU(
-        lineCube.reshape((len(linLam), NY, NX)), name="line-only", header=cubehdr
+        lineCube.reshape((len(linLam), NY, NX)), name="line-only", header=newcubehdr
     )
     hdul = fits.HDUList([primary_hdu, contCube_hdu, lineCube_hdu])
     hdul.writeto(outfits, overwrite=True)
