@@ -72,7 +72,7 @@ def generateFITS(config, module):
     if module == "SFH":
         try:
             printStatus.running("Producing SFH maps in FITS format")
-            save_maps_fits.savefitsmaps("sfh", config["GENERAL"]["OUTPUT"])
+            save_maps_fits.savefitsmaps("SFH", config["GENERAL"]["OUTPUT"])
             printStatus.updateDone("Producing SFH maps in FITS format")
             logging.info("Produced SFH maps in FITS format")
         except Exception as e:

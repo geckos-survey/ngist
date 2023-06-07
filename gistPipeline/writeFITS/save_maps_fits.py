@@ -13,6 +13,8 @@ from gistPipeline.readData.MUSE_WFM import readCube
 
 from gistPipeline.utils.wcs_utils import strip_wcs_from_header, diagonal_wcs_to_cdelt
 
+import logging
+
 warnings.filterwarnings("ignore")
 
 def savefitsmaps(module_id, outdir=""):
@@ -55,6 +57,7 @@ def savefitsmaps(module_id, outdir=""):
         print(
             "All Y-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!\n"
         )
+        
 
     # Read Results
     if module_id == "KIN":
@@ -70,6 +73,7 @@ def savefitsmaps(module_id, outdir=""):
         # Read results
         sfh_hdu = fits.open(os.path.join(outdir, rootname) + "_sfh.fits")
         result = np.zeros((len(ubins), 3))
+
         result[:, 0] = np.array(sfh_hdu[1].data.AGE)
         result[:, 1] = np.array(sfh_hdu[1].data.METAL)
         result[:, 2] = np.array(sfh_hdu[1].data.ALPHA)
@@ -79,6 +83,7 @@ def savefitsmaps(module_id, outdir=""):
             names = ["AGE", "METAL"]
         else:
             names = ["AGE", "METAL", "ALPHA"]
+
 
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
@@ -394,10 +399,12 @@ def saveContLineCube(config):
         )
     )[1].data.BESTFIT
     
-    # get logLam from Bin Spectra HDU
+    # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
     logLam = fits.open(
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_BinSpectra.fits"
+        os.path.join(
+            config["GENERAL"]["OUTPUT"],
+            config["GENERAL"]["RUN_ID"] + "_kin-bestfit.fits",
+        )
     )[2].data.LOGLAM
 
     # table HDU
@@ -405,6 +412,9 @@ def saveContLineCube(config):
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_table.fits"
     )
+
+
+
     spaxID = np.array(tablehdu[1].data.ID)
     binID = np.array(tablehdu[1].data.BIN_ID)
 
