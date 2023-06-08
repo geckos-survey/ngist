@@ -45,8 +45,8 @@ def savefitsmaps(module_id, outdir=""):
 
     # update WCS
     wcs = WCS(oldwcshdr).celestial
-    hdr = strip_wcs_from_header(oldwcshdr)
-    wcshdr = hdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
+    newwcshdr = strip_wcs_from_header(oldwcshdr)
+    newwcshdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
 
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
@@ -121,7 +121,7 @@ def savefitsmaps(module_id, outdir=""):
         image = image.T
 
         # make HDU
-        image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
+        image_hdu = fits.ImageHDU(image, header=newwcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
     hdu1.writeto(
@@ -165,8 +165,8 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
 
     # update WCS
     wcs = WCS(oldwcshdr).celestial
-    hdr = strip_wcs_from_header(oldwcshdr)
-    wcshdr = hdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
+    newwcshdr = strip_wcs_from_header(oldwcshdr)
+    newwcshdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
 
     maskedSpaxel = maskedSpaxel[idx_inside]
 
@@ -237,7 +237,7 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         # Transpose x and y because numpy uses arr[row, col] and FITS uses im[ra, dec] = arr[col, row]
         image = image.T
 
-        image_hdu = fits.ImageHDU(image, header=wcshdr, name=line)
+        image_hdu = fits.ImageHDU(image, header=newwcshdr, name=line)
         # Append fits image
         hdu1.append(image_hdu)
 
@@ -277,8 +277,8 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
 
     # update WCS
     wcs = WCS(oldwcshdr).celestial
-    hdr = strip_wcs_from_header(oldwcshdr)
-    wcshdr = hdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
+    newwcshdr = strip_wcs_from_header(oldwcshdr)
+    newwcshdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
 
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
@@ -340,7 +340,7 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         image = image.T
 
         # make HDU
-        image_hdu = fits.ImageHDU(image, header=wcshdr, name=names[iterate])
+        image_hdu = fits.ImageHDU(image, header=newwcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
     hdu1.writeto(
