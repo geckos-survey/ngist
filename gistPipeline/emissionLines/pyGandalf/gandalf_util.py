@@ -1,23 +1,24 @@
-from scipy import ndimage
+import copy
+import glob
+import math as mt
+import os
+import pdb
+import sys
 from os import path
-from numpy.polynomial import legendre, hermite
 from pprint import pprint
-from matplotlib.font_manager import FontProperties
-from scipy.interpolate import interp1d
-from scipy import fftpack, optimize, linalg
+
+import astropy.convolution as ap_c
 import astropy.io.fits as fits
 import astropy.table as table
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import math as mt
+import matplotlib.pyplot as plt
+import numpy as np
 import scipy.special as sp_s
-import astropy.convolution as ap_c
-import pdb
-import glob
-import copy
-import os
-import sys
+from matplotlib.font_manager import FontProperties
+from numpy.polynomial import hermite, legendre
+from ppxf.ppxf import robust_sigma
+from scipy import fftpack, linalg, ndimage, optimize
+from scipy.interpolate import interp1d
 
 from gistPipeline.emissionLines.magpiGandalf.cap_mpfit import mpfit
 
@@ -35,7 +36,8 @@ from ppxf.ppxf import robust_sigma
 # functions. In order to assure the compatibility of the GIST framework with
 # the most recent version of pPXF, we include these two functions from pPXF
 # version 6 below. We are grateful to Michele Cappellari for his permission to
-# include these functions. 
+# include these functions.
+
 
 def nnls_flags(A, b, npoly):
     """
@@ -51,68 +53,97 @@ def nnls_flags(A, b, npoly):
     x[:npoly] -= x[n:]
     return x[:n]
 
+
 def _bvls_solve(A, b, npoly):
     # No need to enforce positivity constraints if fitting one single template:
     # use faster linear least-squares solution instead of NNLS.
     m, n = A.shape
-    if m == 1:                  # A is a vector, not an array
-        soluz = A.dot(b)/A.dot(A)
-    elif n == npoly + 1:        # Fitting a single template
+    if m == 1:  # A is a vector, not an array
+        soluz = A.dot(b) / A.dot(A)
+    elif n == npoly + 1:  # Fitting a single template
         soluz = linalg.lstsq(A, b)[0]
-    else:                       # Fitting multiple templates
+    else:  # Fitting multiple templates
         soluz = nnls_flags(A, b, npoly)
     return soluz
+
 # ---------------------------------------------------------------------------- #
 
 #################################################################
-#global 
+# global
 C = np.float64(299792.458)
+
+
 #################################################################
 # Class to store Emission Setup
 class EmissionSetup:
-  def __init__(self, i, name, _lambda, action, kind, a, v, s, fit, aon):
-    self.i        = int(i)
-    self.name     = name
-    self._lambda  = np.float64(_lambda)
-    self.action   = action
-    self.kind     = kind
-    self.a        = np.float64(a)
-    self.v        = np.float64(v)
-    self.s        = np.float64(s)
-    self.fit      = fit
-    self.aon      = aon
-  def __repr__(self):
-    return "\n{i:%2d  name:%8s  lambda:%6.3f  action:%2s  kind:%3s  a:%4.6f  v:%4.2f  s:%4.2f  fit:%3s  aon:%.1f}" % (
-            self.i, self.name, self._lambda, self.action, self.kind, self.a, self.v, self.s, self.fit, self.aon)
+    def __init__(self, i, name, _lambda, action, kind, a, v, s, fit, aon):
+        self.i = int(i)
+        self.name = name
+        self._lambda = np.float64(_lambda)
+        self.action = action
+        self.kind = kind
+        self.a = np.float64(a)
+        self.v = np.float64(v)
+        self.s = np.float64(s)
+        self.fit = fit
+        self.aon = aon
+
+    def __repr__(self):
+        return (
+            "\n{i:%2d  name:%8s  lambda:%6.3f  action:%2s  kind:%3s  a:%4.6f  v:%4.2f  s:%4.2f  fit:%3s  aon:%.1f}"
+            % (
+                self.i,
+                self.name,
+                self._lambda,
+                self.action,
+                self.kind,
+                self.a,
+                self.v,
+                self.s,
+                self.fit,
+                self.aon,
+            )
+        )
+
+
 #################################################################
 def fullprint(*args, **kwargs):
-  # Print the FULL content of an array in a "pretty" way
-  from pprint import pprint
-  opt = np.get_printoptions()
-  np.set_printoptions(threshold='nan')
-  pprint(*args, **kwargs)
-  np.set_printoptions(**opt)
+    # Print the FULL content of an array in a "pretty" way
+    from pprint import pprint
+
+    opt = np.get_printoptions()
+    np.set_printoptions(threshold="nan")
+    pprint(*args, **kwargs)
+    np.set_printoptions(**opt)
+
+
 #################################################################
 def where_eq(data, attr, value):
-  # Return an array of indexes where attribute == value in data
-  index = []
-  for i,elem in enumerate(data):
-    if getattr(elem, attr) == value: 
-      index.append(i)
-  return index  
+    # Return an array of indexes where attribute == value in data
+    index = []
+    for i, elem in enumerate(data):
+        if getattr(elem, attr) == value:
+            index.append(i)
+    return index
+
+
 #################################################################
 def err_msg_exit(txt):
-  # Print and error message and exit (abort execution)
-  print("ERROR: " + txt)
-  sys.exit(-1)
+    # Print and error message and exit (abort execution)
+    print("ERROR: " + txt)
+    sys.exit(-1)
+
+
 #################################################################
 def load_emission_setup(data):
-  # Load data of emission setup from a flat array and return an
-  # array of classes
-  out = []
-  for elem in data:
-    out.append(EmissionSetup(*elem))
-  return out
+    # Load data of emission setup from a flat array and return an
+    # array of classes
+    out = []
+    for elem in data:
+        out.append(EmissionSetup(*elem))
+    return out
+
+
 ################################################################################
 #
 def rebin(x, factor):
@@ -123,72 +154,114 @@ def rebin(x, factor):
     if factor == 1:
         xx = x
     else:
-        xx = x.reshape(len(x)//factor, factor, -1).mean(1).squeeze()
-#
+        xx = x.reshape(len(x) // factor, factor, -1).mean(1).squeeze()
+    #
     return xx
+
+
 ###############################################################################
-def show_fit(galaxy, bestfit, emission, best_pars, sol, goodpixels, mdegree, reddening, l0_gal, lstep_gal, l0_templ, log10, kinstars, nlines):
-  # in progress...
-  plt.close() 
-  plt.ion()
-  #plot final data-model comparison if required.
-  #the colors below were chosen for the sauron colormap.
-  npix = len(galaxy)
-  # Configure plot 
-  mn = min(galaxy)
-  mx = max(galaxy) 
-  mn -= 0.1 * (mx - mn)
-  resid = mn + galaxy - bestfit
-  y1 = min(resid[goodpixels]) 
-  y2 = mx 
-  diff = y2-y1
-  y1 = y1 - 0.15 * diff
-  y2 = y2 + 0.1  * diff 
-  ax = plt.gca()
-  try:
-    ax.set_facecolor('black')
-  except:
-    # set_axis_bcgolor is deprecated since version 2.0
-    # Use it only if set_facecolor is not available...
-    ax.set_axis_bgcolor('black')
-  ax.set_xlim([-0.02*npix, 1.02*npix])
-  ax.set_ylim([y1, y2])
-  ax.grid(color='w', linestyle='--', linewidth=.5)
-  plt.ylabel('counts')
-  plt.xlabel('pixels')
-  # PLOT DATA!!
-  plt.plot(galaxy, "white", lw=.8, label="data")
-  plt.plot(bestfit, "red", lw=1.5, label="fit")
-  plt.plot(bestfit-emission, "r--", lw=.8)
-  plt.plot(emission + mn, "cyan", lw=.7, label="emission-lines")
-  plt.plot(goodpixels, resid[goodpixels], "g,", ms=.8, label="residuals")
-  n = len(goodpixels)
-  plt.plot(goodpixels, ([mn] * n), "green")
-  w = np.where((goodpixels - np.roll(goodpixels, 1)) > 1)[0] 
-  w = [0, n-1] if len(w) == 0 else np.concatenate([[0], w-1, w, [n-1]]) # add first and last point
-  for j in range(len(w)):
-    plt.plot([goodpixels[w[j]]] * 2, np.append(mn,galaxy[goodpixels[w[j]]]), color='g')
-  resid_noise = robust_sigma(resid[goodpixels]-mn, zero=True)
-  plt.plot(emission*0 + resid_noise +mn, "w--", lw=.8, label="res.-noise")
-  # plots the polinomial correction and the unadjusted templates
-  x = np.linspace(-1., 1., num=npix)
-  mpoly = 1.                           # the loop below can be null if mdegree < 1
-  npars = len(best_pars) - mdegree
-  if not reddening:
-    for j in range(1,mdegree+1):
-      mpoly += sp_s.legendre(j)(x) * best_pars[npars+j-1]
-    plt.plot((bestfit-emission)/mpoly, "y,", ms=.3, label='unadjusted continuum')
-  else:
-    vstar = kinstars[0] + (l0_gal-l0_templ) * C if not log10 else kinstars[0] + (l0_gal-l0_templ) * C * np.log(10.)
-    reddening_attenuation = dust_calzetti(l0_gal, lstep_gal, npix, sol[nlines*4], vstar, log10)        
-    int_reddening_attenuation = 1.0 if len(reddening) != 2 else dust_calzetti(l0_gal, lstep_gal, npix, sol[nlines*4+1], vstar, log10)
-    plt.plot(((bestfit-emission)/reddening_attenuation), "y,", ms=.3, label='unadjusted continuum')
-  # Legend
-  fontP = FontProperties()
-  fontP.set_size('x-small')
-  plt.legend(prop = fontP)
-  plt.draw()
-  plt.pause(3)
+def show_fit(
+    galaxy,
+    bestfit,
+    emission,
+    best_pars,
+    sol,
+    goodpixels,
+    mdegree,
+    reddening,
+    l0_gal,
+    lstep_gal,
+    l0_templ,
+    log10,
+    kinstars,
+    nlines,
+):
+    # in progress...
+    plt.close()
+    plt.ion()
+    # plot final data-model comparison if required.
+    # the colors below were chosen for the sauron colormap.
+    npix = len(galaxy)
+    # Configure plot
+    mn = min(galaxy)
+    mx = max(galaxy)
+    mn -= 0.1 * (mx - mn)
+    resid = mn + galaxy - bestfit
+    y1 = min(resid[goodpixels])
+    y2 = mx
+    diff = y2 - y1
+    y1 = y1 - 0.15 * diff
+    y2 = y2 + 0.1 * diff
+    ax = plt.gca()
+    try:
+        ax.set_facecolor("black")
+    except:
+        # set_axis_bcgolor is deprecated since version 2.0
+        # Use it only if set_facecolor is not available...
+        ax.set_axis_bgcolor("black")
+    ax.set_xlim([-0.02 * npix, 1.02 * npix])
+    ax.set_ylim([y1, y2])
+    ax.grid(color="w", linestyle="--", linewidth=0.5)
+    plt.ylabel("counts")
+    plt.xlabel("pixels")
+    # PLOT DATA!!
+    plt.plot(galaxy, "white", lw=0.8, label="data")
+    plt.plot(bestfit, "red", lw=1.5, label="fit")
+    plt.plot(bestfit - emission, "r--", lw=0.8)
+    plt.plot(emission + mn, "cyan", lw=0.7, label="emission-lines")
+    plt.plot(goodpixels, resid[goodpixels], "g,", ms=0.8, label="residuals")
+    n = len(goodpixels)
+    plt.plot(goodpixels, ([mn] * n), "green")
+    w = np.where((goodpixels - np.roll(goodpixels, 1)) > 1)[0]
+    w = (
+        [0, n - 1] if len(w) == 0 else np.concatenate([[0], w - 1, w, [n - 1]])
+    )  # add first and last point
+    for j in range(len(w)):
+        plt.plot(
+            [goodpixels[w[j]]] * 2, np.append(mn, galaxy[goodpixels[w[j]]]), color="g"
+        )
+    resid_noise = robust_sigma(resid[goodpixels] - mn, zero=True)
+    plt.plot(emission * 0 + resid_noise + mn, "w--", lw=0.8, label="res.-noise")
+    # plots the polinomial correction and the unadjusted templates
+    x = np.linspace(-1.0, 1.0, num=npix)
+    mpoly = 1.0  # the loop below can be null if mdegree < 1
+    npars = len(best_pars) - mdegree
+    if not reddening:
+        for j in range(1, mdegree + 1):
+            mpoly += sp_s.legendre(j)(x) * best_pars[npars + j - 1]
+        plt.plot(
+            (bestfit - emission) / mpoly, "y,", ms=0.3, label="unadjusted continuum"
+        )
+    else:
+        vstar = (
+            kinstars[0] + (l0_gal - l0_templ) * C
+            if not log10
+            else kinstars[0] + (l0_gal - l0_templ) * C * np.log(10.0)
+        )
+        reddening_attenuation = dust_calzetti(
+            l0_gal, lstep_gal, npix, sol[nlines * 4], vstar, log10
+        )
+        int_reddening_attenuation = (
+            1.0
+            if len(reddening) != 2
+            else dust_calzetti(
+                l0_gal, lstep_gal, npix, sol[nlines * 4 + 1], vstar, log10
+            )
+        )
+        plt.plot(
+            ((bestfit - emission) / reddening_attenuation),
+            "y,",
+            ms=0.3,
+            label="unadjusted continuum",
+        )
+    # Legend
+    fontP = FontProperties()
+    fontP.set_size("x-small")
+    plt.legend(prop=fontP)
+    plt.draw()
+    plt.pause(3)
+
+
 ###############################################################################
 def _display_pixels(x, y, counts, pixelsize):
     """
@@ -198,132 +271,198 @@ def _display_pixels(x, y, counts, pixelsize):
     """
     xmin, xmax = np.min(x), np.max(x)
     ymin, ymax = np.min(y), np.max(y)
-    nx = int(round((xmax - xmin)/pixelsize) + 1)
-    ny = int(round((ymax - ymin)/pixelsize) + 1)
+    nx = int(round((xmax - xmin) / pixelsize) + 1)
+    ny = int(round((ymax - ymin) / pixelsize) + 1)
     img = np.full((nx, ny), np.nan)  # use nan for missing data
-    j = np.round((x - xmin)/pixelsize).astype(int)
-    k = np.round((y - ymin)/pixelsize).astype(int)
+    j = np.round((x - xmin) / pixelsize).astype(int)
+    k = np.round((y - ymin) / pixelsize).astype(int)
     img[j, k] = counts
-    plt.imshow(np.rot90(img), interpolation='nearest', cmap='prism',
-               extent=[xmin - pixelsize/2, xmax + pixelsize/2,
-                       ymin - pixelsize/2, ymax + pixelsize/2])
-    plt.draw()  
+    plt.imshow(
+        np.rot90(img),
+        interpolation="nearest",
+        cmap="prism",
+        extent=[
+            xmin - pixelsize / 2,
+            xmax + pixelsize / 2,
+            ymin - pixelsize / 2,
+            ymax + pixelsize / 2,
+        ],
+    )
+    plt.draw()
+
+
 #############################################################################
 def load_emission_setup_new(data):
-  # Load data of emission setup from a flat array and return an
-  # array of classes
-  out = []
-  for i in np.arange(0,np.shape(data)[1]):
-    elem = [data[0][i],data[1][i],np.float64(data[2][i]),data[3][i],
-            data[4][i],np.float64(data[5][i]),data[6][i],
-            data[7][i],data[8][i],data[9][i]]
-    out.append(EmissionSetup(*elem))
-  return out
+    # Load data of emission setup from a flat array and return an
+    # array of classes
+    out = []
+    for i in np.arange(0, np.shape(data)[1]):
+        elem = [
+            data[0][i],
+            data[1][i],
+            np.float64(data[2][i]),
+            data[3][i],
+            data[4][i],
+            np.float64(data[5][i]),
+            data[6][i],
+            data[7][i],
+            data[8][i],
+            data[9][i],
+        ]
+        out.append(EmissionSetup(*elem))
+    return out
+
+
 #################################################################
-def remouve_detected_emission(galaxy,bestfit,emission_templates,sol_gas_A,AoN_thresholds,goodpixel):
-#; Given the galaxy spectrum, the best fit, the emission-line                                                                                   
-#; amplitudes, a vector with the A/N threshold for each line, and the                                                                           
-#; array containing the spectra of each best-fitting emission-line                                                                              
-#; templates, this function simply compute the residual-noise lvl,                                                                              
-#; compares it the amplitude of each lines, and remouves from the                                                                               
-#; galaxy spectrum only the best-matching emission-line templates for                                                                           
-#; which the correspoding A/N exceed the input threshold.  This is a                                                                            
-#; necessary step prior to measurements of the strength of the stellar                                                                          
-#; absorption line features                                                                                                                     
-#;                                                                                                                                              
-#; A list of goodpixels may be optionally input, for instance if any                                                                            
-#; pixel was excluded by sigma-clipping during the continuum and                                                                                
-#; emission-line fitting, or by excluding pixels on either ends of the                                                                          
-#; spectra                                                                                                                                      
-#;                                                                                                                                              
-#; Also optionally outputs the computed A/N ratios.                                                                                             
-#; Get the Residual Noise lvl.                                                                                                                  
-   resid = galaxy - bestfit
-   if goodpixel != None:
-     resid = resid[goodpixels]
-   resid_noise = robust_sigma(resid)
-#; A/N of each line                                                                                                                             
-   AoN = sol_gas_A/resid_noise
-#; Create neat spectrum, that is, a spectrum where only detected                                                                                
-#; emission has been remouved                                                                                                                   
-   neat_galaxy = galaxy
-   for i in range(0,len(sol_gas_A)):
-     if (AoN[i] >= AoN_thresholds[i]):
-       neat_galaxy = neat_galaxy - emission_templates[:,i]
-   return AoN, neat_galaxy
+def remouve_detected_emission(
+    galaxy, bestfit, emission_templates, sol_gas_A, AoN_thresholds, goodpixel
+):
+    # ; Given the galaxy spectrum, the best fit, the emission-line
+    # ; amplitudes, a vector with the A/N threshold for each line, and the
+    # ; array containing the spectra of each best-fitting emission-line
+    # ; templates, this function simply compute the residual-noise lvl,
+    # ; compares it the amplitude of each lines, and remouves from the
+    # ; galaxy spectrum only the best-matching emission-line templates for
+    # ; which the correspoding A/N exceed the input threshold.  This is a
+    # ; necessary step prior to measurements of the strength of the stellar
+    # ; absorption line features
+    # ;
+    # ; A list of goodpixels may be optionally input, for instance if any
+    # ; pixel was excluded by sigma-clipping during the continuum and
+    # ; emission-line fitting, or by excluding pixels on either ends of the
+    # ; spectra
+    # ;
+    # ; Also optionally outputs the computed A/N ratios.
+    # ; Get the Residual Noise lvl.
+    resid = galaxy - bestfit
+    if goodpixel != None:
+        resid = resid[goodpixels]
+    resid_noise = robust_sigma(resid)
+    # ; A/N of each line
+    AoN = sol_gas_A / resid_noise
+    # ; Create neat spectrum, that is, a spectrum where only detected
+    # ; emission has been remouved
+    neat_galaxy = galaxy
+    for i in range(0, len(sol_gas_A)):
+        if AoN[i] >= AoN_thresholds[i]:
+            neat_galaxy = neat_galaxy - emission_templates[:, i]
+    return AoN, neat_galaxy
+
+
 #################################################################
 def return_arg(arg_out, values):
-  # Clear an array (arg_out) and append the contents of other (values)
-  # Used to copy arguments to return (try to simulate IDL's way to 
-  # return results using Python parameters)
-  # Clean array
-  while len(arg_out) > 0:
-    #print arg_out[0]
-    del arg_out[0]
-  # Copy values
-  for x in values:
-    arg_out.append(x)
+    # Clear an array (arg_out) and append the contents of other (values)
+    # Used to copy arguments to return (try to simulate IDL's way to
+    # return results using Python parameters)
+    # Clean array
+    while len(arg_out) > 0:
+        # print arg_out[0]
+        del arg_out[0]
+    # Copy values
+    for x in values:
+        arg_out.append(x)
+
+
 #################################################################
-def mask_emission_lines(npix,Vsys,emission_setup, velscale,l0_gal,lstep_gal, sigm,l_rf_range,log10,sysRedshift):
-# Return a list of goodpixels to fit that excludes regions potentially
-# affected by gas emission and by sky lines. Unless the log10 keyword
-# is specified, wavelength values are assumed to be ln-rebinned, and
-# are defined by the l0_gal, lstep_gal, npix parameters. The position of
-# gas and sky emission lines is set by the input emission_setup
-# structure and the width of the mask by the sigma parameter. If a
-# sigma value is not passed than the width of each line is taken from
-# the emission_setup structure.
-#
-# The rest-frame fitting wavelength range can be manually restricted
-# using the l_rf_range keyword to pass min and max observed
-# wavelength. Typically used to exclude regions at either side of
-# spectra.
-# speed of light
-  c = np.float64(299792.458)
-# define good pixels array
-  goodpixels = np.arange(0,npix) 
-# if set, exclude regions at either ends of the spectra using the keyword l_rf_range
-  if l_rf_range != None: 
-    if((np.shape(l_rf_range))[0] > 1): # CHECKS ONLY FOR DIM NOT WHETHER IT EXISTS IS SET
-      pix0 = int(mt.ceil((np.log(l_rf_range[0])-l0_gal)/lstep_gal+Vsys/velscale))
-      pix1 = int(mt.ceil((np.log(l_rf_range[1])-l0_gal)/lstep_gal+Vsys/velscale))
-      if (log10 == 1):
-          pix0 = int(mt.ceil((np.log10(l_rf_range[0])-l0_gal)/lstep_gal+Vsys/velscale))
-          pix1 = int(mt.ceil((np.log10(l_rf_range[1])-l0_gal)/lstep_gal+Vsys/velscale))
-      goodpixels = np.arange(np.max([pix0,0]),np.min([pix1,npix]))  
-  tmppixels  = goodpixels
-# looping over the listed emission-lines and mask those tagged with an
-# 'm' for mask. Mask sky lines at rest-frame wavelength
-  for i in np.arange(0, len(emission_setup)):
-    if ((emission_setup[i]).action == 'm'):
-#        print('--> masking ' + (emission_setup[i]).name)
-        if ((emission_setup[i]).name != 'sky'):
-          meml_cpix = mt.ceil((np.log((emission_setup[i])._lambda)-l0_gal)/lstep_gal+Vsys/velscale)
-        if (((emission_setup[i]).name != 'sky') & (log10 == 1)): 
-          meml_cpix = mt.ceil((np.log10((emission_setup[i])._lambda)-l0_gal)/lstep_gal+Vsys/velscale)
-        # sky lines are at rest-frame
-        if ((emission_setup[i]).name == 'sky'):
-          meml_cpix = mt.ceil((np.log((emission_setup[i])._lambda/(1+sysRedshift))-l0_gal)/lstep_gal)
-        if (((emission_setup[i]).name == 'sky') & (log10==1)):
-          meml_cpix = mt.ceil((np.log10((emission_setup[i])._lambda/(1+sysRedshift))-l0_gal)/lstep_gal)
-        # set the width of the mask in pixels using either
-        # 3 times the sigma of each line in the emission-line setup 
-        # or the provided sigma value 
-        if (sigm != None):
-          msigma = 3*sigm/velscale
-        if (sigm == None):
-          msigma = 3*((emission_setup[i]).s)/velscale
-        meml_bpix = meml_cpix - msigma
-        meml_rpix = meml_cpix + msigma
-        w = np.where((goodpixels >= meml_bpix) & (goodpixels <= meml_rpix)) 
-        if (np.size(w) != 0):
-            tmppixels[w] = -1 
-        elif(np.size(w) ==0):
-#          print('this line is outside your wavelength range. We shall ignore it')
-          (emission_setup[i]).action = 'i'                                         
-  w = np.where(tmppixels != -1)
-  goodpixels = goodpixels[w]
-  return goodpixels, emission_setup
+def mask_emission_lines(
+    npix,
+    Vsys,
+    emission_setup,
+    velscale,
+    l0_gal,
+    lstep_gal,
+    sigm,
+    l_rf_range,
+    log10,
+    sysRedshift,
+):
+    # Return a list of goodpixels to fit that excludes regions potentially
+    # affected by gas emission and by sky lines. Unless the log10 keyword
+    # is specified, wavelength values are assumed to be ln-rebinned, and
+    # are defined by the l0_gal, lstep_gal, npix parameters. The position of
+    # gas and sky emission lines is set by the input emission_setup
+    # structure and the width of the mask by the sigma parameter. If a
+    # sigma value is not passed than the width of each line is taken from
+    # the emission_setup structure.
+    #
+    # The rest-frame fitting wavelength range can be manually restricted
+    # using the l_rf_range keyword to pass min and max observed
+    # wavelength. Typically used to exclude regions at either side of
+    # spectra.
+    # speed of light
+    c = np.float64(299792.458)
+    # define good pixels array
+    goodpixels = np.arange(0, npix)
+    # if set, exclude regions at either ends of the spectra using the keyword l_rf_range
+    if l_rf_range != None:
+        if (np.shape(l_rf_range))[
+            0
+        ] > 1:  # CHECKS ONLY FOR DIM NOT WHETHER IT EXISTS IS SET
+            pix0 = int(
+                mt.ceil((np.log(l_rf_range[0]) - l0_gal) / lstep_gal + Vsys / velscale)
+            )
+            pix1 = int(
+                mt.ceil((np.log(l_rf_range[1]) - l0_gal) / lstep_gal + Vsys / velscale)
+            )
+            if log10 == 1:
+                pix0 = int(
+                    mt.ceil(
+                        (np.log10(l_rf_range[0]) - l0_gal) / lstep_gal + Vsys / velscale
+                    )
+                )
+                pix1 = int(
+                    mt.ceil(
+                        (np.log10(l_rf_range[1]) - l0_gal) / lstep_gal + Vsys / velscale
+                    )
+                )
+            goodpixels = np.arange(np.max([pix0, 0]), np.min([pix1, npix]))
+    tmppixels = goodpixels
+    # looping over the listed emission-lines and mask those tagged with an
+    # 'm' for mask. Mask sky lines at rest-frame wavelength
+    for i in np.arange(0, len(emission_setup)):
+        if (emission_setup[i]).action == "m":
+            #        print('--> masking ' + (emission_setup[i]).name)
+            if (emission_setup[i]).name != "sky":
+                meml_cpix = mt.ceil(
+                    (np.log((emission_setup[i])._lambda) - l0_gal) / lstep_gal
+                    + Vsys / velscale
+                )
+            if ((emission_setup[i]).name != "sky") & (log10 == 1):
+                meml_cpix = mt.ceil(
+                    (np.log10((emission_setup[i])._lambda) - l0_gal) / lstep_gal
+                    + Vsys / velscale
+                )
+            # sky lines are at rest-frame
+            if (emission_setup[i]).name == "sky":
+                meml_cpix = mt.ceil(
+                    (np.log((emission_setup[i])._lambda / (1 + sysRedshift)) - l0_gal)
+                    / lstep_gal
+                )
+            if ((emission_setup[i]).name == "sky") & (log10 == 1):
+                meml_cpix = mt.ceil(
+                    (np.log10((emission_setup[i])._lambda / (1 + sysRedshift)) - l0_gal)
+                    / lstep_gal
+                )
+            # set the width of the mask in pixels using either
+            # 3 times the sigma of each line in the emission-line setup
+            # or the provided sigma value
+            if sigm != None:
+                msigma = 3 * sigm / velscale
+            if sigm == None:
+                msigma = 3 * ((emission_setup[i]).s) / velscale
+            meml_bpix = meml_cpix - msigma
+            meml_rpix = meml_cpix + msigma
+            w = np.where((goodpixels >= meml_bpix) & (goodpixels <= meml_rpix))
+            if np.size(w) != 0:
+                tmppixels[w] = -1
+            elif np.size(w) == 0:
+                #          print('this line is outside your wavelength range. We shall ignore it')
+                (emission_setup[i]).action = "i"
+    w = np.where(tmppixels != -1)
+    goodpixels = goodpixels[w]
+    return goodpixels, emission_setup
+
+
 #################################################################
 def set_constraints(galaxy, noise, cstar, kinstars, velscale, degree, mdegree, goodpixels, emission_setup, start_pars, 
                      l0_gal, lstep_gal, int_disp, log10, reddening, l0_templ):
@@ -473,6 +612,7 @@ def set_constraints(galaxy, noise, cstar, kinstars, velscale, degree, mdegree, g
                'goodpixels':goodpixels, 'l0_gal':l0_gal,       'lstep_gal':lstep_gal, 'int_disp':int_disp,     
                'log10':log10,           'reddening':reddening, 'l0_templ':l0_templ}
   return parinfo, functargs
+
 ################################################################################
 def shifta(arr, num, fill_value=0):
     result = np.empty_like(arr)
@@ -485,6 +625,8 @@ def shifta(arr, num, fill_value=0):
     else:
         result = arr
     return result
+
+
 ################################################################################
 def rebin(x, factor):
     """
@@ -494,8 +636,9 @@ def rebin(x, factor):
     if factor == 1:
         xx = x
     else:
-        xx = x.reshape(len(x)//factor, factor, -1).mean(1).squeeze()
+        xx = x.reshape(len(x) // factor, factor, -1).mean(1).squeeze()
     return xx
+
 ###############################################################################
 def create_templates(emission_setup, pars, npix, lstep_gal, int_disp_pix, log10):
   # Take the emission-setup structure and the input pars parameter array
@@ -597,20 +740,23 @@ def BVLSN_Solve_pxf (AA, bb, degree, nlines):
   
   soluz = _bvls_solve(AA, bb, 0)
   return  soluz
+
 ###############################################################################
 def create_gaussn(x, xpars, int_disp_pix_line):
-#def create_gaussn(x, xpars, int_disp_pix2): !OLD version 
-  #  The instrumental resolution is supoly_iosed to be in sigma and in pixels
-  # at this stage
-  pars = xpars #np.copy(xpars)
-  npars = len(xpars)
-  npix  = len(x)
-  y = np.zeros(npix,dtype=np.float64)
-  for i in np.arange(0, npars-2, 3):
-    pars[i+2] = mt.sqrt(pars[i+2]**2 + (int_disp_pix_line)**2)
-    w = (np.arange(0,npix,dtype=np.float64) - pars[i+1]) / pars[i+2]
-    y += pars[i] * np.exp(-w**2/2.)
-  return y
+    # def create_gaussn(x, xpars, int_disp_pix2): !OLD version
+    #  The instrumental resolution is supoly_iosed to be in sigma and in pixels
+    # at this stage
+    pars = xpars  # np.copy(xpars)
+    npars = len(xpars)
+    npix = len(x)
+    y = np.zeros(npix, dtype=np.float64)
+    for i in np.arange(0, npars - 2, 3):
+        pars[i + 2] = mt.sqrt(pars[i + 2] ** 2 + (int_disp_pix_line) ** 2)
+        w = (np.arange(0, npix, dtype=np.float64) - pars[i + 1]) / pars[i + 2]
+        y += pars[i] * np.exp(-(w**2) / 2.0)
+    return y
+
+
 ###############################################################################
 def _losvd_rfft(pars, nspec, moments, nl):
     """
@@ -618,28 +764,30 @@ def _losvd_rfft(pars, nspec, moments, nl):
     Equation (38) of Cappellari M., 2017, MNRAS, 466, 798
     http://adsabs.harvard.edu/abs/2017MNRAS.466..798C
     """
-    vsyst = 0 # Def in ppxf 
-    factor = 1. 
-    sigma_diff = 0. 
-    ncomp = 1 # One component only 
-    nspec = 1 
+    vsyst = 0  # Def in ppxf
+    factor = 1.0
+    sigma_diff = 0.0
+    ncomp = 1  # One component only
+    nspec = 1
     losvd_rfft = np.empty((nl, ncomp, nspec), dtype=complex)
     p = 0
     for j, mom in enumerate(moments):  # loop over kinematic components
         for k in range(nspec):  # nspec=2 for two-sided fitting, otherwise nspec=1
             s = 1 if k == 0 else -1  # s=+1 for left spectrum, s=-1 for right one
-            vel, sig = vsyst + s*pars[0 + p], pars[1 + p]
-            a, b = [vel, sigma_diff]/sig
-            w = np.linspace(0, np.pi*factor*sig, nl)
-            losvd_rfft[:, j, k] = np.exp(1j*a*w - 0.5*(1 + b**2)*w**2)
+            vel, sig = vsyst + s * pars[0 + p], pars[1 + p]
+            a, b = [vel, sigma_diff] / sig
+            w = np.linspace(0, np.pi * factor * sig, nl)
+            losvd_rfft[:, j, k] = np.exp(1j * a * w - 0.5 * (1 + b**2) * w**2)
             if mom > 2:
                 n = np.arange(3, mom + 1)
-                nrm = np.sqrt(sp_s.factorial(n)*2**n)   # vdMF93 Normalization
-                coeff = np.append([1, 0, 0], (s*1j)**n * pars[p - 1 + n]/nrm)
+                nrm = np.sqrt(sp_s.factorial(n) * 2**n)  # vdMF93 Normalization
+                coeff = np.append([1, 0, 0], (s * 1j) ** n * pars[p - 1 + n] / nrm)
                 poly = hermite.hermval(w, coeff)
                 losvd_rfft[:, j, k] *= poly
         p += mom
     return np.conj(losvd_rfft)
+
+
 ###############################################################################
 def _losvd_rfft_old(pars, nspec, moments, nl, ncomp, vsyst, factor, sigma_diff):
     """
@@ -652,145 +800,172 @@ def _losvd_rfft_old(pars, nspec, moments, nl, ncomp, vsyst, factor, sigma_diff):
     for j, mom in enumerate(moments):  # loop over kinematic components
         for k in range(nspec):  # nspec=2 for two-sided fitting, otherwise nspec=1
             s = 1 if k == 0 else -1  # s=+1 for left spectrum, s=-1 for right one
-            vel, sig = vsyst + s*pars[0 + p], pars[1 + p]
-            a, b = [vel, sigma_diff]/sig
-            w = np.linspace(0, np.pi*factor*sig, nl)
-            losvd_rfft[:, j, k] = np.exp(1j*a*w - 0.5*(1 + b**2)*w**2)
-#
+            vel, sig = vsyst + s * pars[0 + p], pars[1 + p]
+            a, b = [vel, sigma_diff] / sig
+            w = np.linspace(0, np.pi * factor * sig, nl)
+            losvd_rfft[:, j, k] = np.exp(1j * a * w - 0.5 * (1 + b**2) * w**2)
+            #
             if mom > 2:
                 n = np.arange(3, mom + 1)
-                nrm = np.sqrt(sp_s.factorial(n)*2**n)   # vdMF93 Normalization
-                coeff = np.append([1, 0, 0], (s*1j)**n * pars[p - 1 + n]/nrm)
+                nrm = np.sqrt(sp_s.factorial(n) * 2**n)  # vdMF93 Normalization
+                coeff = np.append([1, 0, 0], (s * 1j) ** n * pars[p - 1 + n] / nrm)
                 poly = hermite.hermval(w, coeff)
                 losvd_rfft[:, j, k] *= poly
         p += mom
-#
+    #
     return np.conj(losvd_rfft)
+
+
 ###############################################################################
-def convolve_templates(templates, kinstars, velscale, npix_gal): #, velscale_ratio)
-#<<<< NO CONVOLUTION ANALOGOUS TO IDL SO DO AS IN PPXF-ish IN FOURIER SPACE >>>>
-#  if (velscale_ratio != 1): # Check for oversampling ... .
-#    vel   = kinstars[0]/(velscale*velscale_ratio)            # in pixels
-#    sigma = kinstars[1]/(velscale*velscale_ratio)                # in pixels
-#    dx = int(mt.ceil(abs(vel) + 4*sigma))       # Sample the Gaussian and GH at least to vel+4*sigma
-#    x  = np.arange(dx, -dx-1, -1)               # Evaluate the Gaussian using steps of 1 pixel.
-#  else:
-#    vel   = kinstars[0]/velscale                # in pixels
-#    sigma = kinstars[1]/velscale                # in pixels
-#    dx = int(mt.ceil(abs(vel) + 4*sigma))       # Sample the Gaussian and GH at least to vel+4*sigma
-#    x  = np.arange(dx, -dx-1, -1)               # Evaluate the Gaussian using steps of 1 pixel.
-#
-  vel   = kinstars[0]/velscale                # in pixels
-  sigma = kinstars[1]/velscale                # in pixels
-  dx = int(mt.ceil(abs(vel) + 4*sigma))       # Sample the Gaussian and GH at least to vel+4*sigma
-  x  = np.arange(dx, -dx-1, -1)               # Evaluate the Gaussian using steps of 1 pixel.
-  w  = (x - vel)/sigma
-  w2 = w**2
-  losvd = np.exp(-0.5 * w2) / (mt.sqrt(2 * mt.pi) * sigma)  # Normalized total(Gaussian)=1
-  poly = np.zeros(len(w))
-  # Hermite polynomials as in van der Marel & Franx (1993).
-  # Coefficients are given e.g. in Apoly_iendix C of Capoly_iellari et al. (2002)
-  nkins = len(kinstars)
-  if nkins > 2:
-    # Pre-calculate constants  
-    sqrt3   = mt.sqrt(3)
-    sqrt24  = mt.sqrt(24)
-    sqrt60  = mt.sqrt(60)
-    sqrt720 = mt.sqrt(720)
-    poly = (1 + kinstars[2] / sqrt3  * (w  * (2 * w2 - 3))           # H3
-              + kinstars[3] / sqrt24 * (w2 * (4 * w2 - 12) + 3))     # H4
-    if nkins == 6:
-      poly += (kinstars[4] / sqrt60  * (w  * (w2 * (4 * w2 - 20) + 15))        # H5 
-           +  kinstars[5] / sqrt720 * (w2 * (w2 * (8 * w2 - 60) + 90) - 15))  # H6
-    losvd *= poly
-  s = np.shape(templates)
-  ctemplates = np.zeros_like(templates,dtype=np.float64)
-  ctemplates = np.transpose(ctemplates)
-# MEET HALFWAY LOSVD NOT FOURIER TRANSFORMED BEFORE AND TEMPLATES HANDLED WITH PADDING
-# TAKEN FROM IDL VERSION OF PPXF-ish ... 
-#
-#                        f        k
-#  ppxf_convol_fft(star[*,j],losvd[*,component[j],k])
-  nf = np.shape(templates)[1]
-  nk = len(losvd)
-  nn = long(2**(mt.ceil(np.log(nf+nk/2)/np.log(2))))
-  for j in np.arange(np.shape(templates)[0]): # Loop over templates 
-    f1 = np.zeros(nn,dtype=np.float64)
-    k1 = np.zeros(nn,dtype=np.float64)
-    f1[0:nf] = templates[j,:]
-    k1[0:nk] = np.flip(losvd,0)
-    k1 = np.roll(k1,int(-(nk-1)/2))
-    A = np.fft.fft(f1)
-    B = np.fft.fft(k1)
-    con = np.real((np.fft.ifft(A*B)))[0:nf]
-    ctemplates[:,j] = con
-  return np.array(ctemplates)
+def convolve_templates(templates, kinstars, velscale, npix_gal):  # , velscale_ratio)
+    # <<<< NO CONVOLUTION ANALOGOUS TO IDL SO DO AS IN PPXF-ish IN FOURIER SPACE >>>>
+    #  if (velscale_ratio != 1): # Check for oversampling ... .
+    #    vel   = kinstars[0]/(velscale*velscale_ratio)            # in pixels
+    #    sigma = kinstars[1]/(velscale*velscale_ratio)                # in pixels
+    #    dx = int(mt.ceil(abs(vel) + 4*sigma))       # Sample the Gaussian and GH at least to vel+4*sigma
+    #    x  = np.arange(dx, -dx-1, -1)               # Evaluate the Gaussian using steps of 1 pixel.
+    #  else:
+    #    vel   = kinstars[0]/velscale                # in pixels
+    #    sigma = kinstars[1]/velscale                # in pixels
+    #    dx = int(mt.ceil(abs(vel) + 4*sigma))       # Sample the Gaussian and GH at least to vel+4*sigma
+    #    x  = np.arange(dx, -dx-1, -1)               # Evaluate the Gaussian using steps of 1 pixel.
+    #
+    vel = kinstars[0] / velscale  # in pixels
+    sigma = kinstars[1] / velscale  # in pixels
+    dx = int(
+        mt.ceil(abs(vel) + 4 * sigma)
+    )  # Sample the Gaussian and GH at least to vel+4*sigma
+    x = np.arange(dx, -dx - 1, -1)  # Evaluate the Gaussian using steps of 1 pixel.
+    w = (x - vel) / sigma
+    w2 = w**2
+    losvd = np.exp(-0.5 * w2) / (
+        mt.sqrt(2 * mt.pi) * sigma
+    )  # Normalized total(Gaussian)=1
+    poly = np.zeros(len(w))
+    # Hermite polynomials as in van der Marel & Franx (1993).
+    # Coefficients are given e.g. in Apoly_iendix C of Capoly_iellari et al. (2002)
+    nkins = len(kinstars)
+    if nkins > 2:
+        # Pre-calculate constants
+        sqrt3 = mt.sqrt(3)
+        sqrt24 = mt.sqrt(24)
+        sqrt60 = mt.sqrt(60)
+        sqrt720 = mt.sqrt(720)
+        poly = (
+            1
+            + kinstars[2] / sqrt3 * (w * (2 * w2 - 3))  # H3
+            + kinstars[3] / sqrt24 * (w2 * (4 * w2 - 12) + 3)
+        )  # H4
+        if nkins == 6:
+            poly += kinstars[4] / sqrt60 * (
+                w * (w2 * (4 * w2 - 20) + 15)
+            ) + kinstars[  # H5
+                5
+            ] / sqrt720 * (
+                w2 * (w2 * (8 * w2 - 60) + 90) - 15
+            )  # H6
+        losvd *= poly
+    s = np.shape(templates)
+    ctemplates = np.zeros_like(templates, dtype=np.float64)
+    ctemplates = np.transpose(ctemplates)
+    # MEET HALFWAY LOSVD NOT FOURIER TRANSFORMED BEFORE AND TEMPLATES HANDLED WITH PADDING
+    # TAKEN FROM IDL VERSION OF PPXF-ish ...
+    #
+    #                        f        k
+    #  ppxf_convol_fft(star[*,j],losvd[*,component[j],k])
+    nf = np.shape(templates)[1]
+    nk = len(losvd)
+    nn = long(2 ** (mt.ceil(np.log(nf + nk / 2) / np.log(2))))
+    for j in np.arange(np.shape(templates)[0]):  # Loop over templates
+        f1 = np.zeros(nn, dtype=np.float64)
+        k1 = np.zeros(nn, dtype=np.float64)
+        f1[0:nf] = templates[j, :]
+        k1[0:nk] = np.flip(losvd, 0)
+        k1 = np.roll(k1, int(-(nk - 1) / 2))
+        A = np.fft.fft(f1)
+        B = np.fft.fft(k1)
+        con = np.real((np.fft.ifft(A * B)))[0:nf]
+        ctemplates[:, j] = con
+    return np.array(ctemplates)
+
+
 ###############################################################################
-def convolve_templates_new(templates, kinstars, velscale, npix_gal, velscale_ratio, vsyst):
-#
-# Pre-compute FFT of real input of all templates
-#
-  npix_temp = len(templates[0,:])
-  templates = templates.T
-  npad = 2**int(np.ceil(np.log2(templates.shape[0])))
-  templates_rfft = np.fft.rfft(templates, npad, axis=0)
-#
-  pars = kinstars 
-#
-  pars[0:2] = pars[0:2]/velscale 
-#
-  nspec = 1 # not 2 sided by default 
-  moments = [len(kinstars)] # fix to 1 comp for now 
-  nl = templates_rfft.shape[0]
-  ncomp = 1 # Add 2 comp !
-  factor = velscale_ratio
-  sigma_diff = 0.0 # already broadened & convolved !    
-#
-  losvd_rfft = _losvd_rfft_old(pars, nspec, moments, nl, ncomp, vsyst/velscale, factor, sigma_diff)
-#
-  pp = []
-  tmp = np.empty((1, npix_temp))
-#
-  for k in np.arange((np.shape(templates)[1])):
-    template_rfft = templates_rfft[:,k]
-    pr = template_rfft*losvd_rfft[:, 0, 0]
-    tt = np.fft.irfft(pr, npad) 
-    pp.append(rebin(tt[:npix_temp*factor], factor)[:npix_gal].ravel())
-#
-  return np.transpose(np.array(pp))
+def convolve_templates_new(
+    templates, kinstars, velscale, npix_gal, velscale_ratio, vsyst
+):
+    #
+    # Pre-compute FFT of real input of all templates
+    #
+    npix_temp = len(templates[0, :])
+    templates = templates.T
+    npad = 2 ** int(np.ceil(np.log2(templates.shape[0])))
+    templates_rfft = np.fft.rfft(templates, npad, axis=0)
+    #
+    pars = kinstars
+    #
+    pars[0:2] = pars[0:2] / velscale
+    #
+    nspec = 1  # not 2 sided by default
+    moments = [len(kinstars)]  # fix to 1 comp for now
+    nl = templates_rfft.shape[0]
+    ncomp = 1  # Add 2 comp !
+    factor = velscale_ratio
+    sigma_diff = 0.0  # already broadened & convolved !
+    #
+    losvd_rfft = _losvd_rfft_old(
+        pars, nspec, moments, nl, ncomp, vsyst / velscale, factor, sigma_diff
+    )
+    #
+    pp = []
+    tmp = np.empty((1, npix_temp))
+    #
+    for k in np.arange((np.shape(templates)[1])):
+        template_rfft = templates_rfft[:, k]
+        pr = template_rfft * losvd_rfft[:, 0, 0]
+        tt = np.fft.irfft(pr, npad)
+        pp.append(rebin(tt[: npix_temp * factor], factor)[:npix_gal].ravel())
+    #
+    return np.transpose(np.array(pp))
+
+
 ###############################################################################
-def dust_calzetti(l0_gal,lstep_gal,npix,ebv,vstar,log10):
-  # This procedure uses the dust model of Calzetti et al. (2000, ApJ,
-  # 533, 682), and for a given E(B-V) value returns the flux attenuation
-  # array, which can be used to get reddened templates. Here the spectra
-  # are assumed to be binned on a ln-rebinned wavelentgh grid as defined
-  # by input l0_gal,lstep_gal,npix parameters. The input receiding
-  # velocity vstar, is used to derive the dust reddening in the galaxy
-  # rest-frame.
-  # 
-  # Can be used also to de-reddened the object spectra by the Milky-Way
-  # dust extinction, using as E(B-V) the opposite of the Schlegel et
-  # al. values found in NED and vstar = 0.
-  #
-  # Initial version kindly provided by S. Kaviray, Oxford, 2006.
-  # reconstruct the wavelength array in Anstroms, and compute rest-frame
-  # values
-  vect = np.arange(npix, dtype='float64')
-  _lambda = np.exp(vect * lstep_gal + l0_gal)
-  if log10==1:
-    _lambda = 10**(vect * lstep_gal + l0_gal)
-  _lambda /= np.exp(vstar/np.float64(C))
-  # array to hold k(lambda) values
-  k = np.zeros(len(_lambda),dtype = np.float64)
-  for i in range(len(_lambda)):
-    # convert wavelength units from angstroms to micrometres
-    l = _lambda[i]/np.float64(1e4)                   
-    # assign k values
-    if   (l >= 0.63) and (l <= 2.2): k[i] = 2.659*(-1.857+1.040/l)+4.05
-    elif (l < 0.63):               k[i] = 2.659*(-2.156+1.509/l-0.198/l**2+0.011/l**3)+4.05
-    if (l> 2.2):                   k[i] = 0.0 # l > 2.2
-  # this should be then multiplied by the spectrum flux array
-  return np.array(10**(-0.4*ebv*k), dtype=np.float64)
+def dust_calzetti(l0_gal, lstep_gal, npix, ebv, vstar, log10):
+    # This procedure uses the dust model of Calzetti et al. (2000, ApJ,
+    # 533, 682), and for a given E(B-V) value returns the flux attenuation
+    # array, which can be used to get reddened templates. Here the spectra
+    # are assumed to be binned on a ln-rebinned wavelentgh grid as defined
+    # by input l0_gal,lstep_gal,npix parameters. The input receiding
+    # velocity vstar, is used to derive the dust reddening in the galaxy
+    # rest-frame.
+    #
+    # Can be used also to de-reddened the object spectra by the Milky-Way
+    # dust extinction, using as E(B-V) the opposite of the Schlegel et
+    # al. values found in NED and vstar = 0.
+    #
+    # Initial version kindly provided by S. Kaviray, Oxford, 2006.
+    # reconstruct the wavelength array in Anstroms, and compute rest-frame
+    # values
+    vect = np.arange(npix, dtype="float64")
+    _lambda = np.exp(vect * lstep_gal + l0_gal)
+    if log10 == 1:
+        _lambda = 10 ** (vect * lstep_gal + l0_gal)
+    _lambda /= np.exp(vstar / np.float64(C))
+    # array to hold k(lambda) values
+    k = np.zeros(len(_lambda), dtype=np.float64)
+    for i in range(len(_lambda)):
+        # convert wavelength units from angstroms to micrometres
+        l = _lambda[i] / np.float64(1e4)
+        # assign k values
+        if (l >= 0.63) and (l <= 2.2):
+            k[i] = 2.659 * (-1.857 + 1.040 / l) + 4.05
+        elif l < 0.63:
+            k[i] = 2.659 * (-2.156 + 1.509 / l - 0.198 / l**2 + 0.011 / l**3) + 4.05
+        if l > 2.2:
+            k[i] = 0.0  # l > 2.2
+    # this should be then multiplied by the spectrum flux array
+    return np.array(10 ** (-0.4 * ebv * k), dtype=np.float64)
+
+
 ###############################################################################
 def fitfunc_gas (pars, **kwargs):
   cstar      = kwargs['cstar']
@@ -1271,10 +1446,13 @@ def gandalf(templates, galaxy, noise, velscale, sol, emission_setup, l0_gal, lst
         #update the galaxy spectrum in functargs. No need to redo the full setup, just replace in dict.
         ifunctargs['galaxy'] = igalaxy
         
+
+
         # -----------------
         # Re-run MPFIT starting from previous solution and using now the
         # FOR_ERRORS keyword to specify that we solve non-linearly also for
         # the amplitudes, and not only for the line position and width.
+
         mpfit_out = mpfit(fitfunc_gas, xall=start_pars, functkw=ifunctargs, parinfo=iparinfo, ftol=1e-5,quiet = 1)
         status_2 = mpfit_out.status
         ncalls_2 = mpfit_out.nfev
@@ -1289,6 +1467,7 @@ def gandalf(templates, galaxy, noise, velscale, sol, emission_setup, l0_gal, lst
         bestfit_2 = []
         weights_2 = []
         emission_templates_2 = []
+
         st, resid_2 = fitfunc_gas(best_pars_2, cstar=cstar, galaxy=igalaxy, noise=noise, 
                               kinstars=kinstars, velscale=velscale, degree=degree, mdegree=mdegree, 
                               goodpixels=goodpixels, bestfit=bestfit_2, weights=weights_2, 
@@ -1303,6 +1482,7 @@ def gandalf(templates, galaxy, noise, velscale, sol, emission_setup, l0_gal, lst
         # Rearrange the final results in the output array SOL, which
         # includes also line fluxes. This time evaluate also the errors on
         # these last values, using for now a simple MC error propagation
+
         sol_2, _ = rearrange_results(best_pars_2, weights_2, l0_gal, lstep_gal, velscale, emission_setup, 
                                           int_disp, log10, reddening, errors_2)
         eout_all[mc_iter,:] = sol_2
@@ -1364,18 +1544,27 @@ def gandalf(templates, galaxy, noise, velscale, sol, emission_setup, l0_gal, lst
     for l,i in enumerate(i_lines):
       print("%8s %12.4f %12.4f %12.4f %12.4f %12.4f" % 
              (emission_setup[i].name, sol[l*4], sol[l*4+1], sol[l*4+2], sol[l*4+3], sol[l*4+1]/resid_noise))
+
     if reddening:
-      print ('E(B-V) = ' + str(sol[nlines*4]))
-      if len(reddening) == 2:
-        print ('E(B-V)_int = ' + str(sol[nlines*4+1]))
-    if for_errors:
-      print (' ================================= Errors ================================')
-      for l,i in enumerate(i_lines):
-        print("%8s %12.4f %12.4f %12.4f %12.4f %12.4f" % 
-               (emission_setup[i].name, esol[l*4], esol[l*4+1], esol[l*4+2], esol[l*4+3], esol[l*4+1]/resid_noise))
-      if reddening:
-        print ('E(B-V) = ' + str(esol[nlines*4]))
+        # make the spectrum wavelength array
+        if not log10:
+            ob_lambda = np.exp(
+                np.arange(len(galaxy), dtype="float") * lstep_gal + l0_gal
+            )
+            Vstar = kinstars[0] + (l0_gal - l0_templ) * C
+        else:
+            ob_lambda = 10 ** (
+                np.arange(len(galaxy), dtype="float") * lstep_gal + l0_gal
+            )
+            Vstar = kinstars[0] + (l0_gal - l0_templ) * C * mt.log(10.0)
+        # receding velocity
+        # total reddening attenuation that was applied to the emission lines
+        # in FITFUNC_GAS
+        reddening_attenuation = dust_calzetti(
+            l0_gal, lstep_gal, len(galaxy), sol[nlines * 4], Vstar, log10
+        )
         if len(reddening) == 2:
+
           print ('E(B-V)_int = ' + str (esol[nlines*4+1]))
       print ('\nRoN = ' + str(resid_noise))
     print('\nfeval = ' + str(ncalls))
