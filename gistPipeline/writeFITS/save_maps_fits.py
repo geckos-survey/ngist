@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import optparse
 import os
 import warnings
@@ -7,15 +8,14 @@ import warnings
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
-
 from scipy.interpolate import CubicSpline
+
 from gistPipeline.readData.MUSE_WFM import readCube
-
-from gistPipeline.utils.wcs_utils import strip_wcs_from_header, diagonal_wcs_to_cdelt
-
-import logging
+from gistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
+                                          strip_wcs_from_header)
 
 warnings.filterwarnings("ignore")
+
 
 def savefitsmaps(module_id, outdir=""):
     """
@@ -57,7 +57,6 @@ def savefitsmaps(module_id, outdir=""):
         print(
             "All Y-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!\n"
         )
-        
 
     # Read Results
     if module_id == "KIN":
@@ -83,7 +82,6 @@ def savefitsmaps(module_id, outdir=""):
             names = ["AGE", "METAL"]
         else:
             names = ["AGE", "METAL", "ALPHA"]
-
 
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
@@ -128,6 +126,7 @@ def savefitsmaps(module_id, outdir=""):
         os.path.join(outdir, rootname) + "_" + module_id + "_maps.fits", overwrite=True
     )
     hdu1.close()
+
 
 def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4):
     """
@@ -358,27 +357,27 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
 def saveContLineCube(config):
     """
     saveContLineCubes _summary_
-    
+
     Write continuum-only and line-only cubes to FITS files.
 
     Parameters
     ----------
     config : str, optional
         gistPipeline config
-    """ 
+    """
 
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_KIN_ContLineCube.fits"
     )
-    
+
     # read cube header - check extension contains WCS
     cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=0)
-    if 'NAXIS1' not in cubehdr:
+    if "NAXIS1" not in cubehdr:
         cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=1)
-    elif 'NAXIS1' not in cubehdr:
+    elif "NAXIS1" not in cubehdr:
         cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=2)
-   
+
     NX = cubehdr["NAXIS1"]
     NY = cubehdr["NAXIS2"]
 
@@ -398,7 +397,7 @@ def saveContLineCube(config):
             config["GENERAL"]["RUN_ID"] + "_kin-bestfit.fits",
         )
     )[1].data.BESTFIT
-    
+
     # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
     logLam = fits.open(
         os.path.join(
@@ -412,8 +411,6 @@ def saveContLineCube(config):
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_table.fits"
     )
-
-
 
     spaxID = np.array(tablehdu[1].data.ID)
     binID = np.array(tablehdu[1].data.BIN_ID)
@@ -430,7 +427,6 @@ def saveContLineCube(config):
 
     # loop over spaxels
     for s in spaxID:
-        
         # bin ID of spaxel s
         binID_spax = binID[s]
         obsSpec_lin = spectra_all[:, s]
@@ -457,12 +453,14 @@ def saveContLineCube(config):
     cubehdr["CRPIX3"] = 1
     cubehdr["CTYPE3"] = "AWAV"
     cubehdr["CDELT3"] = np.abs(np.diff(linLam))[0]
-    
+
     # set the WCS keywords to CDELT standard format
     cdi_j_wcs = WCS(cubehdr)
-    newcubehdr = strip_wcs_from_header(cubehdr) # remove all WCS keys from header
-    newcubehdr.update(diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()) # replace with CDELT standard keys
-    
+    newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
+    newcubehdr.update(
+        diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
+    )  # replace with CDELT standard keys
+
     primary_hdu = fits.PrimaryHDU(header=fits.Header())
     contCube_hdu = fits.ImageHDU(
         contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=newcubehdr

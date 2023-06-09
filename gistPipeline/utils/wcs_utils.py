@@ -63,4 +63,3 @@ def diagonal_wcs_to_cdelt(mywcs):
         del mywcs.wcs.cd
         mywcs.wcs.cdelt = cdelt
     return mywcs
-

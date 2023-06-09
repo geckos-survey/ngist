@@ -539,7 +539,7 @@ def save_ppxf(
     printStatus.updateDone(
         "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-SpectralMask.fits"
     )
-    logging.info("Wrote: " + outfits)    
+    logging.info("Wrote: " + outfits)
 
 
 def extractStellarKinematics(config):
