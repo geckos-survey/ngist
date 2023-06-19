@@ -81,6 +81,7 @@ def addPathsToConfig(config, dirPath): # Amrlia - I *think* the input here is th
     """
     if os.path.isfile(dirPath.defaultDir) == True:
         for line in open(dirPath.defaultDir, "r"):
+#        for line in open('configFiles/defaultDir', "r"): #Amelia for testing only
             if not line.startswith('#'):
                 line = line.split('=')
                 line = [x.strip() for x in line]

@@ -73,9 +73,10 @@ def run_ppxf_firsttime(templates, log_bin_data, log_bin_error, velscale, start, 
     """
         # Call PPXF for first time to get optimal template
     print("Running pPXF for the first time")
+    logging.info("Using the new 3-step pPXF implementation")
     pp = ppxf(templates, log_bin_data, log_bin_error, velscale, start, goodpixels=goodPixels, plot=False, \
-            quiet=False, moments=nmoments, degree=-1, mdegree=mdeg, regul=1./regul_err, \
-            velscale_ratio=velscale_ratio, vsyst=offset)
+            quiet=False, moments=nmoments, degree=-1, vsyst=offset, mdegree=mdeg, \
+            regul = 1./regul_err, fixed=fixed, velscale_ratio=velscale_ratio)
     normalized_weights = pp.weights / np.sum( pp.weights )
     optimal_template   = np.zeros( templates.shape[0] )
     for j in range(0, templates.shape[1]):
@@ -103,8 +104,8 @@ def run_ppxf(templates, log_bin_data, log_bin_error, velscale, start, goodPixels
             fake_noise=np.full_like(log_bin_data, 1.0)
 
             pp_step1 = ppxf(optimal_template_in, log_bin_data, fake_noise, velscale, start, goodpixels=goodPixels, plot=False, \
-                            quiet=True, moments=nmoments, degree=-1, mdegree=mdeg, \
-                            velscale_ratio=velscale_ratio, vsyst=offset)
+                            quiet=True, moments=nmoments, degree=-1, vsyst=offset, mdegree=mdeg, \
+                            fixed=fixed, velscale_ratio=velscale_ratio)
             # Find a proper estimate of the noise
             #noise_orig = biweight_location(log_bin_error[goodPixels]) #goodpixels is one shorter than log_bin_error
             noise_orig = np.mean(log_bin_error[goodPixels])
@@ -120,8 +121,8 @@ def run_ppxf(templates, log_bin_data, log_bin_error, velscale, start, goodPixels
             ################ 2 ##################
             # Second Call PPXF - use best-fitting template, determine outliers
             pp_step2 = ppxf(optimal_template_in, log_bin_data, noise_new, velscale, start, goodpixels=goodPixels, plot=False, \
-                            quiet=True, moments=nmoments, degree=-1, mdegree=mdeg, \
-                            velscale_ratio=velscale_ratio, vsyst=offset, clean=True)
+                            quiet=True, moments=nmoments, degree=-1, vsyst=offset, mdegree=mdeg, \
+                            fixed=fixed, velscale_ratio=velscale_ratio, clean=True)
 
             # update goodpixels
             goodPixels = pp_step2.goodpixels
@@ -141,8 +142,8 @@ def run_ppxf(templates, log_bin_data, log_bin_error, velscale, start, goodPixels
             # Third Call PPXF - use all templates, get best-fit
             print('I am here! At the third step!')
             pp = ppxf(templates, log_bin_data, noise_new, velscale, start, goodpixels=goodPixels, plot=False, \
-                        quiet=True, moments=nmoments, degree=-1, mdegree=mdeg, \
-                        velscale_ratio=velscale_ratio, vsyst=offset)
+                        quiet=True, moments=nmoments, degree=-1, vsyst=offset, mdegree=mdeg, \
+                        regul = 1./regul_err, fixed=fixed, velscale_ratio=velscale_ratio)
         #update goodpixels again
         goodPixels = pp.goodpixels
 
@@ -452,7 +453,7 @@ def extractStarFormationHistories(config):
     comb_spec = np.nanmean(bin_data[:,:],axis=1)
     comb_espec = np.nanmean(bin_err[:,:],axis=1)
     optimal_template_init = [0]
-    
+
     optimal_template_out = run_ppxf_firsttime\
         (templates, comb_spec , comb_espec, velscale, start[0,:], goodPixels_sfh,\
         config['SFH']['MOM'], offset, -1, config['SFH']['MDEG'], config['SFH']['REGUL_ERR'],fixed,\
