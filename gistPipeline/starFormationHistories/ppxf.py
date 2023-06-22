@@ -388,6 +388,7 @@ def extractStarFormationHistories(config):
         printStatus.done("Using emission-subtracted spectra")
         hdu = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_gas-cleaned_BIN.fits')
         # Adding a bit in to also load the BinSpectra.fits to grab the error spectrum, even if using the cleaned gas specrum
+        # But sometimes this isn't always the right shape. So really, you want the error saved to the _gas_cleaned_BIN.fits hdu
         hdu2 = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_BinSpectra.fits')
     else:
         logging.info('Using regular spectra without any emission-correction at '+os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_BinSpectra.fits')
@@ -398,6 +399,7 @@ def extractStarFormationHistories(config):
     logLam        = hdu[2].data.LOGLAM
     idx_lam       = np.where( np.logical_and( np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX'] ) )[0]
     galaxy        = galaxy[:,idx_lam]
+    #galaxy        = galaxy/np.median(galaxy) # Amelia added to normalise normalize flux. Do we use this again?
     logLam        = logLam[idx_lam]
     nbins         = galaxy.shape[0]
     npix          = galaxy.shape[1]
@@ -406,7 +408,8 @@ def extractStarFormationHistories(config):
     dv            = (np.log(lamRange_temp[0]) - logLam[0])*C
     bin_err       = np.array( hdu2[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed
     bin_data      = np.array( hdu[1].data.SPEC.T ) # Amelia this doens't bode well
-
+    bin_data = bin_data[idx_lam,:]
+    bin_err  = bin_err[idx_lam,:]
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0])*C
     #noise  = np.ones((npix,nbins))
@@ -452,6 +455,8 @@ def extractStarFormationHistories(config):
     # Run PPXF once on combined mean spectrum to get a single optimal template
     comb_spec = np.nanmean(bin_data[:,:],axis=1)
     comb_espec = np.nanmean(bin_err[:,:],axis=1)
+    #comb_spec = comb_spec/np.nanmedian(comb_spec) # Amelia added to mormalise normalize spectrum
+    #comb_espec = comb_espec/np.nanmedian(comb_espec) # and the error spectrum
     optimal_template_init = [0]
 
     optimal_template_out = run_ppxf_firsttime\
@@ -491,7 +496,7 @@ def extractStarFormationHistories(config):
         for i in range(nbins):
             inQueue.put( ( templates, bin_data[:,i], noise[:,i], velscale, start[i,:], goodPixels_sfh, config['SFH']['MOM'], offset, -1,\
                            config['SFH']['MDEG'], config['SFH']['REGUL_ERR'], fixed, velscale_ratio, npix,\
-                           ncomb, nbins, i, optimal_template_comb ) )
+                           ncomb, nbins, i, optimal_template_comb ) ) #Amelia you added normalisation normalization for the galaxy and error spectra
 
         # now get the results with indices
         ppxf_tmp = [outQueue.get() for _ in range(nbins)]

@@ -346,7 +346,7 @@ def extractStellarKinematics(config):
     velscale = hdu[0].header['VELSCALE']
 
     # Read LSF information
-    LSF_Data, LSF_Templates = _auxiliary.getLSF(config, 'KIN') # added input of module 
+    LSF_Data, LSF_Templates = _auxiliary.getLSF(config, 'KIN') # added input of module
 
     # Prepare templates
     velscale_ratio = 2
@@ -505,7 +505,7 @@ def saveContsubCube(config, ppxf_bestfit, logLam):
     outfits = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_kin-ContSubCube.fits'
     logging.info("Wrote: "+outfits)
 
- 
+
     hdu   = fits.open(config['GENERAL']['INPUT'])
     cubeHeader   = hdu[1].header
     hdu.close()
@@ -526,13 +526,13 @@ def saveContsubCube(config, ppxf_bestfit, logLam):
 
 
     contSubCube = np.full([len(linLam),NY*NX],np.nan)
- 
+
     idx_snr = np.where( np.logical_and( linLam >= config['READ_DATA']['LMIN_SNR'], linLam <= config['READ_DATA']['LMAX_SNR'] ) )[0]
 
     for s in spaxID:
         binID_spax = binID[s]
         obsSpec_lin = spectra_all[:,s]
-        obsSignal  = np.nanmedian(obsSpec_lin[idx_snr]) 
+        obsSignal  = np.nanmedian(obsSpec_lin[idx_snr])
 
         if binID_spax < 0:
             fitSpec_lin = np.zeros(len(obsSpec_lin))
@@ -590,7 +590,7 @@ def saveContsubCube(config, ppxf_bestfit, logLam):
 
     # contSubCube = np.full([len(logLam),NY*NX],np.nan)
 
- 
+
 
     # for s in spaxID:
     #     binID_spax = binID[s]
@@ -626,32 +626,3 @@ def saveContsubCube(config, ppxf_bestfit, logLam):
     # hdul = fits.HDUList([primary_hdu,
     #                           continuum_cube_hdu])
     # hdul.writeto(outfits,overwrite=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
