@@ -384,6 +384,7 @@ def saveContLineCube(config):
     inputCube = readCube(config)
     spectra_all = inputCube["spec"]
     linLam = inputCube["wave"]
+    
     idx_lam = np.where(
         np.logical_and(linLam > config["KIN"]["LMIN"], linLam < config["KIN"]["LMAX"])
     )[0]
@@ -448,18 +449,24 @@ def saveContLineCube(config):
         contCube[:, s] = fitSpec_lin
         lineCube[:, s] = obsSpec_lin - fitSpec_lin
 
+    # spectral axes in observed wavelength frame
+    # (cube is de-redshifted during read in by MUSE_WFM.py)
     cubehdr["NAXIS3"] = len(linLam)
-    cubehdr["CRVAL3"] = linLam[0]
+    cubehdr["CRVAL3"] = linLam[0] * (1 + config["GENERAL"]["REDSHIFT"]) # 
     cubehdr["CRPIX3"] = 1
     cubehdr["CTYPE3"] = "AWAV"
-    cubehdr["CDELT3"] = np.abs(np.diff(linLam))[0]
-
+    cubehdr["CUNIT3"] = "angstrom"
+    
     # set the WCS keywords to CDELT standard format
     cdi_j_wcs = WCS(cubehdr)
     newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
     newcubehdr.update(
         diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
     )  # replace with CDELT standard keys
+    
+    # set the correct CDELT *after* CD3_3 has been removed, adjust to observed wavelength frame
+    # as cube is de-redshifted during read in by MUSE_WFM.py
+    newcubehdr["CDELT3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0] * 1e-10 # A -> m
 
     primary_hdu = fits.PrimaryHDU(header=fits.Header())
     contCube_hdu = fits.ImageHDU(
@@ -469,4 +476,4 @@ def saveContLineCube(config):
         lineCube.reshape((len(linLam), NY, NX)), name="line-only", header=newcubehdr
     )
     hdul = fits.HDUList([primary_hdu, contCube_hdu, lineCube_hdu])
-    hdul.writeto(outfits, overwrite=True)
+    hdul.writeto("/arc/home/thbrown/mauve/productTesting/testcube.fits", overwrite=True)
