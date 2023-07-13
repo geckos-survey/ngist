@@ -9,6 +9,9 @@ import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.interpolate import CubicSpline
+from spectral_cube import SpectralCube
+from astropy import units as u
+from astropy.wcs import WCS
 
 from gistPipeline.readData.MUSE_WFM import readCube
 from gistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
@@ -366,11 +369,6 @@ def saveContLineCube(config):
         gistPipeline config
     """
 
-    outfits = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_KIN_ContLineCube.fits"
-    )
-
     # read cube header - check extension contains WCS
     cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=0)
     if "NAXIS1" not in cubehdr:
@@ -468,12 +466,20 @@ def saveContLineCube(config):
     # as cube is de-redshifted during read in by MUSE_WFM.py
     newcubehdr["CDELT3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0] * 1e-10 # A -> m
 
-    primary_hdu = fits.PrimaryHDU(header=fits.Header())
-    contCube_hdu = fits.ImageHDU(
-        contCube.reshape((len(linLam), NY, NX)), name="cont-only", header=newcubehdr
-    )
-    lineCube_hdu = fits.ImageHDU(
-        lineCube.reshape((len(linLam), NY, NX)), name="line-only", header=newcubehdr
-    )
-    hdul = fits.HDUList([primary_hdu, contCube_hdu, lineCube_hdu])
-    hdul.writeto("/arc/home/thbrown/mauve/productTesting/testcube.fits", overwrite=True)
+    # save line and continuum cubes
+    # float32 preferred over float64 to save size and allow for conversion to hdf5 
+    fn_suffix = ["CONT", "LINE"]
+    for cube, name in zip([contCube, lineCube], fn_suffix):
+        
+        outfits = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_KIN_{}cube.fits".format(name)
+        )
+
+        # make sure the pixel unit is saved in the new cube
+        specCube = SpectralCube(data=np.float32(cube.reshape((len(linLam), NY, NX))) * u.Unit(cubehdr["BUNIT"]),
+                                wcs=WCS(newcubehdr),
+                                header=newcubehdr)
+        
+        specCube.write(outfits, overwrite=True)
+        
