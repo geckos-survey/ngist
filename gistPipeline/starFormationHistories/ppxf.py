@@ -82,7 +82,6 @@ def run_ppxf_firsttime(templates, log_bin_data, log_bin_error, velscale, start, 
     for j in range(0, templates.shape[1]):
         optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
 
-    print(optimal_template)
     return optimal_template
 
 def run_ppxf(templates, log_bin_data, log_bin_error, velscale, start, goodPixels, nmoments, offset, degree, mdeg,\
@@ -140,7 +139,6 @@ def run_ppxf(templates, log_bin_data, log_bin_error, velscale, start, goodPixels
 
             ################ 3 ##################
             # Third Call PPXF - use all templates, get best-fit
-            print('I am here! At the third step!')
             pp = ppxf(templates, log_bin_data, noise_new, velscale, start, goodpixels=goodPixels, plot=False, \
                         quiet=True, moments=nmoments, degree=-1, vsyst=offset, mdegree=mdeg, \
                         regul = 1./regul_err, fixed=fixed, velscale_ratio=velscale_ratio)
@@ -163,26 +161,22 @@ def run_ppxf(templates, log_bin_data, log_bin_error, velscale, start, goodPixels
         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum()
         w_row   = np.reshape(weights, ncomb)
 
-        # # Do MC-Simulations
+        # # Do MC-Simulations - Amelia - this is not currently implemented. Add back in later.
         # sol_MC     = np.zeros((nsims,nmoments))
         mc_results = np.zeros(nmoments)
-        # print('I got to line 160!')
         #
         # for o in range(0, nsims):
         #     # Add noise to bestfit:
         #     #   - Draw random numbers from normal distribution with mean of 0 and sigma of 1 (np.random.normal(0,1,npix)
         #     #   - standard deviation( (galaxy spectrum - bestfit)[goodpix] )
         #     noisy_bestfit = pp.bestfit  +  np.random.normal(0, 1, len(log_bin_data)) * np.std( log_bin_data[goodPixels] - pp.bestfit[goodPixels] )
-        #     print('I got to line 167!')
         #
         #     mc = ppxf(templates, noisy_bestfit, log_bin_error, velscale, start, goodpixels=goodPixels, plot=False, \
         #             quiet=True, moments=nmoments, degree=-1, mdegree=mdeg, velscale_ratio=velscale_ratio, vsyst=offset, bias=0.0)
         #     sol_MC[o,:] = mc.sol[:]
-        # print('I got to line 168!')
         #
         # if nsims != 0:
         #     mc_results = np.nanstd( sol_MC, axis=0 )
-        # print('Down the bottom')
         # print(pp.sol[:])
 
         return(pp.sol[:], w_row, pp.bestfit, optimal_template, mc_results, formal_error, spectral_mask) # AMELIA: do I neeed the pp.reddening?
@@ -440,8 +434,7 @@ def extractStarFormationHistories(config):
 
     # Define goodpixels
     goodPixels_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_MASK'], logLam)
-    print('goodPixels_sfh')
-    print(goodPixels_sfh.shape)
+
     # Define output arrays
     ppxf_result          = np.zeros((nbins,6    ))
     w_row        = np.zeros((nbins,ncomb))
