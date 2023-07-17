@@ -81,6 +81,7 @@ SFH :
   REGUL_ERR : 1.
   NOISE : 1.
   FIXED : True
+  MC_PPXF : 0 # Added to add the option of running MC on the SFH module
   LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
   TEMPLATE_SET : 'miles'
   LIBRARY : 'MILES/'
