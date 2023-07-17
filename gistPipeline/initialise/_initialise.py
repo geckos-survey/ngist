@@ -96,8 +96,10 @@ def addPathsToConfig(
     """
     if os.path.isfile(dirPath.defaultDir) == True:
         for line in open(dirPath.defaultDir, "r"):
-            if not line.startswith("#"):
-                line = line.split("=")
+
+#        for line in open('configFiles/defaultDir', "r"): #Amelia for testing only
+            if not line.startswith('#'):
+                line = line.split('=')
                 line = [x.strip() for x in line]
                 if os.path.isdir(line[1]) == True:
                     if line[0] == "inputDir":
