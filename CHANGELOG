@@ -6,6 +6,9 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.0.5       2023-07-18  ADDED:
+			 SFH module has been updated to use a 3-step noise estimation and 
+			 sigma clipping method, in line with the stellar kinematics module.
 V5.0.4.	     2023-05-26  ADDED:
 			 MAGPI gandalf implementation sub-module. There are now two options 
 			 for GAS METHOD: 'gandalf' and 'MAGPI_gandalf'. Recommend adopting 
