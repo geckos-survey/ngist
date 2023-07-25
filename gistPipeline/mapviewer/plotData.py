@@ -86,7 +86,7 @@ def plotMap(self, module, maptype):
     # Show map
     image = self.axes[0].imshow(
         np.rot90(image),
-        cmap="sauron",
+        cmap="inferno",
         interpolation="none",
         extent=[
             xmin - self.pixelsize / 2,

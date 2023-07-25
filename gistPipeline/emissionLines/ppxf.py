@@ -176,13 +176,13 @@ def tidy_up_fluxes_and_kinematics(gas_kinematics, kinematics_all_err,gas_flux,\
 ### THIS WILL NEED TO BE FIXED. IT"S CURRENTLY COPIED DIRECTLY FROM THE PHANGS DAP
 def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
         gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
-        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, logLam_galaxy, ubins, npix, extra):
+        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_sfh, logLam_galaxy, ubins, npix, extra):
 
         # ========================
         # SAVE RESULTS
-        outfits_ppxf = rootname+'/'+outdir+'_emlines_'+level+'.fits'
+        outfits_ppxf = rootname+'/'+outdir+'_gas_'+level+'.fits'
         printStatus.running("Writing: "+outfits_ppxf.split('/')[-1])
-        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_emlines_"+level+".fits")
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_"+level+".fits")
 
         # Primary HDU
         priHDU = fits.PrimaryHDU()
@@ -223,28 +223,12 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
 
 
         # ========================
-        # SAVE BESTFIT
-        outfits_ppxf = rootname+'/'+outdir+'_ppxf-bestfit-emlines_'+level+'.fits'
+        # SAVE CLEANED SPECTRUM
+        outfits_ppxf = rootname+'/'+outdir+'_gas-cleaned_'+level+'.fits'
         printStatus.running("Writing: "+outfits_ppxf.split('/')[-1])
         cleaned = spectra.T - gas_bestfit
         spec = spectra.T
         err = error.T
-        # Primary HDU
-        # priHDU = fits.PrimaryHDU()
-        #
-        # # Table HDU with PPXF bestfit
-        # cols = []
-        # ##cols.append( fits.Column(name='BIN_ID',  format='J',    array=ubins                    ))
-        # ##cols.append( fits.Column(name='LOGLAM', format=str(logLam_galaxy.shape[0])+'D', array=logLam_galaxy      ))
-        # cols.append( fits.Column(name='LOGLAM', format='D', array=logLam_galaxy ))
-        # cols.append( fits.Column(name='SPEC', format=str(spec.shape[1])+'D', array=spec      ))
-        # cols.append( fits.Column(name='ERR', format=str(err.shape[1])+'D', array=err      ))
-        # ##cols.append( fits.Column(name='BESTFIT', format=str(bestfit.shape[1])+'D', array=bestfit      ))
-        # ##cols.append( fits.Column(name='GAS_BESTFIT', format=str(gas_bestfit.shape[1])+'D', array=gas_bestfit      ))
-        # ##cols.append( fits.Column(name='GAS_CLEANED', format=str(cleaned.shape[1])+'D', array=cleaned      ))
-        # # cols.append( fits.Column(name='MASK', format='D', array=mask_for_original_spectra      ))
-        # dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-        # dataHDU.name = 'FIT'
 
         # Primary HDU
         priHDU = fits.PrimaryHDU()
@@ -288,6 +272,55 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
 
         HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, bestfitHDU, gas_bestfitHDU])
         HDUList.writeto(outfits_ppxf, overwrite=True)
+
+        # ========================
+        # SAVE BESTFIT
+        outfits_ppxf = rootname+'/'+outdir+'_gas-bestfit_'+level+'.fits'
+        printStatus.running("Writing: "+outfits_ppxf.split('/')[-1])
+        #cleaned = spectra.T - gas_bestfit
+        spec = spectra.T
+        err = error.T
+
+        # Primary HDU
+        priHDU = fits.PrimaryHDU()
+
+        # Extension 1: Table HDU with cleaned spectrum
+        cols = []
+        cols.append(
+            fits.Column(name="BESTFIT", format=str(npix) + "D", array=bestfit)
+        )
+        dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        dataHDU.name = "BESTFIT"
+
+        # Extension 2: Table HDU with logLam
+        cols = []
+        cols.append(fits.Column(name="LOGLAM", format="D", array=logLam_galaxy))
+        logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        logLamHDU.name = "LOGLAM"
+
+        # Extension 3: Table HDU with bestfit
+        cols = []
+        cols.append(fits.Column(name="GOODPIX", format= "J", array=goodPixels_sfh))
+        goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        goodpixHDU.name = "GOODPIX"
+
+        # Extension 3: Table HDU with gas bestfit
+        cols = []
+        cols.append(fits.Column(name="GAS_BESTFIT", format=str(npix) + "D", array=gas_bestfit))
+        gas_bestfitHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        gas_bestfitHDU.name = "GAS_BESTFIT"
+
+        # Create HDU list and write to file
+        priHDU = _auxiliary.saveConfigToHeader(priHDU, config["GAS"])
+        dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["GAS"])
+        logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["GAS"])
+        goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["GAS"])
+        gas_bestfitHDU = _auxiliary.saveConfigToHeader(gas_bestfitHDU, config["GAS"])
+
+
+        HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, gas_bestfitHDU])
+        HDUList.writeto(outfits_ppxf, overwrite=True)
+
 
         printStatus.running("Writing: "+outfits_ppxf.split('/')[-1])
         logging.info("Wrote: "+outfits_ppxf)
@@ -423,7 +456,7 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
 
 def performEmissionLineAnalysis(config): #This is your main emission line fitting loop
     #print("")
-    print("\033[0;37m"+" - - - - - Running Emission Lines Fitting - - - - - "+"\033[0;39m")
+    #print("\033[0;37m"+" - - - - - Running Emission Lines Fitting - - - - - "+"\033[0;39m")
     logging.info(" - - - Running Emission Lines Fitting - - - ")
 
     # #--> some bookkeeping - all commented out for now Amelia
@@ -864,7 +897,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
     # save results to file
     save_ppxf_emlines(config, config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID'], config['GAS']['LEVEL'], linesfitted,
         gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
-        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, logLam_galaxy, ubins, npix, extra)
+        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_sfh, logLam_galaxy, ubins, npix, extra)
 
 
     printStatus.updateDone("Emission line fitting done")
