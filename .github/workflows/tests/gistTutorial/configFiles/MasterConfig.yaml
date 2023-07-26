@@ -57,7 +57,7 @@ KIN :
   
 # Emission line fitting module
 GAS :
-  METHOD : 'gandalf'
+  METHOD : 'ppxf'
   SPEC_MASK : 'specMask_GAS'
   LEVEL : 'BIN'
   LMIN : 4800
