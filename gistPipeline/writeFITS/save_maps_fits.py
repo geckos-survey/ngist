@@ -208,15 +208,15 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
             continue
 
         data = results[line]
-        data_aon = results[line[:-2] + "_AON"]
+        ##data_aon = results[line[:-2] + "_AON"] # Can I just comment these out for now and ignore AoN?
 
-        data[np.where(data_aon < AoNThreshold)[0]] = np.nan
-        data[np.where(data == -1)[0]] = np.nan
+        ##data[np.where(data_aon < AoNThreshold)[0]] = np.nan
+
+        data = np.where(data==-1, np.nan, data)
 
         # [median subtraction on products]
         # if line.split("_")[-1] == "V":
         #     data = data - np.nanmedian(data)
-
         # Create image in pixels
         xmin = np.min(X)
         xmax = np.max(X)
@@ -382,7 +382,7 @@ def saveContLineCube(config):
     inputCube = readCube(config)
     spectra_all = inputCube["spec"]
     linLam = inputCube["wave"]
-    
+
     idx_lam = np.where(
         np.logical_and(linLam > config["KIN"]["LMIN"], linLam < config["KIN"]["LMAX"])
     )[0]
@@ -450,27 +450,27 @@ def saveContLineCube(config):
     # spectral axes in observed wavelength frame
     # (cube is de-redshifted during read in by MUSE_WFM.py)
     cubehdr["NAXIS3"] = len(linLam)
-    cubehdr["CRVAL3"] = linLam[0] * (1 + config["GENERAL"]["REDSHIFT"]) # 
+    cubehdr["CRVAL3"] = linLam[0] * (1 + config["GENERAL"]["REDSHIFT"]) #
     cubehdr["CRPIX3"] = 1
     cubehdr["CTYPE3"] = "AWAV"
     cubehdr["CUNIT3"] = "angstrom"
-    
+
     # set the WCS keywords to CDELT standard format
     cdi_j_wcs = WCS(cubehdr)
     newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
     newcubehdr.update(
         diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
     )  # replace with CDELT standard keys
-    
+
     # set the correct CDELT *after* CD3_3 has been removed, adjust to observed wavelength frame
     # as cube is de-redshifted during read in by MUSE_WFM.py
     newcubehdr["CDELT3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0] * 1e-10 # A -> m
 
     # save line and continuum cubes
-    # float32 preferred over float64 to save size and allow for conversion to hdf5 
+    # float32 preferred over float64 to save size and allow for conversion to hdf5
     fn_suffix = ["CONT", "LINE"]
     for cube, name in zip([contCube, lineCube], fn_suffix):
-        
+
         outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_KIN_{}cube.fits".format(name)
@@ -480,6 +480,5 @@ def saveContLineCube(config):
         specCube = SpectralCube(data=np.float32(cube.reshape((len(linLam), NY, NX))) * u.Unit(cubehdr["BUNIT"]),
                                 wcs=WCS(newcubehdr),
                                 header=newcubehdr)
-        
+
         specCube.write(outfits, overwrite=True)
-        

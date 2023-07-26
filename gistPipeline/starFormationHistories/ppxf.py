@@ -423,21 +423,21 @@ def extractStarFormationHistories(config):
     if (
         os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_gas-cleaned_BIN.fits"
+            + "_ppxf-bestfit-emlines_BIN.fits"
         )
         == True
     ):
         logging.info(
             "Using emission-subtracted spectra at "
             + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_gas-cleaned_BIN.fits"
+            + "__ppxf-bestfit-emlines_BIN.fits"
         )
         printStatus.done("Using emission-subtracted spectra")
 
-        hdu = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_gas-cleaned_BIN.fits')
+        hdu = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_gas-cleaned_'+config['GAS']['LEVEL']+'.fits')
         # Adding a bit in to also load the BinSpectra.fits to grab the error spectrum, even if using the cleaned gas specrum
         # But sometimes this isn't always the right shape. So really, you want the error saved to the _gas_cleaned_BIN.fits hdu
-        hdu2 = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_BinSpectra.fits')
+        #hdu2 = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_BinSpectra.fits')
 
     else:
         logging.info(
@@ -462,7 +462,8 @@ def extractStarFormationHistories(config):
     ubins         = np.arange(0, nbins)
     noise         = np.full(npix, config['SFH']['NOISE'])
     dv            = (np.log(lamRange_temp[0]) - logLam[0])*C
-    bin_err       = np.array( hdu2[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed
+    #bin_err       = np.array( hdu2[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed
+    bin_err       = np.array( hdu[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed. Does this still need to be transposed?
     bin_data      = np.array( hdu[1].data.SPEC.T ) # Amelia this doens't bode well
     bin_data = bin_data[idx_lam,:]
     bin_err  = bin_err[idx_lam,:]
@@ -497,7 +498,7 @@ def extractStarFormationHistories(config):
         fixed = None
         start = np.zeros((nbins, 2))
         for i in range(nbins):
-            start[i, :] = np.array([0.0, config["SFH"]["SIGMA"]])
+            start[i, :] = np.array([0.0, config["KIN"]["SIGMA"]])
 
     # Define goodpixels
     goodPixels_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_MASK'], logLam)
