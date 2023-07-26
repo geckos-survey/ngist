@@ -820,7 +820,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             chi2[i]                                     = ppxf_tmp[i][3]
             gas_flux[i,:]                               = ppxf_tmp[i][4]
             gas_flux_error[i,:]                         = ppxf_tmp[i][5]
-            gas_named.append(ppxf_tmp[i][6])                            # Let's see if this works!
+#            gas_named.append(ppxf_tmp[i][6])                            # Let's see if this works!
             bestfit[i,:]                                = ppxf_tmp[i][7]
             gas_bestfit[i,:]                            = ppxf_tmp[i][8]
             stkin[i,:]                                  = ppxf_tmp[i][9]
@@ -833,7 +833,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         chi2                   = chi2[argidx]
         gas_flux               = gas_flux[argidx,:]
         gas_flux_error         = gas_flux_error[argidx,:]
-        gas_named              = gas_names[argidx]
+#        gas_named              = gas_names[argidx]
         bestfit                = bestfit[argidx,:]
         gas_bestfit            = gas_bestfit[argidx,:]
         stkin                  =stkin[argidx, :]
