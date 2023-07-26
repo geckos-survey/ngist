@@ -176,7 +176,7 @@ def tidy_up_fluxes_and_kinematics(gas_kinematics, kinematics_all_err,gas_flux,\
 ### THIS WILL NEED TO BE FIXED. IT"S CURRENTLY COPIED DIRECTLY FROM THE PHANGS DAP
 def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
         gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
-        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_sfh, logLam_galaxy, ubins, npix, extra):
+        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra):
 
         # ========================
         # SAVE RESULTS
@@ -300,7 +300,7 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
 
         # Extension 3: Table HDU with bestfit
         cols = []
-        cols.append(fits.Column(name="GOODPIX", format= "J", array=goodPixels_sfh))
+        cols.append(fits.Column(name="GOODPIX", format= "J", array=goodPixels_gas))
         goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
         goodpixHDU.name = "GOODPIX"
 
@@ -730,7 +730,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
                 fixed.append(f)
 
     # Define goodpixels !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! - this bit is from gist, but do I want to replace it?
-    goodPixels_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_MASK'], logLam_galaxy)
+    goodPixels_gas = _auxiliary.spectralMasking(config, config['GAS']['SPEC_MASK'], logLam_galaxy)
 
 
     # # if you provide ppxf_results from a previous fit, you can now fix the
@@ -794,7 +794,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             #start2 = np.copy(start)
             #start2[0]=stellar_kinematics[i, :]
             inQueue.put( ( i, templates, spectra[:,i], error[:,i], velscale,\
-                start[i], goodPixels_sfh, tpl_comp, moments, offset, emi_mpol_deg, fixed[i], velscale_ratio,\
+                start[i], goodPixels_gas, tpl_comp, moments, offset, emi_mpol_deg, fixed[i], velscale_ratio,\
                 tied, gas_comp,gas_names, nbins ) )
 
         # now get the results with indices
@@ -853,7 +853,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
                 chi2[i], gas_flux[i,:],gas_flux_error[i,:], _ ,\
                 bestfit[i,:], gas_bestfit[i,:] , stkin[i,:], stkin_err[i,:]  = \
                 run_ppxf(templates, spectra[:,i], error[:,i], velscale, \
-                start[i], goodPixels_sfh, tpl_comp, moments, offset, emi_mpol_deg, \
+                start[i], goodPixels_gas, tpl_comp, moments, offset, emi_mpol_deg, \
                 fixed[i], velscale_ratio, tied, gas_comp, gas_names, i, nbins)
 
 
@@ -897,7 +897,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
     # save results to file
     save_ppxf_emlines(config, config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID'], config['GAS']['LEVEL'], linesfitted,
         gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
-        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_sfh, logLam_galaxy, ubins, npix, extra)
+        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra)
 
 
     printStatus.updateDone("Emission line fitting done")

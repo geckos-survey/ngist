@@ -188,7 +188,7 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
             1
         ].data[~maskedSpaxel]
     elif LEVEL == "BIN":
-        results = fits.open(os.path.join(outdir, rootname) + "_emlines_BIN.fits")[1].data
+        results = fits.open(os.path.join(outdir, rootname) + "_gas_BIN.fits")[1].data
     elif LEVEL == None:
         print("LEVEL keyword not set!")
 
