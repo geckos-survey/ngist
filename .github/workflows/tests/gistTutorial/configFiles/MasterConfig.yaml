@@ -58,16 +58,20 @@ KIN :
 # Emission line fitting module
 GAS :
   METHOD : 'gandalf'
+  SPEC_MASK : 'specMask_GAS'
   LEVEL : 'BIN'
   LMIN : 4800
   LMAX : 5500
   ERRORS : 0
   REDDENING : 0.1,0.1
+  MDEG : 8
+  FIXED : True
+  MOM : 2
   EBmV : null # As opposed to None
-  EMI_FILE : 'emissionLines.config'
+  EMI_FILE : 'emissionLinesPHANGS.config'
   LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
   TEMPLATE_SET : 'miles'
-  LIBRARY : 'MILES/'
+  LIBRARY : 'MILES_EMLINES/'
   NORM_TEMP : 'LIGHT'
   
 # Star formation histories module
