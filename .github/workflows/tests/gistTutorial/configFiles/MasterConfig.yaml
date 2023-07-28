@@ -19,6 +19,7 @@ READ_DATA :
   LMAX_TOT : 5500
   LMIN_SNR : 4800 # Rest-frame wavelength range used for the signal-to-noise calculation [in Angst.]
   LMAX_SNR : 5500
+  EBmV : null # Enter the E(B-V) value for the galaxy here (or use null for no Galactic dust correction)
 
 # Spatial masking module
 SPATIAL_MASKING :
