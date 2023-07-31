@@ -614,7 +614,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
     # --> generate the gas templates
     #emldb=table.Table.read('./configFiles/'+config['GAS']['EMI_FILE'] , format='ascii') # Now using the PHANGS emission line config file. NB change '/configFiles' to dirPath or something like that
-    emldb=table.Table.read(config['GENERAL']['CONFIG_DIR']+config['GAS']['EMI_FILE'] , format='ascii') # Now using the PHANGS emission line config file. NB change '/configFiles' to dirPath or something like that
+    emldb=table.Table.read(config['GENERAL']['CONFIG_DIR']+'/'+config['GAS']['EMI_FILE'] , format='ascii') # Now using the PHANGS emission line config file. NB change '/configFiles' to dirPath or something like that
 
     # if wav_in_vacuum: # I dunno if we need this - will it ever be in a vaccumm?
     #     emldb['lambda'] = air_to_vac(emldb['lambda'])
