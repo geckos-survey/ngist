@@ -1,3 +1,20 @@
+   The GIST-geckos Pipeline: A modified version of GIST for use with MUSE data
+===============================================================================
+This is the gist-GECKOS pipeline, an actively-developed version of the GIST pipeline for use with MUSE data, and 
+specially develped for use with the GECKOS and MAUVE surveys. Numerous updatwes and improvements have been implemented 
+on the GIST pipeline, as detailed in the changelog. 
+
+To use, clone the gist-geckos repository, AND the gist-geckos-supplementary repository. gist-geckos contains the 
+gist-geckos pipeline, and the -supplementary repo contains supplementary files and folders, including a .yaml 
+file containing a conda environment that should be used for running the pipeline. An updated 'gistTutorial' folder 
+is also there, and the MasterConfig.yaml file should be used as an example. 
+
+After cloning the two repos and running 'python setup.py install' in your gist-geckos repo directory, run the 
+gist-geckos pipeline with gistPipeline --config configFiles/MasterConfig.yaml --default-dir configFiles/defaultDir
+
+
+Below is the original README for the GIST pipeline:
+
 
    The GIST Framework: A multi-purpose tool for the analysis and visualisation of (integral-field) spectroscopic data
 ========================================================================================================================
