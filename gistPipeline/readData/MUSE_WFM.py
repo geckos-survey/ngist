@@ -2,6 +2,7 @@ import logging
 import os
 
 import numpy as np
+import extinction
 from astropy.io import fits
 from astropy.wcs import WCS
 from printStatus import printStatus
@@ -27,6 +28,14 @@ def set_debug(cube, xext, yext):
 
     return cube
 
+# ======================================
+# Helper routine from PHANGS DAP
+# ======================================
+def reshape_extintion_curve(extinction_curve, cube):
+    extra_dims = cube.ndim - extinction_curve.ndim
+    new_shape = extinction_curve.shape + (1,) * extra_dims
+    reshaped_extinction_curve = extinction_curve.reshape(new_shape)
+    return reshaped_extinction_curve
 
 # ======================================
 # Routine to load MUSE-cubes
@@ -76,6 +85,20 @@ def readCube(config):
         cdelt3 = hdr["CD3_3"]
 
     wave = hdr["CRVAL3"] + (np.arange(s[0])) * cdelt3
+
+    # Correct spectra for Galactic extinction (taken from PHANGS DAP)
+    if config['READ_DATA']['EBmV'] is not None:
+        Rv = 3.1
+        Av = Rv * config['READ_DATA']['EBmV']
+        ones = np.ones_like(wave)
+        extinction_curve = extinction.apply(extinction.ccm89(wave, Av, Rv), ones)
+        reshaped_extinction_curve = reshape_extintion_curve(extinction_curve, spec) #spec may need to be 'data'
+        spec = spec / reshaped_extinction_curve # spec may need to be data
+        espec = espec / reshaped_extinction_curve
+    else:
+        spec = spec #Don't do anything to the spectra if no dust value given
+        espec = espec
+
 
     # Getting the spatial coordinates
     origin = [

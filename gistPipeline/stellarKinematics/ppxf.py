@@ -571,6 +571,7 @@ def extractStellarKinematics(config):
     velscale = hdu[0].header["VELSCALE"]
 
     # Read LSF information
+
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "KIN")  # added input of module
 
     # Prepare templates
@@ -841,4 +842,6 @@ def extractStellarKinematics(config):
     )
 
     # Return
+
     return None
+

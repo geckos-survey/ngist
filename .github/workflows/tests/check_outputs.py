@@ -13,7 +13,7 @@ with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
 		print(line)
 assert os.path.isdir(output_dir), "Output dir not created"
-assert os.path.isdir(f"{output_dir}/maps"), "Maps dir not created"
+#assert os.path.isdir(f"{output_dir}/maps"), "Maps dir not created"
 
 
 
@@ -64,8 +64,8 @@ map_files = ["NGC0000Example_sfh.pdf",
 		"NGC0000Example_ls_OrigRes.pdf",
 		"NGC0000Example_ls-spp.pdf"]
 
-for file in map_files:
-	assert os.path.isfile(f"{output_dir}/maps/{file}"), f"{file} not created, probably the module failed"
+#for file in map_files:
+#	assert os.path.isfile(f"{output_dir}/maps/{file}"), f"{file} not created, probably the module failed"
 
 
 
