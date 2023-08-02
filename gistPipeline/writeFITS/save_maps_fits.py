@@ -5,11 +5,11 @@ import optparse
 import os
 import warnings
 
+import datetime
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.interpolate import CubicSpline
-from spectral_cube import SpectralCube
 from astropy import units as u
 from astropy.wcs import WCS
 
@@ -19,7 +19,22 @@ from gistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
 
 warnings.filterwarnings("ignore")
 
+def write_fits_cube(hdulist, filename, overwrite=False,
+                    include_origin_notes=True):
+    """
+    Write a FITS cube with a WCS to a filename
+    """
 
+    if include_origin_notes:
+        now = datetime.datetime.strftime(datetime.datetime.now(),
+                                        "%Y/%m/%d-%H:%M")
+        hdulist[0].header.add_history("Written by gistPipeline on "
+                                    "{date}".format(date=now))
+    try:
+        fits.HDUList(hdulist).writeto(filename, overwrite=overwrite)
+    except TypeError:
+        fits.HDUList(hdulist).writeto(filename, clobber=overwrite)
+    
 def savefitsmaps(module_id, outdir=""):
     """
     savefitsmaps _summary_
@@ -476,10 +491,8 @@ def saveContLineCube(config):
         + "_KIN_{}cube.fits".format(name)
         )
 
-        # make sure the pixel unit is saved in the new cube
-        specCube = SpectralCube(data=np.float32(cube.reshape((len(linLam), NY, NX))) * u.Unit(cubehdr["BUNIT"]),
-                                wcs=WCS(newcubehdr),
-                                header=newcubehdr)
-        
-        specCube.write(outfits, overwrite=True)
+        cubehdul = [fits.PrimaryHDU(data=np.float32(cube.reshape((len(linLam), NY, NX))),
+                         header=newcubehdr)]
+
+        write_fits_cube(hdulist=cubehdul, filename=outfits, overwrite=True)
         
