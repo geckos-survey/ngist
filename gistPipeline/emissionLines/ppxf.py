@@ -36,23 +36,23 @@ def workerPPXF(inQueue, outQueue):
     and multiprocessing.Process.
     """
     for i, templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset,\
-        mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, nbins\
+        mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, nbins, ubins\
         in iter(inQueue.get, 'STOP'):
         gas_sol, gas_error, chi2, gas_flux, gas_flux_error, gas_names, bestfit, gas_bestfit, star_sol, star_err = \
-        run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset, mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins)
+        run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset, mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins, ubins)
 
         outQueue.put((i, gas_sol, gas_error, chi2, gas_flux, gas_flux_error, gas_names, bestfit, gas_bestfit, star_sol, star_err ))
 
 
 def run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset, mdeg,\
-             fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins):
+             fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins, ubins):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
     (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
     ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
     non-parametric star-formation histories.
     """
-    printStatus.progressBar(i, nbins, barLength = 50)
+    printStatus.progressBar(i, np.max(ubins)+1, barLength = 50)
 
     try:
 
@@ -564,11 +564,12 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             n_spaxels_per_bin[i]=np.sum(windx)
 
         # Create empty mask in bin-level run: There are no masked bins, only masked spaxels!
-        maskedSpaxel = np.zeros(nbins, dtype=bool)
-        maskedSpaxel[:] = False
+        # Amelia - I don't think this is used
+        #maskedSpaxel = np.zeros(nbins, dtype=bool)
+        #maskedSpaxel[:] = False
 
         # Prepare templates - This is for the stellar templates
-        logging.info("Using full spectral library for ppxf on BIN level")
+        logging.info("Using full spectral library for ppxf on SPAXEL level")
         (
             templates,
             lamRange_spmod,
@@ -591,6 +592,67 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         # error        = np.ones((npix,nbins))
         ## --------------------- ##
 
+    if currentLevel == "SPAXEL":
+        # Read spectra from file
+        hdu = fits.open(
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_AllSpectra.fits"
+        )
+        spectra = np.array(hdu[1].data.SPEC.T)
+        error = np.array(hdu[1].data.ESPEC.T)
+        logLam_galaxy = np.array(hdu[2].data.LOGLAM)
+        idx_lam = np.where(
+            np.logical_and(
+                np.exp(logLam_galaxy) > config["GAS"]["LMIN"],
+                np.exp(logLam_galaxy) < config["GAS"]["LMAX"],
+            )
+        )[0]
+        spectra = spectra[idx_lam, :]
+        error = error[idx_lam, :]  # AJB added
+        logLam_galaxy = logLam_galaxy[idx_lam]
+        npix = spectra.shape[0]
+        nbins = spectra.shape[1] #This should now = the number of spaxels
+        ubins = np.arange(0, nbins)
+        nstmom = config['KIN']['MOM'] # Usually = 4
+        velscale = hdu[0].header["VELSCALE"]
+        # # the wav range of the data (observed)
+        LamRange = (np.exp(logLam_galaxy[0]), np.exp(logLam_galaxy[-1]))
+
+        #Determining the number of spaxels per bin
+        hdu2 = fits.open(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])+ "_table.fits")
+        bin_id = hdu2['TABLE'].data['BIN_ID']
+        n_spaxels_per_bin = np.zeros(nbins)
+        bin_id = ubins
+        # number of spaxels per bin
+        for i in range(nbins): # Amelia - I dunno about this part - check tomorrow
+            windx = (ubins ==i)
+            n_spaxels_per_bin[i]=np.sum(windx) # This should be an array of ones, so useless?
+
+        # Create empty mask in bin-level run: There are no masked bins, only masked spaxels!
+        #maskedSpaxel = np.zeros(nbins, dtype=bool)
+        #maskedSpaxel[:] = False
+
+        # Prepare templates - This is for the stellar templates
+        logging.info("Using full spectral library for ppxf on BIN level")
+        (
+            templates,
+            lamRange_spmod,
+            logLam_template,
+            n_templates,
+        ) = _prepareTemplates.prepareTemplates_Module(
+            config,
+            config["GAS"]["LMIN"],
+            config["GAS"]["LMAX"],
+            velscale / velscale_ratio,
+            LSF_Data,
+            LSF_Templates,
+            "GAS",
+        )[
+            :4
+        ]
+        star_templates = templates.reshape((templates.shape[0], n_templates))
+
+        offset = (logLam_template[0] - logLam_galaxy[0]) * C  # km/s
 
 
     # define the velocity scale in kms
@@ -695,8 +757,8 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
     #--> define the systemic velocity due to template and data starting wavelength offset
     # NOTE: this is only correct if velscale ==1!!
-    offset = ((logLam_template[0] - logLam_galaxy[0]) + np.log(1 +\
-         config['GENERAL']['REDSHIFT']/C ) )* C
+#    offset = ((logLam_template[0] - logLam_galaxy[0]) + np.log(1 +\ # already defined somewhere else
+#         config['GENERAL']['REDSHIFT']/C ) )* C
 
     # Implementation of switch FIXED
     # Do fix kinematics to those obtained previously
@@ -707,9 +769,22 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
         # Read PPXF results, add not just stellar, but 3x gas guesses
         ppxf_data = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_kin.fits')[1].data
+        #if config['GAS']['LEVEL'] == 'BIN':
+        # No need to do anything!
+
+        if config['GAS']['LEVEL'] == 'SPAXEL':
+            binNum_long = np.array(fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_table.fits')[1].data.BIN_ID)
+            ppxf_data_spaxels = np.zeros( (len(ubins), len(ppxf_data[0])))
+            nbins = np.max(binNum_long) +1
+            for i in range(int(nbins)):
+                windx = (binNum_long ==i)
+                ppxf_data_spaxels[windx,:] = ppxf_data[i]
+            ppxf_data = ppxf_data_spaxels
+            print('Length of ppxf_data=')
+            print(len(ppxf_data))
         #start = [[np.zeros((nbins, config['KIN']['MOM']))]] # old
         start, fixed = [], []
-        for i in range(nbins):
+        for i in range(0, np.max(ubins)+1): #what is nbins here? AMELIA up to here. Check this works for the spaxel case
             #start[i,:] = np.array( ppxf_data[i][:config['KIN']['MOM']] ) # old one (needs to be an array?)
             s = [ppxf_data[i][:config['KIN']['MOM']], [ppxf_data[i][0],50], [ppxf_data[i][0],50], [ppxf_data[i][0],50]] # Here I am setting the starting stellar kin guess to the stellar kin results, and the starting gas vel guess to the stellar vel and starting gas sigma to 50
             start.append(s)
@@ -724,7 +799,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             fixed = None
             start = np.zeros((nbins, 2))
             start, fixed = [], []
-            for i in range(nbins):
+            for i in range(0, np.max(ubins)+1):
                 #start[i,:] = np.array( [0.0, config['SFH']['SIGMA']] ) # old
                 s = [[0,config['KIN']['SIGMA']], [0,50], [0,50], [0,50]] # Here the velocity guesses are all zero, the sigma guess is the stell kins sig guess for stars and 50 for the gas
                 start.append(s)
@@ -759,16 +834,16 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
     n_gas_templates =  ngastpl #len(tpl_comp[gas_comp]) ngastpl defined above
 
     # Array to store results of ppxf - come back to this, I don' think it's necc what I want?
-    gas_kinematics         = np.zeros((nbins, n_gas_comp, 2))+np.nan # the 2 was configs['GAS_MOMENTS'], but I think we just want 2 for now
-    gas_kinematics_err     = np.zeros((nbins, n_gas_comp, 2))  +np.nan
-    chi2                   = np.zeros((nbins))
-    gas_flux               = np.zeros((nbins,n_gas_templates))
-    gas_flux_error         = np.zeros((nbins,n_gas_templates))
+    gas_kinematics         = np.zeros((np.max(ubins)+1, n_gas_comp, 2))+np.nan # the 2 was configs['GAS_MOMENTS'], but I think we just want 2 for now
+    gas_kinematics_err     = np.zeros((np.max(ubins)+1, n_gas_comp, 2))  +np.nan
+    chi2                   = np.zeros((np.max(ubins)+1))
+    gas_flux               = np.zeros((np.max(ubins)+1,n_gas_templates))
+    gas_flux_error         = np.zeros((np.max(ubins)+1,n_gas_templates))
     gas_named              = []
-    bestfit                = np.zeros((nbins,npix))
-    gas_bestfit            = np.zeros((nbins,npix))
-    stkin                  = np.zeros((nbins,nstmom))
-    stkin_err              = np.zeros((nbins,nstmom))
+    bestfit                = np.zeros((np.max(ubins)+1,npix))
+    gas_bestfit            = np.zeros((np.max(ubins)+1,npix))
+    stkin                  = np.zeros((np.max(ubins)+1,nstmom))
+    stkin_err              = np.zeros((np.max(ubins)+1,nstmom))
 
     # ====================
     # Run PPXF
@@ -791,16 +866,16 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             p.start()
 
         # Fill the queue
-        for i in range(nbins):
+        for i in range(np.max(bin_id)+1): # AMELIA changed this from nbins for emline testing
             # this changes the stellar kinematics starting guess for each bin
             #start2 = np.copy(start)
             #start2[0]=stellar_kinematics[i, :]
             inQueue.put( ( i, templates, spectra[:,i], error[:,i], velscale,\
                 start[i], goodPixels_gas, tpl_comp, moments, offset, emi_mpol_deg, fixed[i], velscale_ratio,\
-                tied, gas_comp,gas_names, nbins ) )
+                tied, gas_comp,gas_names, nbins, ubins ) )
 
         # now get the results with indices
-        ppxf_tmp = [outQueue.get() for _ in range(nbins)]
+        ppxf_tmp = [outQueue.get() for _ in range(np.max(bin_id)+1)] #Changes from nbins
 
         # send stop signal to stop iteration
         for _ in range(config['GENERAL']['NCPU']):
@@ -811,11 +886,11 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             p.join()
 
         # Get output
-        index = np.zeros(nbins)
+        index = np.zeros(np.max(ubins)+1)
 
         # i, sol, kin_err, chi2, gas_flux, gas_flux_err, gas_names, bestfit, gas_bestfit # old?
         # i, gas_sol, gas_error, chi2, gas_flux, gas_flux_error, gas_names, bestfit, gas_bestfit, star_sol, star_err  # new
-        for i in range(0, nbins):
+        for i in range(0, np.max(ubins)+1):
             index[i]                                    = ppxf_tmp[i][0]
             gas_kinematics[i,:, :]                      = ppxf_tmp[i][1]
             gas_kinematics_err[i,:, :]                  = ppxf_tmp[i][2]
@@ -847,16 +922,16 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
     elif config['GENERAL']['PARALLEL'] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
-        for i in range(0, nbins):
+        for i in range(0, np.max(ubins)+1):
             #start[0]=stellar_kinematics[i, :]
             start[0]=start[i] # Added this in. Check if ok.
 
-            gas_kinematics[i,:, :], kinematics_all_err[i,:, :],\
+            gas_kinematics[i,:, :], gas_kinematics_err[i,:, :],\
                 chi2[i], gas_flux[i,:],gas_flux_error[i,:], _ ,\
                 bestfit[i,:], gas_bestfit[i,:] , stkin[i,:], stkin_err[i,:]  = \
                 run_ppxf(templates, spectra[:,i], error[:,i], velscale, \
                 start[i], goodPixels_gas, tpl_comp, moments, offset, emi_mpol_deg, \
-                fixed[i], velscale_ratio, tied, gas_comp, gas_names, i, nbins)
+                fixed[i], velscale_ratio, tied, gas_comp, gas_names, i, nbins, ubins)
 
 
         printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
