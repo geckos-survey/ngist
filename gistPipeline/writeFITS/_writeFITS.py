@@ -64,7 +64,12 @@ def generateFITS(config, module):
                     AoNThreshold=4,
                 )
             if os.path.isfile(outputPrefix + "_gas_SPAXEL.fits") == True:
-                c
+                save_maps_fits.savefitsmaps_GASmodule(
+                    "gas",
+                    config["GENERAL"]["OUTPUT"],
+                    LEVEL=config["GAS"]["LEVEL"],
+                    AoNThreshold=4,
+                )                
             printStatus.updateDone(
                 "Producing FITS maps from the emission-line analysis"
             )
