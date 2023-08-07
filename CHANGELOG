@@ -6,6 +6,17 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.1.2       2023-08-07  FIXED:
+			 Ability to run spaxel-based emission line fits using the pPXF module.
+			 if config['GAS']['METHOD'] = 'ppxf', 'MAGPIGandalf', or 'Gandalf', 
+ 			 config['GAS']['LEVEL'] can be 'BIN' or 'SPAXEL' ('BOTH not yet implemented 
+			 for ppxf module. 
+			 ADDED:
+			 config['GENERAL']['OUTPUT']_KIN_ORIGcube.fits, a file containing the 
+			 original spectra cut to the wavelength range at which the continuum 
+			 cube was made, for use with config['GENERAL']['OUTPUT']_KIN_CONTcube.fits 
+			 and config['GENERAL']['OUTPUT']_KIN_LINEcube.fits for work with the 
+			 continuum cubes. 
 V5.1.1       2023-07-28  ADDED:
 			 Ability to implement a foreground Galactic dust extinction using the 
 			 config['READ_DATA']['EBmV'] keyword.
