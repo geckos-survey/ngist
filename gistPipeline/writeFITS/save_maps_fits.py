@@ -186,7 +186,7 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
     if LEVEL == "SPAXEL":
         results = fits.open(os.path.join(outdir, rootname) + "_gas_SPAXEL.fits")[
             1
-        ].data[~maskedSpaxel]
+        ].data#[~maskedSpaxel]
     elif LEVEL == "BIN":
         results = fits.open(os.path.join(outdir, rootname) + "_gas_BIN.fits")[1].data
     elif LEVEL == None:
