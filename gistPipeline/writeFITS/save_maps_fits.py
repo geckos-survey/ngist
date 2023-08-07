@@ -186,7 +186,7 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
     if LEVEL == "SPAXEL":
         results = fits.open(os.path.join(outdir, rootname) + "_gas_SPAXEL.fits")[
             1
-        ].data[~maskedSpaxel]
+        ].data#[~maskedSpaxel]
     elif LEVEL == "BIN":
         results = fits.open(os.path.join(outdir, rootname) + "_gas_BIN.fits")[1].data
     elif LEVEL == None:
@@ -416,6 +416,7 @@ def saveContLineCube(config):
 
     contCube = np.full([len(linLam), NY * NX], np.nan)
     lineCube = np.full([len(linLam), NY * NX], np.nan)
+    origCube = np.full([len(linLam), NY * NX], np.nan)
 
     idx_snr = np.where(
         np.logical_and(
@@ -446,6 +447,7 @@ def saveContLineCube(config):
         # assign continuum fits and emission lines (obs - cont) to cube
         contCube[:, s] = fitSpec_lin
         lineCube[:, s] = obsSpec_lin - fitSpec_lin
+        origCube[:, s] = obsSpec_lin
 
     # spectral axes in observed wavelength frame
     # (cube is de-redshifted during read in by MUSE_WFM.py)
@@ -468,8 +470,8 @@ def saveContLineCube(config):
 
     # save line and continuum cubes
     # float32 preferred over float64 to save size and allow for conversion to hdf5
-    fn_suffix = ["CONT", "LINE"]
-    for cube, name in zip([contCube, lineCube], fn_suffix):
+    fn_suffix = ["CONT", "LINE", "ORIG"]
+    for cube, name in zip([contCube, lineCube, origCube], fn_suffix):
 
         outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])

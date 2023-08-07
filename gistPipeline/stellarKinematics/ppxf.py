@@ -333,6 +333,7 @@ def save_ppxf(
     npix,
     spectral_mask,
     optimal_template_comb,
+    bin_data,
 ):
     """Saves all results to disk."""
     # ========================
@@ -437,13 +438,20 @@ def save_ppxf(
     goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     goodpixHDU.name = "GOODPIX"
 
+    # Table HDU with PPXF goodpixels
+    cols = []
+    cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=bin_data.T))
+    specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    specHDU.name = "SPEC"
+
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
     logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
     goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["KIN"])
+    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["KIN"])
 
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU])
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
 
     printStatus.updateDone(
@@ -839,9 +847,9 @@ def extractStellarKinematics(config):
         npix,
         spectral_mask,
         optimal_template_comb,
+        bin_data,
     )
 
     # Return
 
     return None
-
