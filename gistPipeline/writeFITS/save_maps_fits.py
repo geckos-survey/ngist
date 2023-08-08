@@ -223,14 +223,17 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
             continue
 
         data = results[line]
-        data_aon = results[line[:-2] + "_AON"]
-
-        data[np.where(data_aon < AoNThreshold)[0]] = np.nan
-        data[np.where(data == -1)[0]] = np.nan
-
-        # [median subtraction on products]
-        # if line.split("_")[-1] == "V":
-        #     data = data - np.nanmedian(data)
+        
+        # GANDALF returns the amplitude-over-noise (AON) (PPXF doesn't)
+        try:
+            data_aon = results[line[:-2] + "_AON"]
+            data[np.where(data_aon < AoNThreshold)[0]] = np.nan
+        except:
+            print("amplitude-over-noise (AON) information does not exist for {line}".format(line=line))
+        
+        # we don't need to mask bin IDs
+        if isinstance(data.dtype, int):
+            data[np.where(data == -1)[0]] = np.nan
 
         # Create image in pixels
         xmin = np.min(X)
