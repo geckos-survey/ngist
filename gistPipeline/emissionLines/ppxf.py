@@ -36,23 +36,23 @@ def workerPPXF(inQueue, outQueue):
     and multiprocessing.Process.
     """
     for i, templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset,\
-        mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, nbins\
+        mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, nbins, ubins\
         in iter(inQueue.get, 'STOP'):
         gas_sol, gas_error, chi2, gas_flux, gas_flux_error, gas_names, bestfit, gas_bestfit, star_sol, star_err = \
-        run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset, mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins)
+        run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset, mdeg, fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins, ubins)
 
         outQueue.put((i, gas_sol, gas_error, chi2, gas_flux, gas_flux_error, gas_names, bestfit, gas_bestfit, star_sol, star_err ))
 
 
 def run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp, moments, offset, mdeg,\
-             fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins):
+             fixed, velscale_ratio, tied, gas_comp, gas_names, i, nbins, ubins):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
     (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
     ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
     non-parametric star-formation histories.
     """
-    printStatus.progressBar(i, nbins, barLength = 50)
+    printStatus.progressBar(i, np.max(ubins)+1, barLength = 50)
 
     try:
 
@@ -61,9 +61,6 @@ def run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp
               component = tpl_comp, moments=moments, degree=-1, vsyst=offset, mdegree=mdeg, fixed=fixed, velscale_ratio=velscale_ratio,\
               tied=tied, gas_component=gas_comp, gas_names=gas_names)
 
-
-        # note here I am only passing out of the function the gas kinematics (pp.sol[1:])
-        # to also save the stellar kinematics one would need to add pp.sol[0] and same for pp.error (which is appended at the end now for fun)
 
         return(pp.sol[1:], pp.error[1:], pp.chi2, pp.gas_flux, pp.gas_flux_error, pp.gas_names, pp.bestfit, pp.gas_bestfit, pp.sol[0], pp.error[0])
 
@@ -173,7 +170,6 @@ def tidy_up_fluxes_and_kinematics(gas_kinematics, kinematics_all_err,gas_flux,\
            sigma_final,sigma_err_final, extra)
 
 
-### THIS WILL NEED TO BE FIXED. IT"S CURRENTLY COPIED DIRECTLY FROM THE PHANGS DAP
 def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
         gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
         sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra):
@@ -326,133 +322,6 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
         logging.info("Wrote: "+outfits_ppxf)
 
 
-# def save_sfh(mean_result, kin, formal_error, w_row, logAge_grid, metal_grid, alpha_grid, bestfit, logLam_galaxy, goodPixels,\
-#              velscale, logLam1, ncomb, nAges, nMetal, nAlpha, npix, config):
-#     """ Save all results to disk. """
-#     # ========================
-#     # SAVE KINEMATICS
-#     outfits_sfh = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_sfh.fits'
-#     printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_sfh.fits')
-#
-#     # Primary HDU
-#     priHDU = fits.PrimaryHDU()
-#
-#     # Table HDU with stellar kinematics
-#     cols = []
-#     cols.append(fits.Column(name='AGE',   format='D', array=mean_result[:,0]))
-#     cols.append(fits.Column(name='METAL', format='D', array=mean_result[:,1]))
-#     cols.append(fits.Column(name='ALPHA', format='D', array=mean_result[:,2]))
-#
-#     if config['SFH']['FIXED'] == False:
-#         cols.append(fits.Column(name='V',     format='D', array=kin[:,0]))
-#         cols.append(fits.Column(name='SIGMA', format='D', array=kin[:,1]))
-#         if np.any(kin[:,2]) != 0: cols.append(fits.Column(name='H3', format='D', array=kin[:,2]))
-#         if np.any(kin[:,3]) != 0: cols.append(fits.Column(name='H4', format='D', array=kin[:,3]))
-#         if np.any(kin[:,4]) != 0: cols.append(fits.Column(name='H5', format='D', array=kin[:,4]))
-#         if np.any(kin[:,5]) != 0: cols.append(fits.Column(name='H6', format='D', array=kin[:,5]))
-#
-#         cols.append(fits.Column(name='FORM_ERR_V',     format='D', array=formal_error[:,0]))
-#         cols.append(fits.Column(name='FORM_ERR_SIGMA', format='D', array=formal_error[:,1]))
-#         if np.any(formal_error[:,2]) != 0: cols.append(fits.Column(name='FORM_ERR_H3', format='D', array=formal_error[:,2]))
-#         if np.any(formal_error[:,3]) != 0: cols.append(fits.Column(name='FORM_ERR_H4', format='D', array=formal_error[:,3]))
-#         if np.any(formal_error[:,4]) != 0: cols.append(fits.Column(name='FORM_ERR_H5', format='D', array=formal_error[:,4]))
-#         if np.any(formal_error[:,5]) != 0: cols.append(fits.Column(name='FORM_ERR_H6', format='D', array=formal_error[:,5]))
-#
-#     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-#     dataHDU.name = 'SFH'
-#
-#     # Create HDU list and write to file
-#     priHDU  = _auxiliary.saveConfigToHeader(priHDU, config['SFH'])
-#     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config['SFH'])
-#     HDUList = fits.HDUList([priHDU, dataHDU])
-#     HDUList.writeto(outfits_sfh, overwrite=True)
-#
-#     printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_sfh.fits')
-#     logging.info("Wrote: "+outfits_sfh)
-#
-#
-#     # ========================
-#     # SAVE WEIGHTS AND GRID
-#     outfits_sfh = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_sfh-weights.fits'
-#     printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_sfh-weights.fits')
-#
-#     # Primary HDU
-#     priHDU = fits.PrimaryHDU()
-#
-#     # Table HDU with weights
-#     cols = []
-#     cols.append( fits.Column(name='WEIGHTS', format=str(w_row.shape[1])+'D', array=w_row ))
-#     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-#     dataHDU.name = 'WEIGHTS'
-#
-#     logAge_row = np.reshape(logAge_grid, ncomb)
-#     metal_row  = np.reshape(metal_grid,  ncomb)
-#     alpha_row  = np.reshape(alpha_grid,  ncomb)
-#
-#     # Table HDU with grids
-#     cols = []
-#     cols.append( fits.Column(name='LOGAGE',  format='D',           array=logAge_row  ))
-#     cols.append( fits.Column(name='METAL',   format='D',           array=metal_row   ))
-#     cols.append( fits.Column(name='ALPHA',   format='D',           array=alpha_row   ))
-#     gridHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-#     gridHDU.name = 'GRID'
-#
-#     # Create HDU list and write to file
-#     priHDU  = _auxiliary.saveConfigToHeader(priHDU, config['SFH'])
-#     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config['SFH'])
-#     gridHDU = _auxiliary.saveConfigToHeader(gridHDU, config['SFH'])
-#     HDUList = fits.HDUList([priHDU, dataHDU, gridHDU])
-#     HDUList.writeto(outfits_sfh, overwrite=True)
-#
-#     fits.setval(outfits_sfh,'NAGES',  value=nAges)
-#     fits.setval(outfits_sfh,'NMETAL', value=nMetal)
-#     fits.setval(outfits_sfh,'NALPHA', value=nAlpha)
-#
-#     printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_sfh-weights.fits')
-#     logging.info("Wrote: "+outfits_sfh)
-#
-#
-#     # ========================
-#     # SAVE BESTFIT
-#     outfits_sfh = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_sfh-bestfit.fits'
-#     printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_sfh-bestfit.fits')
-#
-#     # Primary HDU
-#     priHDU = fits.PrimaryHDU()
-#
-#     # Table HDU with SFH bestfit
-#     cols = []
-#     cols.append( fits.Column(name='BESTFIT', format=str(npix)+'D', array=bestfit ))
-#     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-#     dataHDU.name = 'BESTFIT'
-#
-#     # Table HDU with SFH logLam
-#     cols = []
-#     cols.append( fits.Column(name='LOGLAM', format='D', array=logLam_galaxy ))
-#     logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-#     logLamHDU.name = 'LOGLAM'
-#
-#     # Table HDU with SFH goodpixels
-#     cols = []
-#     cols.append( fits.Column(name='GOODPIX', format='J', array=goodPixels ))
-#     goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-#     goodpixHDU.name = 'GOODPIX'
-#
-#     # Create HDU list and write to file
-#     priHDU     = _auxiliary.saveConfigToHeader(priHDU, config['SFH'])
-#     dataHDU    = _auxiliary.saveConfigToHeader(dataHDU, config['SFH'])
-#     logLamHDU  = _auxiliary.saveConfigToHeader(logLamHDU, config['SFH'])
-#     goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config['SFH'])
-#     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU])
-#     HDUList.writeto(outfits_sfh, overwrite=True)
-#
-#     fits.setval(outfits_sfh,'VELSCALE',value=velscale)
-#     fits.setval(outfits_sfh,'CRPIX1',  value=1.0)
-#     fits.setval(outfits_sfh,'CRVAL1',  value=logLam1[0])
-#     fits.setval(outfits_sfh,'CDELT1',  value=logLam1[1]-logLam1[0])
-#
-#     printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_sfh-bestfit.fits')
-#     logging.info("Wrote: "+outfits_sfh)
 
 def performEmissionLineAnalysis(config): #This is your main emission line fitting loop
     #print("")
@@ -483,14 +352,8 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
     # for now the number of gas moments is fixed to 2 (i.e. v and sigma, no h3 and h4 etc for gas)
 
-
-    # # regenerate the LSF interpolation function for simplicity, NOTE that I am using rest-frame wavelength
-    # LSF_InterpolationFunction  = interp1d(np.exp(logLam)/(1+configs['REDSHIFT']/cvel), LSF/(1+configs['REDSHIFT']/cvel),
-    #      'linear', fill_value = 'extrapolate')
-
     ## --------------------- ##
     # For output filenames
-    # BUT - currently only testing on BIN
     if config["GAS"]["LEVEL"] in ["BIN", "SPAXEL"]:
         currentLevel = config["GAS"]["LEVEL"]
     elif (
@@ -513,16 +376,12 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         currentLevel = "SPAXEL"
 
     # Oversample the templates by a factor of two
-    velscale_ratio = 1 # 2 ####### ??????? I don't know if this is the case now
+    velscale_ratio = 1 # 2 ####### ? I don't know if this is the case now
 
     # Read LSF information
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "GAS")
     ## --------------------- ##
 
-    # if 'MDEG_EMS' in configs:
-    #     emi_mpol_deg = configs['MDEG_EMS']
-    # else:
-    #     emi_mpol_deg = 8
     emi_mpol_deg = config['GAS']['MDEG'] # Should be ~8
     ## --------------------- ##
     # Read data if we run on BIN level
@@ -563,12 +422,9 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             windx = (bin_id ==i)
             n_spaxels_per_bin[i]=np.sum(windx)
 
-        # Create empty mask in bin-level run: There are no masked bins, only masked spaxels!
-        maskedSpaxel = np.zeros(nbins, dtype=bool)
-        maskedSpaxel[:] = False
 
         # Prepare templates - This is for the stellar templates
-        logging.info("Using full spectral library for ppxf on BIN level")
+        logging.info("Using full spectral library for ppxf on SPAXEL level")
         (
             templates,
             lamRange_spmod,
@@ -591,26 +447,64 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         # error        = np.ones((npix,nbins))
         ## --------------------- ##
 
+    if currentLevel == "SPAXEL":
+        # Read spectra from file
+        hdu = fits.open(
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_AllSpectra.fits"
+        )
+        spectra = np.array(hdu[1].data.SPEC.T)
+        error = np.array(hdu[1].data.ESPEC.T)
+        logLam_galaxy = np.array(hdu[2].data.LOGLAM)
+        idx_lam = np.where(
+            np.logical_and(
+                np.exp(logLam_galaxy) > config["GAS"]["LMIN"],
+                np.exp(logLam_galaxy) < config["GAS"]["LMAX"],
+            )
+        )[0]
+        spectra = spectra[idx_lam, :]
+        error = error[idx_lam, :]  # AJB added
+        logLam_galaxy = logLam_galaxy[idx_lam]
+        npix = spectra.shape[0]
+        nbins = spectra.shape[1] #This should now = the number of spaxels
+        ubins = np.arange(0, nbins)
+        nstmom = config['KIN']['MOM'] # Usually = 4
+        velscale = hdu[0].header["VELSCALE"]
+        # # the wav range of the data (observed)
+        LamRange = (np.exp(logLam_galaxy[0]), np.exp(logLam_galaxy[-1]))
+
+        #Determining the number of spaxels per bin
+        hdu2 = fits.open(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])+ "_table.fits")
+        bin_id = hdu2['TABLE'].data['BIN_ID']
+        n_spaxels_per_bin = np.zeros(nbins)
+        bin_id = ubins
+        # number of spaxels per bin
+        for i in range(nbins): # Amelia - I dunno about this part - check tomorrow
+            windx = (ubins ==i)
+            n_spaxels_per_bin[i]=np.sum(windx) # This should be an array of ones, so useless?
 
 
-    # define the velocity scale in kms
-    #velscale = (logLam[1]-logLam[0])*cvel
-    #do not use additive polynomials whehn determining emission line fluxes!!
-    #adeg_lines=-1 # but this is hardcoded, so I don't think you need it
+        # Prepare templates - This is for the stellar templates
+        logging.info("Using full spectral library for ppxf on BIN level")
+        (
+            templates,
+            lamRange_spmod,
+            logLam_template,
+            n_templates,
+        ) = _prepareTemplates.prepareTemplates_Module(
+            config,
+            config["GAS"]["LMIN"],
+            config["GAS"]["LMAX"],
+            velscale / velscale_ratio,
+            LSF_Data,
+            LSF_Templates,
+            "GAS",
+        )[
+            :4
+        ]
+        star_templates = templates.reshape((templates.shape[0], n_templates))
 
-    # #--> generate the stellar templates --> Done above now
-    # templates_info = util_templates.prepare_sp_templates\
-    #     (configs, velscale, velscale_ratio, LSF_InterpolationFunction, LamRange, wav_in_vacuum)
-    # star_templates,lamRange_spmod,logLam_template,min_wav_fit,max_wav_fit, nstpl = \
-    #     templates_info['templates'], templates_info['WavRange'],templates_info['logLam'],\
-    #     templates_info['min_wav_to_fit'],templates_info['max_wav_to_fit'],templates_info['templates'].shape[1]
-    # if only_lines==True:
-    #     # the correct way of only fitting emission lines would have been to
-    #     # completely remove the stellar tempaltes from the components list
-    #     # but it is simpler to just set them all to zero and keep the
-    #     star_templates=star_templates*0.0
-    #     # it's usually not good to fit without polynomials if you get rid of the stellar templates
-    #     adeg_lines=3
+        offset = (logLam_template[0] - logLam_galaxy[0]) * C  # km/s
 
     # --> generate the gas templates
     #emldb=table.Table.read('./configFiles/'+config['GAS']['EMI_FILE'] , format='ascii') # Now using the PHANGS emission line config file. NB change '/configFiles' to dirPath or something like that
@@ -618,7 +512,6 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
     # if wav_in_vacuum: # I dunno if we need this - will it ever be in a vaccumm?
     #     emldb['lambda'] = air_to_vac(emldb['lambda'])
-    #eml_fwhm_angstr = LSF_InterpolationFunction(emldb['lambda']) #from PHANGS. Not needed anymore
     eml_fwhm_angstr = LSF_Templates(emldb['lambda'])
     # note that while the stellar templates are expanded in wavelength to cover +/- 150 Angstrom around the observed spectra (buffer)
     # emission line tempaltes are only generated for lines whose central wavelength lies within the min and max rest-frame waveelngth of the data
@@ -673,30 +566,6 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
     for i in range(n_comp):
         tied.append(list( tied_flat[track:track+np.absolute(moments[i])]) )
         track = track+np.absolute(moments[i])
- # Now, I have no way of knowing if the above is correct. I'm not sure if tied should be empty
-
-
-    # --> cut the spectra to the wavelength range of the templates
-    # I think the below is already taken care of.
-    # logLam_cut, log_spec_cut, log_error_cut, npix, mask_for_original_spectra,wav_cov_templates =\
-    #    util_templates.cut_spectra_to_match_templates(logLam, log_spec, log_error, config['GAS']['LMAX'],config['GAS']['LMIN'])
-
-    # # --> Define goodpixels
-    # wav_mask_ppxf, _ = util_templates.get_Mask\
-    #         ('EMSLINES', configs['EMI_FILE'], configs['REDSHIFT'], velscale, logLam_cut,
-    #         log_error_cut, wav_in_vacuum)
-    #
-    # # merge with the spectral coverage mask
-    # mask_for_original_spectra [wav_cov_templates] =wav_mask_ppxf
-    # # get the per-pixel mask by combining the wavelength mask with the info on the Err array
-    # mask_pixels = util_templates.get_pixel_mask(wav_mask_ppxf, log_error_cut)
-    # # finally transform to boolean for input to ppxf
-    # mask_pixels = mask_pixels.astype(bool)
-
-    #--> define the systemic velocity due to template and data starting wavelength offset
-    # NOTE: this is only correct if velscale ==1!!
-    offset = ((logLam_template[0] - logLam_galaxy[0]) + np.log(1 +\
-         config['GENERAL']['REDSHIFT']/C ) )* C
 
     # Implementation of switch FIXED
     # Do fix kinematics to those obtained previously
@@ -707,9 +576,22 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
         # Read PPXF results, add not just stellar, but 3x gas guesses
         ppxf_data = fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_kin.fits')[1].data
+        #if config['GAS']['LEVEL'] == 'BIN':
+        # No need to do anything!
+
+        if config['GAS']['LEVEL'] == 'SPAXEL':
+            binNum_long = np.array(fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_table.fits')[1].data.BIN_ID)
+            ppxf_data_spaxels = np.zeros( (len(ubins), len(ppxf_data[0])))
+            nbins = np.max(binNum_long) +1
+            for i in range(int(nbins)):
+                windx = (binNum_long ==i)
+                ppxf_data_spaxels[windx,:] = ppxf_data[i]
+            ppxf_data = ppxf_data_spaxels
+            print('Length of ppxf_data=')
+            print(len(ppxf_data))
         #start = [[np.zeros((nbins, config['KIN']['MOM']))]] # old
         start, fixed = [], []
-        for i in range(nbins):
+        for i in range(0, np.max(ubins)+1): #what is nbins here? AMELIA up to here. Check this works for the spaxel case
             #start[i,:] = np.array( ppxf_data[i][:config['KIN']['MOM']] ) # old one (needs to be an array?)
             s = [ppxf_data[i][:config['KIN']['MOM']], [ppxf_data[i][0],50], [ppxf_data[i][0],50], [ppxf_data[i][0],50]] # Here I am setting the starting stellar kin guess to the stellar kin results, and the starting gas vel guess to the stellar vel and starting gas sigma to 50
             start.append(s)
@@ -724,51 +606,30 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             fixed = None
             start = np.zeros((nbins, 2))
             start, fixed = [], []
-            for i in range(nbins):
+            for i in range(0, np.max(ubins)+1):
                 #start[i,:] = np.array( [0.0, config['SFH']['SIGMA']] ) # old
                 s = [[0,config['KIN']['SIGMA']], [0,50], [0,50], [0,50]] # Here the velocity guesses are all zero, the sigma guess is the stell kins sig guess for stars and 50 for the gas
                 start.append(s)
                 f = [[0,0,0,0],[0,0],[0,0],[0,0]] # Don't fix any of the kinematics because we're fitting them all!
                 fixed.append(f)
 
-    # Define goodpixels !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! - this bit is from gist, but do I want to replace it?
+    # Define goodpixels !
     goodPixels_gas = _auxiliary.spectralMasking(config, config['GAS']['SPEC_MASK'], logLam_galaxy)
-
-
-    # # if you provide ppxf_results from a previous fit, you can now fix the
-    # # kinematics to that of that previous fit - from PHANGS
-    # if ppxf_results is not None:
-    #     stellar_kinematics = np.copy(ppxf_results)
-    #     nstmom =ppxf_results.shape[1]
-    #     fixed_st_kin=True # if you want to test what happens you can set this to false, then
-    #     #code will use ppxf_results just a starting guess, but not fix the kinematics
-    #
-    # #otherwise the stellar_kinematics array just cointains reasonable starting guesses
-    # # but we allow ppxf to fit for stellar kinematics
-    # else:
-    #     nstmom =2
-    #     stellar_kinematics =np.array([0, 100]*nbins).reshape(nbins, 2)
-    #     fixed_st_kin=False
-
-
-#    tpl_comp, moments, start, bounds, tied, gas_comp =\ # I don't think I need the below now???
-#        util_templates.define_emission_line_input_for_ppxf(config, nstpl, ngastpl, eml_tying,emldb,
-#        stellar_kinematics[0,:], fixed_st_kin=fixed_st_kin)
 
     n_gas_comp = 3 #len(np.unique(tpl_comp[gas_comp]))
     n_gas_templates =  ngastpl #len(tpl_comp[gas_comp]) ngastpl defined above
 
     # Array to store results of ppxf - come back to this, I don' think it's necc what I want?
-    gas_kinematics         = np.zeros((nbins, n_gas_comp, 2))+np.nan # the 2 was configs['GAS_MOMENTS'], but I think we just want 2 for now
-    gas_kinematics_err     = np.zeros((nbins, n_gas_comp, 2))  +np.nan
-    chi2                   = np.zeros((nbins))
-    gas_flux               = np.zeros((nbins,n_gas_templates))
-    gas_flux_error         = np.zeros((nbins,n_gas_templates))
+    gas_kinematics         = np.zeros((np.max(ubins)+1, n_gas_comp, 2))+np.nan # the 2 was configs['GAS_MOMENTS'], but I think we just want 2 for now
+    gas_kinematics_err     = np.zeros((np.max(ubins)+1, n_gas_comp, 2))  +np.nan
+    chi2                   = np.zeros((np.max(ubins)+1))
+    gas_flux               = np.zeros((np.max(ubins)+1,n_gas_templates))
+    gas_flux_error         = np.zeros((np.max(ubins)+1,n_gas_templates))
     gas_named              = []
-    bestfit                = np.zeros((nbins,npix))
-    gas_bestfit            = np.zeros((nbins,npix))
-    stkin                  = np.zeros((nbins,nstmom))
-    stkin_err              = np.zeros((nbins,nstmom))
+    bestfit                = np.zeros((np.max(ubins)+1,npix))
+    gas_bestfit            = np.zeros((np.max(ubins)+1,npix))
+    stkin                  = np.zeros((np.max(ubins)+1,nstmom))
+    stkin_err              = np.zeros((np.max(ubins)+1,nstmom))
 
     # ====================
     # Run PPXF
@@ -791,16 +652,16 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             p.start()
 
         # Fill the queue
-        for i in range(nbins):
+        for i in range(np.max(bin_id)+1): # AMELIA changed this from nbins for emline testing
             # this changes the stellar kinematics starting guess for each bin
             #start2 = np.copy(start)
             #start2[0]=stellar_kinematics[i, :]
             inQueue.put( ( i, templates, spectra[:,i], error[:,i], velscale,\
                 start[i], goodPixels_gas, tpl_comp, moments, offset, emi_mpol_deg, fixed[i], velscale_ratio,\
-                tied, gas_comp,gas_names, nbins ) )
+                tied, gas_comp,gas_names, nbins, ubins ) )
 
         # now get the results with indices
-        ppxf_tmp = [outQueue.get() for _ in range(nbins)]
+        ppxf_tmp = [outQueue.get() for _ in range(np.max(bin_id)+1)] #Changes from nbins
 
         # send stop signal to stop iteration
         for _ in range(config['GENERAL']['NCPU']):
@@ -811,11 +672,11 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             p.join()
 
         # Get output
-        index = np.zeros(nbins)
+        index = np.zeros(np.max(ubins)+1)
 
         # i, sol, kin_err, chi2, gas_flux, gas_flux_err, gas_names, bestfit, gas_bestfit # old?
         # i, gas_sol, gas_error, chi2, gas_flux, gas_flux_error, gas_names, bestfit, gas_bestfit, star_sol, star_err  # new
-        for i in range(0, nbins):
+        for i in range(0, np.max(ubins)+1):
             index[i]                                    = ppxf_tmp[i][0]
             gas_kinematics[i,:, :]                      = ppxf_tmp[i][1]
             gas_kinematics_err[i,:, :]                  = ppxf_tmp[i][2]
@@ -847,16 +708,16 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
     elif config['GENERAL']['PARALLEL'] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
-        for i in range(0, nbins):
+        for i in range(0, np.max(ubins)+1):
             #start[0]=stellar_kinematics[i, :]
             start[0]=start[i] # Added this in. Check if ok.
 
-            gas_kinematics[i,:, :], kinematics_all_err[i,:, :],\
+            gas_kinematics[i,:, :], gas_kinematics_err[i,:, :],\
                 chi2[i], gas_flux[i,:],gas_flux_error[i,:], _ ,\
                 bestfit[i,:], gas_bestfit[i,:] , stkin[i,:], stkin_err[i,:]  = \
                 run_ppxf(templates, spectra[:,i], error[:,i], velscale, \
                 start[i], goodPixels_gas, tpl_comp, moments, offset, emi_mpol_deg, \
-                fixed[i], velscale_ratio, tied, gas_comp, gas_names, i, nbins)
+                fixed[i], velscale_ratio, tied, gas_comp, gas_names, i, nbins, ubins)
 
 
         printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
