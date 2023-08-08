@@ -470,8 +470,8 @@ def saveContLineCube(config):
 
     # save line and continuum cubes
     # float32 preferred over float64 to save size and allow for conversion to hdf5
-    fn_suffix = ["CONT", "LINE", "ORIG"]
-    for cube, name in zip([contCube, lineCube, origCube], fn_suffix):
+    fn_suffix = ["CONT", "ORIG", "LINE"]
+    for cube, name in zip([contCube, origCube, lineCube], fn_suffix):
 
         outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
