@@ -6,6 +6,11 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+
+V5.1.3       2023-08-10  ADDED:
+			 Ability to use the stellar templates from Walcher et al. 2009
+			 in the stellar kinematics module.
+			 config['KIN']['LIBRARY'] can be set to '/Walcher/' to use this option.
 V5.1.2       2023-08-07  FIXED:
 			 Ability to run spaxel-based emission line fits using the pPXF module.
 			 if config['GAS']['METHOD'] = 'ppxf', 'MAGPIGandalf', or 'Gandalf', 
