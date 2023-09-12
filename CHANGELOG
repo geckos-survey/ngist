@@ -7,6 +7,13 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V5.1.4       2023-09-12  ADDED:
+			 Ability to turn the pPXF CLEAN function on or off using the keywords:
+			 config['KIN']['DOCLEAN'] = True/False
+			 config['SFH']['DOCLEAN'] = True/False
+             FIXED:
+             Cleaned the ppxf.py SFH module code to match the format of Kinematic module
+                    
 V5.1.3       2023-08-10  ADDED:
 			 Ability to use the stellar templates from Walcher et al. 2009
 			 in the stellar kinematics module.
@@ -14,6 +21,7 @@ V5.1.3       2023-08-10  ADDED:
 			 config['KIN']['LSF_TEMP'] = 'lsf_WALCHER'
 			 config['KIN']['TEMPLATE_SET'] = 'walcher'
 			 config['KIN']['LIBRARY'] = '/Walcher/'
+             
 V5.1.2       2023-08-07  FIXED:
 			 Ability to run spaxel-based emission line fits using the pPXF module.
 			 if config['GAS']['METHOD'] = 'ppxf', 'MAGPIGandalf', or 'Gandalf', 
@@ -25,27 +33,33 @@ V5.1.2       2023-08-07  FIXED:
 			 cube was made, for use with config['GENERAL']['OUTPUT']_KIN_CONTcube.fits 
 			 and config['GENERAL']['OUTPUT']_KIN_LINEcube.fits for work with the 
 			 continuum cubes. 
+             
 V5.1.1       2023-07-28  ADDED:
 			 Ability to implement a foreground Galactic dust extinction using the 
 			 config['READ_DATA']['EBmV'] keyword.
+             
 V5.1.0	     2023-07-26  ADDED:
 			 A new ppxf-based emission line fitting module based on the PHANGS DAP
+             
 V5.0.5       2023-07-18  ADDED:
 			 SFH module has been updated to use a 3-step noise estimation and 
 			 sigma clipping method, in line with the stellar kinematics module.
+             
 V5.0.4.	     2023-05-26  ADDED:
 			 MAGPI gandalf implementation sub-module. There are now two options 
 			 for GAS METHOD: 'gandalf' and 'MAGPI_gandalf'. Recommend adopting 
 			 'MAGPI_gandalf' from now on.
+             
 V5.0.3.      2023-05-24  ADDED:
 			 Code to subtract the bestfit stellar continuum and construct a 
 			 continuum subtracted cube. 
+             
 V5.0.2       2023-05-17  FIXED:
-			 * Identified origing of LSF module crash which was due to a bug in
+			 * Identified origin of LSF module crash which was due to a bug in
 			 ppxf_util.gaussian_filter1d(). This bug will be fixed in version 
 			 8.2.5 of pPXF. In older pPXF version replace line 665 in 
-			 ppxf_util.py with p = int(1.0 + 4*np.max(sig))
-			 
+			 ppxf_util.py with p = int(1.0 + 4*np.max(sig))	
+             		 
 V5.0.1       2023-05-05   FIXED:
 			 * Fixed bugs in mapviewer/createFigure.py and mapviewer/helperFunctions.py 
 			 by changing all references of PyQT to PyQT5,
