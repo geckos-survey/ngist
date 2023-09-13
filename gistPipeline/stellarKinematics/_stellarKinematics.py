@@ -12,7 +12,7 @@ def stellarKinematics_Module(config):
     This function calls the stellarKinematics routine specified by the user.
     """
     printStatus.module("stellarKinematics module")
-
+    
     # Check if module is turned off in MasterConfig
     if config["KIN"]["METHOD"] == False:
         message = "The module was turned off."

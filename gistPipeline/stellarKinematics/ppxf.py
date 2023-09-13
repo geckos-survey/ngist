@@ -64,6 +64,7 @@ def workerPPXF(inQueue, outQueue):
         adeg,
         mdeg,
         reddening,
+        doclean,
         logLam,
         offset,
         velscale_ratio,
@@ -91,6 +92,7 @@ def workerPPXF(inQueue, outQueue):
             adeg,
             mdeg,
             reddening,
+            doclean,
             logLam,
             offset,
             velscale_ratio,
@@ -125,6 +127,7 @@ def run_ppxf(
     adeg,
     mdeg,
     reddening,
+    doclean,
     logLam,
     offset,
     velscale_ratio,
@@ -200,39 +203,42 @@ def run_ppxf(
 
             ################ 2 ##################
             # Second Call PPXF - use best-fitting template, determine outliers
-            pp_step2 = ppxf(
-                optimal_template_in,
-                log_bin_data,
-                noise_new,
-                velscale,
-                start,
-                goodpixels=goodPixels,
-                plot=False,
-                quiet=True,
-                moments=nmoments,
-                degree=adeg,
-                mdegree=mdeg,
-                reddening=reddening,
-                lam=np.exp(logLam),
-                velscale_ratio=velscale_ratio,
-                vsyst=offset,
-                clean=True,
-            )
-
-            # update goodpixels
-            goodPixels = pp_step2.goodpixels
-
-            # repeat noise scaling # Find a proper estimate of the noise
-            noise_orig = biweight_location(log_bin_error[goodPixels])
-            noise_est = robust_sigma(
-                pp_step1.galaxy[goodPixels] - pp_step2.bestfit[goodPixels]
-            )
-
-            # Calculate the new noise, and the sigma of the distribution.
-            noise_new = log_bin_error * (noise_est / noise_orig)
-            noise_new_std = robust_sigma(noise_new)
-
-            # A temporary fix for the noise issue where a single high S/N spaxel causes clipping of the entire spectrum
+            # only do this if doclean is set 
+            if doclean == True:
+                pp_step2 = ppxf(
+                    optimal_template_in,
+                    log_bin_data,
+                    noise_new,
+                    velscale,
+                    start,
+                    goodpixels=goodPixels,
+                    plot=False,
+                    quiet=True,
+                    moments=nmoments,
+                    degree=adeg,
+                    mdegree=mdeg,
+                    reddening=reddening,
+                    lam=np.exp(logLam),
+                    velscale_ratio=velscale_ratio,
+                    vsyst=offset,
+                    clean=True,
+                )
+                
+                # update goodpixels
+                goodPixels = pp_step2.goodpixels
+                
+                # repeat noise scaling # Find a proper estimate of the noise
+                noise_orig = biweight_location(log_bin_error[goodPixels])
+                noise_est = robust_sigma(
+                    pp_step1.galaxy[goodPixels] - pp_step2.bestfit[goodPixels]
+                )
+                
+                # Calculate the new noise, and the sigma of the distribution.
+                noise_new = log_bin_error * (noise_est / noise_orig)
+                noise_new_std = robust_sigma(noise_new)
+            
+            # A temporary fix for the noise issue where a single high S/N spaxel 
+            # causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est - noise_new_std)] = noise_est
 
             ################ 3 ##################
@@ -682,6 +688,7 @@ def extractStellarKinematics(config):
         config["KIN"]["ADEG"],
         config["KIN"]["MDEG"],
         config["KIN"]["REDDENING"],
+        config["KIN"]["DOCLEAN"],        
         logLam,
         offset,
         velscale_ratio,
@@ -728,6 +735,7 @@ def extractStellarKinematics(config):
                     config["KIN"]["ADEG"],
                     config["KIN"]["MDEG"],
                     config["KIN"]["REDDENING"],
+                    config["KIN"]["DOCLEAN"],
                     logLam,
                     offset,
                     velscale_ratio,
@@ -797,6 +805,7 @@ def extractStellarKinematics(config):
                 config["KIN"]["ADEG"],
                 config["KIN"]["MDEG"],
                 config["KIN"]["REDDENING"],
+                config["KIN"]["DOCLEAN"],
                 logLam,
                 offset,
                 velscale_ratio,
