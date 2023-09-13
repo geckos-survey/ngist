@@ -58,7 +58,7 @@ KIN :
   REDDENING : null # As opposed to None
   MC_PPXF : 0
   DOCLEAN : True 
-  
+
 # Emission line fitting module
 GAS :
   METHOD : 'gandalf'
@@ -82,7 +82,7 @@ SFH :
   NOISE : 1.
   FIXED : True
   DOCLEAN : True
-  
+
 # Line strenghts module
 LS :
   METHOD : 'default'
