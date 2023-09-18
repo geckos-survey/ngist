@@ -55,6 +55,7 @@ KIN :
   TEMPLATE_SET : 'miles'
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
+  DOCLEAN : True
   
 # Emission line fitting module
 GAS :
@@ -91,6 +92,7 @@ SFH :
   TEMPLATE_SET : 'miles'
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
+  DOCLEAN : True
   
 # Line strenghts module
 LS :
