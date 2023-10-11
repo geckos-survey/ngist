@@ -225,11 +225,11 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         data = results[line]
         
         # GANDALF returns the amplitude-over-noise (AON) (PPXF doesn't)
-        try:
-            data_aon = results[line[:-2] + "_AON"]
-            data[np.where(data_aon < AoNThreshold)[0]] = np.nan
-        except:
-            print("amplitude-over-noise (AON) information does not exist for {line}".format(line=line))
+        #try:
+          #  data_aon = results[line[:-2] + "_AON"]
+         #   data[np.where(data_aon < AoNThreshold)[0]] = np.nan
+        #except:
+            # print("amplitude-over-noise (AON) information does not exist for {line}".format(line=line))
         
         # we don't need to mask bin IDs
         if isinstance(data.dtype, int):
