@@ -6,6 +6,11 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.1.5       2023-10-11  FIXED:
+			 SFH module ppxf.py so that it now recognises whether the emission 
+			 line module has already been run. If so, it will take the emission-
+			 subtracted 'cleaned' spectrum as input to the SFH module. 
+
 
 V5.1.4       2023-09-12  ADDED:
 			 Ability to turn the pPXF CLEAN function on or off using the keywords:
