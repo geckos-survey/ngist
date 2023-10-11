@@ -82,7 +82,7 @@ def workerPPXF(inQueue, outQueue):
             optimal_template,
             mc_results,
             formal_error,
-            spectral_mask 
+            spectral_mask
         ) = run_ppxf(templates,
             galaxy,
             noise,
@@ -102,7 +102,7 @@ def workerPPXF(inQueue, outQueue):
             nbins,
             i,
             optimal_template_in,
-        )    
+        )
 
         outQueue.put(
             (
@@ -164,7 +164,7 @@ def run_ppxf_firsttime(
         fixed=fixed,
         velscale_ratio=velscale_ratio,
     )
-    
+
     normalized_weights = pp.weights / np.sum( pp.weights )
     optimal_template   = np.zeros( templates.shape[0] )
     for j in range(0, templates.shape[1]):
@@ -226,7 +226,7 @@ def run_ppxf(
                 velscale_ratio=velscale_ratio,
             )
             # Find a proper estimate of the noise
-            #noise_orig = biweight_location(log_bin_error[goodPixels]) 
+            #noise_orig = biweight_location(log_bin_error[goodPixels])
             #goodpixels is one shorter than log_bin_error
             noise_orig = np.mean(log_bin_error[goodPixels])
             noise_est = robust_sigma(pp_step1.galaxy[goodPixels]-pp_step1.bestfit[goodPixels])
@@ -258,18 +258,18 @@ def run_ppxf(
                     velscale_ratio=velscale_ratio,
                     clean=True,
                 )
-                
+
                 # update goodpixels
                 goodPixels = pp_step2.goodpixels
-                
+
                 # repeat noise scaling # Find a proper estimate of the noise
                 noise_orig = biweight_location(log_bin_error[goodPixels])
                 noise_est = robust_sigma(pp_step1.galaxy[goodPixels]-pp_step2.bestfit[goodPixels])
-                
+
                 # Calculate the new noise, and the sigma of the distribution.
                 noise_new = log_bin_error*(noise_est/noise_orig)
                 noise_new_std = robust_sigma(noise_new)
-                
+
                 # A temporary fix for the noise issue where a single high S/N spaxel causes clipping of the entire spectrum
                 noise_new[np.where(noise_new <= noise_est-noise_new_std)] = noise_est
 
@@ -292,7 +292,7 @@ def run_ppxf(
                 fixed=fixed,
                 velscale_ratio=velscale_ratio,
             )
-        
+
         #update goodpixels again
         goodPixels = pp.goodpixels
 
@@ -615,14 +615,14 @@ def extractStarFormationHistories(config):
     if (
         os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ppxf-bestfit-emlines_BIN.fits"
+            + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits'
         )
         == True
     ):
         logging.info(
             "Using emission-subtracted spectra at "
             + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "__ppxf-bestfit-emlines_BIN.fits"
+            + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits'
         )
         printStatus.done("Using emission-subtracted spectra")
 
@@ -765,7 +765,7 @@ def extractStarFormationHistories(config):
 
         # Fill the queue
         for i in range(nbins):
-            inQueue.put( 
+            inQueue.put(
                 (
                     templates,
                     bin_data[:,i],
@@ -786,7 +786,7 @@ def extractStarFormationHistories(config):
                     nbins,
                     i,
                     optimal_template_comb,
-                ) 
+                )
             )
 
 
@@ -812,7 +812,7 @@ def extractStarFormationHistories(config):
             optimal_template[i,:] = ppxf_tmp[i][4]
             mc_results[i,:config['SFH']['MOM']] = ppxf_tmp[i][5]
             formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][6]
-            spectral_mask[i,:] = ppxf_tmp[i][7] 
+            spectral_mask[i,:] = ppxf_tmp[i][7]
 
         # Sort output
         argidx = np.argsort( index )
