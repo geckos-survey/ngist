@@ -16,9 +16,9 @@ READ_DATA :
   DEBUG : FALSE # Switch to activate debug mode [True/False]: Pipeline runs on one, central line of pixels. Keep in mind to clean output directory after running in DEBUG mode!
   ORIGIN : 14,14 # Origin of the coordinate system in pixel coordinates: x,y (Indexing starts at 0).
   LMIN_TOT : 4800 # Spectra are shortened to the rest-frame wavelength range defined by LMIN_TOT and LMAX_TOT. Note that this wavelength range should be longer than all other wavelength ranges supplied to the modules [in Angst.]
-  LMAX_TOT : 5500
+  LMAX_TOT : 7000
   LMIN_SNR : 4800 # Rest-frame wavelength range used for the signal-to-noise calculation [in Angst.]
-  LMAX_SNR : 5500
+  LMAX_SNR : 7000
   EBmV : null # Enter the E(B-V) value for the galaxy here (or use null for no Galactic dust correction)
 
 # Spatial masking module
@@ -44,7 +44,7 @@ KIN :
   METHOD : 'ppxf'
   SPEC_MASK : 'specMask_KIN'
   LMIN : 4800
-  LMAX : 5500
+  LMAX : 7000
   SIGMA : 200
   MOM : 4
   ADEG : 8
@@ -63,7 +63,7 @@ GAS :
   SPEC_MASK : 'specMask_GAS'
   LEVEL : 'BIN'
   LMIN : 4800
-  LMAX : 5500
+  LMAX : 7000
   ERRORS : 0
   REDDENING : 0.1,0.1
   MDEG : 8
