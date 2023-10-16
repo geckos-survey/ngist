@@ -25,7 +25,6 @@ output_files = ["CONFIG","LOGFILE",
 				"NGC0000Example_gas_BIN.fits",
 				"NGC0000Example_gas-bestfit_BIN.fits",
 				"NGC0000Example_gas-cleaned_BIN.fits",
-				"NGC0000Example_gas-emission_BIN.fits",
 				"NGC0000Example_gas-optimalTemplate_BIN.fits",
 				"NGC0000Example_gas-weights_BIN.fits",
 				"NGC0000Example_kin-bestfit.fits",
@@ -38,7 +37,12 @@ output_files = ["CONFIG","LOGFILE",
 				"NGC0000Example_sfh-bestfit.fits",
 				"NGC0000Example_sfh-weights.fits",
 				"NGC0000Example_sfh.fits",
-				"NGC0000Example_table.fits"]
+				"NGC0000Example_table.fits",
+				"NGC0000Example_KIN_maps.fits",
+	       			"NGC0000Example_gas_BIN_maps.fits",
+				"NGC0000Example_SFH_maps.fits",
+				"NGC0000Example_LS_ORIGINAL_maps.fits",
+				"NGC0000Example_LS_ADAPTED_maps.fits"]
 
 for file in output_files:
 	assert os.path.isfile(f"{output_dir}/{file}"), f"{file} not created, probably the module failed"
