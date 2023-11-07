@@ -71,7 +71,7 @@ CONT :
   MC_PPXF : 0 # Number of Monte-Carlo simulations to extract errors on the stellar kinematics. Formal errors are saved in any case.
   LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
   TEMPLATE_SET : 'miles' # options are 'miles' or 'IndoUS' or 'walcher'
-  LIBRARY : 'miles_ssp_ch/' # options are 'MILES/', 'miles_ssp_ch/', 'IndoUS', and 'Walcher/'
+  LIBRARY : 'MILES/' # options are 'MILES/', 'miles_ssp_ch/', 'IndoUS', and 'Walcher/'
   NORM_TEMP : 'LIGHT' # Normalise the spectral template library to obtain light- or mass-weighted results [LIGHT / MASS]
   DOCLEAN : True # Keyword to turn on/off the sigma clipping. Set to 'False' for testing.
   
