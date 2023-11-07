@@ -34,6 +34,8 @@ def generateFITS(config, module):
             logging.error(e, exc_info=True)
             logging.error("Failed to produce stellar kinematics maps.")
 
+    # - - - - - CONTINUUM CUBE MODULE - - - - -
+    if module == "CONT":
         try:
             printStatus.running(
                 "Producing continuum-only and line-only cubes in FITS format"
@@ -69,7 +71,7 @@ def generateFITS(config, module):
                     config["GENERAL"]["OUTPUT"],
                     LEVEL=config["GAS"]["LEVEL"],
                     AoNThreshold=4,
-                )                
+                )
             printStatus.updateDone(
                 "Producing FITS maps from the emission-line analysis"
             )

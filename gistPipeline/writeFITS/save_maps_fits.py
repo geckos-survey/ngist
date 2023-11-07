@@ -34,7 +34,7 @@ def write_fits_cube(hdulist, filename, overwrite=False,
         fits.HDUList(hdulist).writeto(filename, overwrite=overwrite)
     except TypeError:
         fits.HDUList(hdulist).writeto(filename, clobber=overwrite)
-    
+
 def savefitsmaps(module_id, outdir=""):
     """
     savefitsmaps _summary_
@@ -223,14 +223,14 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
             continue
 
         data = results[line]
-        
+
         # GANDALF returns the amplitude-over-noise (AON) (PPXF doesn't)
         #try:
           #  data_aon = results[line[:-2] + "_AON"]
          #   data[np.where(data_aon < AoNThreshold)[0]] = np.nan
         #except:
             # print("amplitude-over-noise (AON) information does not exist for {line}".format(line=line))
-        
+
         # we don't need to mask bin IDs
         if isinstance(data.dtype, int):
             data[np.where(data == -1)[0]] = np.nan
@@ -400,7 +400,7 @@ def saveContLineCube(config):
     inputCube = readCube(config)
     spectra_all = inputCube["spec"]
     linLam = inputCube["wave"]
-    
+
     idx_lam = np.where(
         np.logical_and(linLam > config["KIN"]["LMIN"], linLam < config["KIN"]["LMAX"])
     )[0]
@@ -411,15 +411,15 @@ def saveContLineCube(config):
     ppxf_bestfit = fits.open(
         os.path.join(
             config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit.fits",
+            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
         )
     )[1].data.BESTFIT
-
+    print('Found it! opening -kin-bestfit-cont.fits')
     # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
     logLam = fits.open(
         os.path.join(
             config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit.fits",
+            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
         )
     )[2].data.LOGLAM
 
@@ -470,27 +470,27 @@ def saveContLineCube(config):
     # spectral axes in observed wavelength frame
     # (cube is de-redshifted during read in by MUSE_WFM.py)
     cubehdr["NAXIS3"] = len(linLam)
-    cubehdr["CRVAL3"] = linLam[0] * (1 + config["GENERAL"]["REDSHIFT"]) # 
+    cubehdr["CRVAL3"] = linLam[0] * (1 + config["GENERAL"]["REDSHIFT"]) #
     cubehdr["CRPIX3"] = 1
     cubehdr["CTYPE3"] = "AWAV"
     cubehdr["CUNIT3"] = "angstrom"
-    
+
     # set the WCS keywords to CDELT standard format
     cdi_j_wcs = WCS(cubehdr)
     newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
     newcubehdr.update(
         diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
     )  # replace with CDELT standard keys
-    
+
     # set the correct CDELT *after* CD3_3 has been removed, adjust to observed wavelength frame
     # as cube is de-redshifted during read in by MUSE_WFM.py
     newcubehdr["CDELT3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0] * 1e-10 # A -> m
 
     # save line and continuum cubes
-    # float32 preferred over float64 to save size and allow for conversion to hdf5 
+    # float32 preferred over float64 to save size and allow for conversion to hdf5
     fn_suffix = ["CONT", "LINE", "ORIG"]
     for cube, name in zip([contCube, lineCube, origCube], fn_suffix):
-        
+
         outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_KIN_{}cube.fits".format(name)
@@ -500,4 +500,3 @@ def saveContLineCube(config):
                          header=newcubehdr)]
 
         write_fits_cube(hdulist=cubehdul, filename=outfits, overwrite=True)
-        
