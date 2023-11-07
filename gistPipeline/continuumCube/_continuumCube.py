@@ -33,7 +33,7 @@ def continuumCube_Module(config):
         printStatus.done("Results are already available. Module is skipped.")
         return None
 
-    # Import the chosen stellarKinematics routine
+    # Import the chosen continuumCube routine
     try:
         spec = importlib.util.spec_from_file_location(
             "",
@@ -58,7 +58,7 @@ def continuumCube_Module(config):
         logging.critical(message)
         return "SKIP"
 
-    # Execute the chosen stellarKinematics routine
+    # Execute the chosen continuumCube routine
     try:
         module.createContinuumCube(config)
         _writeFITS.generateFITS(config, "CONT")

@@ -20,7 +20,7 @@ module.
 def getLSF(config, module_used):
     """
     Function to read the given LSF's from file.
-    Added option of module = 'KIN', 'GAS', 'SFH', or 'LS'
+    Added option of module = 'KIN', 'CONT', 'GAS', 'SFH', or 'LS'
     to account for differing template sets for the same run
     """
     # Read LSF of observation and templates and construct an interpolation function
@@ -30,6 +30,10 @@ def getLSF(config, module_used):
     if module_used == "KIN":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["KIN"]["LSF_TEMP"]
+        )
+    elif module_used == "CONT":
+        lsfTempFile = os.path.join(
+            config["GENERAL"]["CONFIG_DIR"], config["CONT"]["LSF_TEMP"]
         )
     elif module_used == "GAS":
         lsfTempFile = os.path.join(
@@ -132,7 +136,7 @@ def addGISTHeaderComment(config):
                 fits.setval(
                     file,
                     "COMMENT",
-                    value="                Generated with the GIST pipeline, V"
+                    value="                Generated with the gist-geckos pipeline, V"
                     + __version__
                     + "                  ",
                     ext=o,
@@ -146,13 +150,13 @@ def addGISTHeaderComment(config):
                 fits.setval(
                     file,
                     "COMMENT",
-                    value=" Please cite Bittner et al. 2019 (A&A, 628, A117) and the corresponding ",
+                    value=" Based on the GIST pipeline of Bittner et al.  ",
                     ext=o,
                 )
                 fits.setval(
                     file,
                     "COMMENT",
-                    value="       analysis routines if you use this data in any publication.       ",
+                    value="       analysis       ",
                     ext=o,
                 )
                 fits.setval(file, "COMMENT", value="", ext=o)
@@ -165,7 +169,7 @@ def addGISTHeaderComment(config):
                 fits.setval(
                     file,
                     "COMMENT",
-                    value="         please see https://abittner.gitlab.io/thegistpipeline          ",
+                    value="         please see https://geckos-survey.github.io/gist-documentation/          ",
                     ext=o,
                 )
                 fits.setval(

@@ -556,7 +556,7 @@ def save_ppxf(
     # logging.info("Wrote: " + outfits)
 
 
-def extractStellarKinematics(config):
+def createContinuumCube(config):
     """
     Perform the measurement of stellar kinematics, using the pPXF routine. This
     function basically read all necessary input data, hands it to pPXF, and
