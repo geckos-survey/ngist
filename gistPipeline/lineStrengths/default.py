@@ -6,6 +6,8 @@ import numpy as np
 from astropy.io import ascii, fits
 from multiprocess import Process, Queue
 # Then use system installed version instead
+# import ppxf
+# print(ppxf.__version__)
 from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 
