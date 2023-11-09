@@ -1,50 +1,21 @@
-   The GIST-geckos Pipeline: A modified version of GIST for use with MUSE data
+   The gist-geckos Pipeline: An updated version of GIST for use with MUSE data
 ===============================================================================
 This is the gist-GECKOS pipeline, an actively-developed version of the GIST pipeline for use with MUSE data, and 
-specially develped for use with the GECKOS and MAUVE surveys. Numerous updatwes and improvements have been implemented 
-on the GIST pipeline, as detailed in the changelog. 
-
-To use, clone the gist-geckos repository, AND the gist-geckos-supplementary repository. gist-geckos contains the 
-gist-geckos pipeline, and the -supplementary repo contains supplementary files and folders, including a .yaml 
-file containing a conda environment that should be used for running the pipeline. An updated 'gistTutorial' folder 
-is also there, and the MasterConfig.yaml file should be used as an example. 
-
-After cloning the two repos and running 'python setup.py install' in your gist-geckos repo directory, run the 
-gist-geckos pipeline with gistPipeline --config configFiles/MasterConfig.yaml --default-dir configFiles/defaultDir
-
-
-Below is the original README for the GIST pipeline:
-
-
-   The GIST Framework: A multi-purpose tool for the analysis and visualisation of (integral-field) spectroscopic data
-========================================================================================================================
-
-The GIST is a convenient, all-in-one framework for the scientific analysis of fully reduced, (integral-field)
-spectroscopic data. It is entirely written in Python3 and conducts all steps from the preparation of input data, over
-the scientific analysis to the production of publication-quality plots.
-
-In its default implementation, it extracts stellar kinematics, performs an emission-line analysis, derives star
-formation histories and stellar population properties from full spectral fitting as well as via the measurement of
-absorption line-strength indices. To this end, the GIST is exploiting the well-known pPXF and GandALF routines. In
-addition, the framework is not specific to any instrument or analysis technique and provides easy means of modification
-and further development, as of its modular code architecture. In fact, it is not only a neat combination of already
-existing fitting routines, but a fully modular framework for the analysis of spectroscopic data in the context of a
-variety of scientific objectives. 
-
-The software further features the dedicated visualisation routine Mapviewer which has a sophisticated graphical user
-interface. This allows the easy, fully-interactive plotting of all measurements, in particular maps, observed spectra,
-fits, residuals, as well as star formation histories and the weight distribution of the models. 
-
-An elaborate, Python-native parallelisation is implemented and tested on various machines from laptop to cluster scales. 
-
-To date, the GIST framework has successfully been applied to both low and high-redshift data from MUSE, PPAK (CALIFA),
-SINFONI, KCWI, and MaNGA, as well as to simulated data for HARMONI, WEAVE, and other artificial observations. 
-
+specially develped for use with the GECKOS and MAUVE surveys. Numerous updates and improvements have been implemented 
+on the GIST pipeline. 
 
 Documentation
 -------------
-For a detailed documentation of the GIST framework, including instructions on installation, configuration, and a
-tutorial, please see https://abittner.gitlab.io/thegistpipeline
+For a detailed documentation of the gist-geckos pipeline, including instructions on installation, configuration, and a
+tutorial, please see https://geckos-survey.github.io/gist-documentation/
+
+Usage 
+-------------
+
+In its default implementation, it extracts stellar kinematics, creates continuum-only and line-only cubes, performs an 
+emission-line analysis, derives star formation histories and stellar population properties from full spectral fitting 
+as well as via the measurement of absorption line-strength indices. Outputs are easy-to-read 2D maps .fits files of 
+various derived parameters, along with best fit spectra for those that want to dive further into the data. 
 
 
 Citing GIST and the analysis routines
@@ -71,17 +42,6 @@ Therefore, this software framework should not be simply adopted as a black-box. 
 familiar with both the input data and analysis methods, as well as their implementation.
 
 
-Acknowledgements
-----------------
-We thank Harald Kuntschner and Michele Cappellari for their permission to distribute their codes together with this
-software package. We further thank Alexandre Vazdekis for permission to include the MILES library. The framework makes
-use of Astropy, a community-developed core Python package for Astronomy (Astropy Collaboration et al. 2013, 2018), as
-well as NumPy, SciPy and Matplotlib.
 
 
-License
-------------
-This software is provided as is without any warranty whatsoever. Permission to use, for non-commercial purposes is
-granted. Permission to modify for personal or internal use is granted, provided this copyright and disclaimer are
-included in all copies of the software. Redistribution of the code, modified or not, is not allowed. All other rights
-are reserved.
+
