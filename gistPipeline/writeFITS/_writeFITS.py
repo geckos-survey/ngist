@@ -27,7 +27,7 @@ def generateFITS(config, module):
     if module == "SPATIAL_BINNING":
         try:
             printStatus.running("Producing table binned maps in FITS format")
-            save_maps_fits.savefitsmaps("TABLE", config["GENERAL"]["OUTPUT"])
+            save_maps_fits.savefitsmaps("SPATIAL_BINNING", config["GENERAL"]["OUTPUT"])
             printStatus.updateDone("Producing table binned maps in FITS format")
             logging.info("Produced table binned maps in FITS format")
         except Exception as e:

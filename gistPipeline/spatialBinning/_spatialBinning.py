@@ -58,12 +58,10 @@ def spatialBinning_Module(config, cube):
         logging.critical(message)
         return "SKIP"
 
-    print("             do I get here?")
     # Execute the chosen spatialBinning routine
     try:
         module.generateSpatialBins(config, cube)
-        _writeFITS.generateFITS(config, "TABLE")
-        print("            and how abouthere?")
+        _writeFITS.generateFITS(config, "SPATIAL_BINNING")
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = (
