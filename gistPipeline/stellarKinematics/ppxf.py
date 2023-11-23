@@ -698,7 +698,7 @@ def extractStellarKinematics(config):
         comb_espec,
         velscale,
         start[0, :],
-        goodPixels_ppxf_postfit,
+        goodPixels_ppxf,
         config["KIN"]["MOM"],
         config["KIN"]["ADEG"],
         config["KIN"]["MDEG"],
