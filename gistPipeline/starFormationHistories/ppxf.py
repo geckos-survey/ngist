@@ -82,7 +82,8 @@ def workerPPXF(inQueue, outQueue):
             optimal_template,
             mc_results,
             formal_error,
-            spectral_mask
+            spectral_mask,
+            snr_postfit,
         ) = run_ppxf(templates,
             galaxy,
             noise,
@@ -114,6 +115,7 @@ def workerPPXF(inQueue, outQueue):
                 mc_results,
                 formal_error,
                 spectral_mask,
+                snr_postfit,
             )
         )
 
@@ -145,8 +147,8 @@ def run_ppxf_firsttime(
     non-parametric star-formation histories.
     """
         # Call PPXF for first time to get optimal template
-    print("Running pPXF for the first time")
-    logging.info("Using the new 3-step pPXF implementation")
+    #print("Running pPXF for the first time")
+    #logging.info("Using the new 3-step pPXF implementation")
     pp = ppxf(
         templates,
         log_bin_data,
@@ -300,6 +302,10 @@ def run_ppxf(
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
 
+        # Calculate the true S/N from the residual
+        noise_est = robust_sigma(pp_step1.galaxy[goodPixels] - pp_step2.bestfit[goodPixels])
+        snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
+
         # Make the unconvolved optimal stellar template
         normalized_weights = pp.weights / np.sum( pp.weights )
         optimal_template   = np.zeros( templates.shape[0] )
@@ -330,10 +336,19 @@ def run_ppxf(
         #     mc_results = np.nanstd( sol_MC, axis=0 )
         # print(pp.sol[:])
 
-        return(pp.sol[:], w_row, pp.bestfit, optimal_template, mc_results, formal_error, spectral_mask) # AMELIA: do I neeed the pp.reddening?
+        return(
+            pp.sol[:], 
+            w_row, 
+            pp.bestfit, 
+            optimal_template, 
+            mc_results, 
+            formal_error, 
+            spectral_mask,
+            snr_postfit,
+        ) 
 
     except:
-        return( np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan )
+        return( np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
 
@@ -400,6 +415,7 @@ def save_sfh(
     config,
     spectral_mask,
     optimal_template_comb,
+    snr_postfit,
 ):
     """ Save all results to disk. """
 
@@ -454,6 +470,10 @@ def save_sfh(
             cols.append(
                 fits.Column(name="FORM_ERR_H6", format="D", array=formal_error[:, 5])
             )
+
+    # Add True SNR calculated from residual
+    cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=ppxf_reddening[:]))
+
 
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "SFH"
@@ -706,7 +726,8 @@ def extractStarFormationHistories(config):
     mc_results = np.zeros((nbins,6))
     formal_error = np.zeros((nbins,6))
     spectral_mask = np.zeros((nbins,bin_data.shape[0]))
-
+    snr_postfit = np.zeros(nbins)
+    
     # ====================
     # Run PPXF once on combined mean spectrum to get a single optimal template
     comb_spec = np.nanmean(bin_data[:,:],axis=1)
@@ -813,7 +834,8 @@ def extractStarFormationHistories(config):
             mc_results[i,:config['SFH']['MOM']] = ppxf_tmp[i][5]
             formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][6]
             spectral_mask[i,:] = ppxf_tmp[i][7]
-
+            snr_postfit[i] = ppxf_tmp[i][8]
+            
         # Sort output
         argidx = np.argsort( index )
         ppxf_result = ppxf_result[argidx,:]
@@ -823,7 +845,8 @@ def extractStarFormationHistories(config):
         mc_results = mc_results[argidx,:]
         formal_error = formal_error[argidx,:]
         spectral_mask = spectral_mask[argidx,:]
-
+        snr_postfit = snr_postfit[argidx]
+        
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
     if config['GENERAL']['PARALLEL'] == False: # Amelia you haven't tested this yet. Come back to.
@@ -835,6 +858,7 @@ def extractStarFormationHistories(config):
                 w_row[i,:],
                 bestfit[i,:],
                 formal_error[i,:config['SFH']['MOM']],
+                snr_postfit[i],
             ) = run_ppxf(
                 templates,
                 galaxy[i,:],
@@ -913,6 +937,7 @@ def extractStarFormationHistories(config):
         config,
         spectral_mask,
         optimal_template_comb,
+        snr_postfit,
     )
 
     # Return

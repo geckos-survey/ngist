@@ -77,7 +77,21 @@ def savefitsmaps(module_id, outdir=""):
         )
 
     # Read Results
-    if module_id == "KIN":
+    
+    if module_id == "TABLE":
+        # Most table results are already read in; add SN
+        SNR          = np.array(table_hdu[1].data.SNR)
+        SNRBIN       = np.array(table_hdu[1].data.SNRBIN)
+        
+        result      = np.zeros((len(binNum_long),4)) #one extra to track the bin
+        result[:,0] = binNum_long
+        result[:,1] = FLUX
+        result[:,2] = SNR
+        result[:,3] = SNRBIN            
+        # define bin names
+        names = ['BINID','FLUX','SNR','SNRBIN']
+    
+    elif module_id == "KIN":
         # read results
         hdu = fits.open(os.path.join(outdir, rootname) + "_kin.fits")
         names = list(hdu[1].data.dtype.names)

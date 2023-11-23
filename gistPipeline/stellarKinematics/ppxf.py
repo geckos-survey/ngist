@@ -81,6 +81,7 @@ def workerPPXF(inQueue, outQueue):
             mc_results,
             formal_error,
             spectral_mask,
+            snr_postfit,
         ) = run_ppxf(
             templates,
             bin_data,
@@ -112,6 +113,7 @@ def workerPPXF(inQueue, outQueue):
                 mc_results,
                 formal_error,
                 spectral_mask,
+                snr_postfit,
             )
         )
 
@@ -267,6 +269,10 @@ def run_ppxf(
         # make spectral mask
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
+        
+        # Calculate the true S/N from the residual
+        noise_est = robust_sigma(pp_step1.galaxy[goodPixels] - pp_step2.bestfit[goodPixels])
+        snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
 
         # Make the unconvolved optimal stellar template
         normalized_weights = pp.weights / np.sum(pp.weights)
@@ -311,7 +317,7 @@ def run_ppxf(
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
 
-        return (
+        return(
             pp.sol[:],
             pp.reddening,
             pp.bestfit,
@@ -319,10 +325,11 @@ def run_ppxf(
             mc_results,
             formal_error,
             spectral_mask,
+            snr_postfit,
         )
 
     except:
-        return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+        return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
 def save_ppxf(
@@ -340,6 +347,7 @@ def save_ppxf(
     spectral_mask,
     optimal_template_comb,
     bin_data,
+    snr_postfit,
 ):
     """Saves all results to disk."""
     # ========================
@@ -400,9 +408,14 @@ def save_ppxf(
             fits.Column(name="FORM_ERR_H6", format="D", array=formal_error[:, 5])
         )
 
+    # Add reddening if parameter is used
     if np.any(np.isnan(ppxf_reddening)) != True:
         cols.append(fits.Column(name="REDDENING", format="D", array=ppxf_reddening[:]))
 
+    # Add True SNR calculated from residual
+    cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=ppxf_reddening[:]))
+
+    
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "KIN_DATA"
 
@@ -444,12 +457,12 @@ def save_ppxf(
     goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     goodpixHDU.name = "GOODPIX"
 
-    # Table HDU with PPXF goodpixels
+    # Table HDU with ??? --> unclear what this is?
     cols = []
     cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=bin_data.T))
     specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     specHDU.name = "SPEC"
-
+    
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
@@ -662,6 +675,7 @@ def extractStellarKinematics(config):
     mc_results = np.zeros((nbins, 6))
     formal_error = np.zeros((nbins, 6))
     spectral_mask = np.zeros((nbins, bin_data.shape[0]))
+    snr_postfit = np.zeros(nbins)
 
     # ====================
     # Run PPXF once on combined mean spectrum to get a single optimal template
@@ -677,13 +691,14 @@ def extractStellarKinematics(config):
         tmp_mc_results,
         tmp_formal_error,
         tmp_spectral_mask,
+        tmp_snr_postfit,
     ) = run_ppxf(
         templates,
         comb_spec,
         comb_espec,
         velscale,
         start[0, :],
-        goodPixels_ppxf,
+        goodPixels_ppxf_postfit,
         config["KIN"]["MOM"],
         config["KIN"]["ADEG"],
         config["KIN"]["MDEG"],
@@ -768,6 +783,7 @@ def extractStellarKinematics(config):
             mc_results[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][5]
             formal_error[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][6]
             spectral_mask[i, :] = ppxf_tmp[i][7]
+            snr_postfit[i] = ppxf_tmp[i][8]
 
         # Sort output
         argidx = np.argsort(index)
@@ -778,7 +794,8 @@ def extractStellarKinematics(config):
         mc_results = mc_results[argidx, :]
         formal_error = formal_error[argidx, :]
         spectral_mask = spectral_mask[argidx, :]
-
+        snr_postfit = snr_postfit[argidx]
+        
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
     elif config["GENERAL"]["PARALLEL"] == False:
@@ -794,6 +811,7 @@ def extractStellarKinematics(config):
                 mc_results[i, : config["KIN"]["MOM"]],
                 formal_error[i, : config["KIN"]["MOM"]],
                 spectral_mask[i, :],
+                snr_postfit[i],
             ) = run_ppxf(
                 templates,
                 bin_data[:, i],
@@ -857,6 +875,7 @@ def extractStellarKinematics(config):
         spectral_mask,
         optimal_template_comb,
         bin_data,
+        snr_postfit,
     )
 
     # Return
