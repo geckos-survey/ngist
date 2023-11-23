@@ -413,7 +413,7 @@ def save_ppxf(
         cols.append(fits.Column(name="REDDENING", format="D", array=ppxf_reddening[:]))
 
     # Add True SNR calculated from residual
-    cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=ppxf_reddening[:]))
+    cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
 
     
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
