@@ -266,7 +266,7 @@ def run_ppxf(
 
                 # repeat noise scaling # Find a proper estimate of the noise
                 noise_orig = biweight_location(log_bin_error[goodPixels])
-                noise_est = robust_sigma(pp_step1.galaxy[goodPixels]-pp_step2.bestfit[goodPixels])
+                noise_est = robust_sigma(pp_step2.galaxy[goodPixels]-pp_step2.bestfit[goodPixels])
 
                 # Calculate the new noise, and the sigma of the distribution.
                 noise_new = log_bin_error*(noise_est/noise_orig)
@@ -303,7 +303,7 @@ def run_ppxf(
         spectral_mask[goodPixels] = 1.0
 
         # Calculate the true S/N from the residual
-        noise_est = robust_sigma(pp_step1.galaxy[goodPixels] - pp_step2.bestfit[goodPixels])
+        noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
         snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
 
         # Make the unconvolved optimal stellar template
