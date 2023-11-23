@@ -76,8 +76,23 @@ def savefitsmaps(module_id, outdir=""):
             "All Y-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!\n"
         )
 
-    # Read Results
-    if module_id == "KIN":
+    # Read Results    
+    if module_id == "SPATIAL_BINNING":
+        # Most table results are already read in; add SN
+        SNR          = np.array(table_hdu[1].data.SNR)
+        SNRBIN       = np.array(table_hdu[1].data.SNRBIN)
+        
+        #define names
+        names = ["BINID","FLUX","SNR","SNRBIN"]
+                
+        result = np.zeros((len(binNum_long), len(names)))
+        result[:,0] = binNum_long
+        result[:,1] = FLUX
+        result[:,2] = SNR
+        result[:,3] = SNRBIN            
+
+    
+    elif module_id == "KIN":
         # read results
         hdu = fits.open(os.path.join(outdir, rootname) + "_kin.fits")
         names = list(hdu[1].data.dtype.names)
@@ -89,25 +104,20 @@ def savefitsmaps(module_id, outdir=""):
     elif module_id == "SFH":
         # Read results
         sfh_hdu = fits.open(os.path.join(outdir, rootname) + "_sfh.fits")
-        result = np.zeros((len(ubins), 3))
+        names = list(sfh_hdu[1].data.dtype.names)
 
-        result[:, 0] = np.array(sfh_hdu[1].data.AGE)
-        result[:, 1] = np.array(sfh_hdu[1].data.METAL)
-        result[:, 2] = np.array(sfh_hdu[1].data.ALPHA)
-        if (
-            len(np.unique(result[:, 2])) == 1
-        ):  # propose change to simply names = list(hdu[1].data.dtype.names) but not yet tested
-            names = ["AGE", "METAL"]
-        else:
-            names = ["AGE", "METAL", "ALPHA"]
+        result = np.zeros((len(ubins), len(names)))
+        for i, name in enumerate(names):
+            result[:, i] = np.array(sfh_hdu[1].data[name])
 
-    # Convert results to long version
-    result_long = np.zeros((len(binNum_long), result.shape[1]))
-    result_long[:, :] = np.nan
-    for i in range(len(ubins)):
-        idx = np.where(ubins[i] == np.abs(binNum_long))[0]
-        result_long[idx, :] = result[i, :]
-    result = result_long
+    if (module_id == 'KIN') | (module_id == "SFH"):
+        # Convert results to long version
+        result_long = np.zeros((len(binNum_long), result.shape[1]))
+        result_long[:, :] = np.nan
+        for i in range(len(ubins)):
+            idx = np.where(ubins[i] == np.abs(binNum_long))[0]
+            result_long[idx, :] = result[i, :]
+        result = result_long
 
     # result[:, 0] = result[:, 0] - np.nanmedian(result[:, 0]) [median subtraction on products]
 

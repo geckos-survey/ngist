@@ -4,6 +4,8 @@ import os
 
 from printStatus import printStatus
 
+from gistPipeline.writeFITS import _writeFITS
+
 
 def spatialBinning_Module(config, cube):
     """
@@ -59,6 +61,7 @@ def spatialBinning_Module(config, cube):
     # Execute the chosen spatialBinning routine
     try:
         module.generateSpatialBins(config, cube)
+        _writeFITS.generateFITS(config, "SPATIAL_BINNING")
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = (

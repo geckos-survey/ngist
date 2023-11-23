@@ -6,11 +6,19 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+
+V5.2.1       2023-11-23  ADDED:
+			 SPATIAL_BINNING module now outputs maps for table.fits. StellarKinematics
+             and SFH modules now calculates the postfit signal-to-noise ratio from the
+             residuals and output these in the saved fits files
+
+V5.2.0       2023-11-8  ADDED:
+			 A new continuum module was created based on the StellarKinematics module.
+             
 V5.1.5       2023-10-11  FIXED:
 			 SFH module ppxf.py so that it now recognises whether the emission 
 			 line module has already been run. If so, it will take the emission-
 			 subtracted 'cleaned' spectrum as input to the SFH module. 
-
 
 V5.1.4       2023-09-12  ADDED:
 			 Ability to turn the pPXF CLEAN function on or off using the keywords:
