@@ -308,9 +308,6 @@ def run_ppxf(
         # add normalisation factor back in main results
         pp.bestfit *= median_log_bin_data
 
-        print('median ',median_log_bin_data)
-        print('median pp.bestfit',np.median(pp.bestfit))
-
         return(
             pp.sol[:], 
             w_row, 
