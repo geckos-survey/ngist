@@ -7,10 +7,16 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+
+V5.2.2       2023-12-08  FIXED:
+			 Galaxy spectra our now normalised before being fitted in the 
+			 StellarKinematics and SFH modules. Output best-fit model is scaled 
+			 back to match original flux of galaxy spectrum.
+
 V5.2.1       2023-11-23  ADDED:
 			 SPATIAL_BINNING module now outputs maps for table.fits. StellarKinematics
-             and SFH modules now calculates the postfit signal-to-noise ratio from the
-             residuals and output these in the saved fits files
+			 and SFH modules now calculates the postfit signal-to-noise ratio from the
+			 residuals and output these in the saved fits files
 
 V5.2.0       2023-11-8  ADDED:
 			 A new continuum module was created based on the StellarKinematics module.
