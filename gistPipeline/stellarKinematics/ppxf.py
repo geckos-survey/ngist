@@ -147,7 +147,13 @@ def run_ppxf(
     printStatus.progressBar(i, nbins, barLength=50)
 
     try:
-        # Call PPXF for first time to get optimal template
+
+        # normalise galaxy spectra and noise
+        median_log_bin_data = np.nanmedian(log_bin_data)
+        log_bin_error /= median_log_bin_data
+        log_bin_data /= median_log_bin_data
+                        
+        # Call PPXF for first time to get optimal template        
         if len(optimal_template_in) == 1:
             print("Running pPXF for the first time")
             pp = ppxf(
@@ -167,6 +173,7 @@ def run_ppxf(
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
             )
+        
         else:
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
@@ -252,7 +259,7 @@ def run_ppxf(
                 velscale,
                 start,
                 goodpixels=goodPixels,
-                plot=False,
+                plot=True,
                 quiet=True,
                 moments=nmoments,
                 degree=adeg,
@@ -262,7 +269,7 @@ def run_ppxf(
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
             )
-
+        
         # update goodpixels again
         goodPixels = pp.goodpixels
 
@@ -317,6 +324,11 @@ def run_ppxf(
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
 
+        # add normalisation factor back in main results
+        pp.bestfit *= median_log_bin_data
+        if pp.reddening is not None:
+            pp.reddening *= median_log_bin_data 
+        
         return(
             pp.sol[:],
             pp.reddening,
