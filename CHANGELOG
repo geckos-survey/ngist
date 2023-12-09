@@ -7,7 +7,10 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
-
+V5.2.3       2023-12-08  FIXED:
+			 Changed the velscale_ratio from 1 to 2 to match the KIN and SFH 
+			 module.
+             
 V5.2.2       2023-12-08  FIXED:
 			 Galaxy spectra our now normalised before being fitted in the 
 			 StellarKinematics and SFH modules. Output best-fit model is scaled 

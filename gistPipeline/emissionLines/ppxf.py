@@ -376,7 +376,8 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         currentLevel = "SPAXEL"
 
     # Oversample the templates by a factor of two
-    velscale_ratio = 1 # 2 ####### ? I don't know if this is the case now
+    velscale_ratio = 2
+    print('Using velscale ratio: ', velscale_ratio)
 
     # Read LSF information
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "GAS")
