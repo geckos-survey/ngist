@@ -155,7 +155,6 @@ def run_ppxf(
                         
         # Call PPXF for first time to get optimal template        
         if len(optimal_template_in) == 1:
-            print("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -691,6 +690,9 @@ def extractStellarKinematics(config):
 
     # ====================
     # Run PPXF once on combined mean spectrum to get a single optimal template
+    printStatus.running("Running PPXF for 1st time to get optimal template")
+    logging.info("Running PPXF for 1st time to get optimal template")
+        
     comb_spec = np.nanmean(bin_data[:, :], axis=1)
     comb_espec = np.nanmean(bin_err[:, :], axis=1)
     optimal_template_init = [0]

@@ -100,6 +100,7 @@ SFH :
   LMIN : 4800
   LMAX : 5500
   SPEC_MASK : 'specMask_SFH'
+  SPEC_EMICLEAN : True 
   MOM : 4
   MDEG : 4
   REGUL_ERR : 1.

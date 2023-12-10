@@ -180,8 +180,8 @@ def readCube(config):
     if config["READ_DATA"]["DEBUG"] == True:
         cube = set_debug(cube, s[2], s[1])
 
-    printStatus.updateDone("Reading the MUSE-WFM cube")
-    print("Read " + str(len(cube["x"])) + " spectra!")
+    printStatus.updateDone("Done reading "+ str(len(cube["x"])) + " spectra from the MUSE-WFM cube")
+
     logging.info(
         "Finished reading the MUSE cube! Read a total of "
         + str(len(cube["x"]))

@@ -7,7 +7,12 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
-V5.2.3       2023-12-08  FIXED:
+V5.3.0       2023-12-10  ADDED:
+			 Added keyword to config file SPEC_EMICLEAN (True/False) to enable/disable the 
+			 use of emission line cleaned spectra from the Emission Line Fitting Module.
+			 Minor changes to 'ppxf.py' scripts for printing status during fitting.
+             
+V5.2.3       2023-12-09  FIXED:
 			 Changed the velscale_ratio from 1 to 2 to match the KIN and SFH 
 			 module.
              

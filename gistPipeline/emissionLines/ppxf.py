@@ -66,7 +66,9 @@ def run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp
 
     except:
         # raise exception
-        print('bad gas')
+        printStatus.running("Emission line fit failed")
+        logging.info("Emission line fit failed")
+        
         return(np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 def tidy_up_fluxes_and_kinematics(gas_kinematics, kinematics_all_err,gas_flux,\
@@ -377,7 +379,6 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
     # Oversample the templates by a factor of two
     velscale_ratio = 2
-    print('Using velscale ratio: ', velscale_ratio)
 
     # Read LSF information
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "GAS")
