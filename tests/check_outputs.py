@@ -29,6 +29,7 @@ output_files = ["CONFIG","LOGFILE",
 				"NGC0000Example_mask.fits",
 				"NGC0000Example_sfh-bestfit.fits",
 				"NGC0000Example_sfh-weights.fits",
+                "NGC0000Example_sfh-weights-SpectralMask.fits", 
 				"NGC0000Example_sfh.fits",
 				"NGC0000Example_table.fits"]
 
