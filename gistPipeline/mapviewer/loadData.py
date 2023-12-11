@@ -128,10 +128,11 @@ def loadData(self):
             3
         ].data.GOODPIX
 
-        median_V_stellar = np.nanmedian(
-            self.kinResults.V[np.where(self.table.BIN_ID >= 0)[0]]
-        )
-        self.kinResults.V = self.kinResults.V - median_V_stellar
+        # following line does not work if your data is not symetric around centre
+        #median_V_stellar = np.nanmedian(
+        #    self.kinResults.V[np.where(self.table.BIN_ID >= 0)[0]]
+        #)
+        #self.kinResults.V = self.kinResults.V - median_V_stellar
     else:
         self.kinResults = None
         self.kinBestfit = None
