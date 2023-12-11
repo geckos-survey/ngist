@@ -7,6 +7,9 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V5.3.1       2023-12-09  CHANGED:
+			 Removed the subtraction of the median Velocity in the MapViewer velocity maps.
+             
 V5.3.0       2023-12-10  ADDED:
 			 Added keyword to config file SPEC_EMICLEAN (True/False) to enable/disable the 
 			 use of emission line cleaned spectra from the Emission Line Fitting Module.
