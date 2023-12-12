@@ -7,7 +7,10 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
-V5.3.1       2023-12-09  CHANGED:
+V5.3.2       2023-12-13  FIXED:
+			 Fixed bug in WriteFits LS module where it wasn't using the idx_inside selection
+             
+V5.3.1       2023-12-11  CHANGED:
 			 Removed the subtraction of the median Velocity in the MapViewer velocity maps.
              
 V5.3.0       2023-12-10  ADDED:

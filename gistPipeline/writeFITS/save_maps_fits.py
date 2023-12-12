@@ -49,7 +49,7 @@ def savefitsmaps(module_id, outdir=""):
 
     runname = outdir
     rootname = outdir.rstrip("/").split("/")[-1]
-
+    
     # Read bintable
     table_hdu = fits.open(os.path.join(outdir, rootname) + "_table.fits")
     idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
@@ -65,7 +65,7 @@ def savefitsmaps(module_id, outdir=""):
     wcs = WCS(oldwcshdr).celestial
     newwcshdr = strip_wcs_from_header(oldwcshdr)
     newwcshdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
-
+    
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
         print(
@@ -363,8 +363,8 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
 
         # Reverse the i index to each row of the image
         # because ra increases West-East (right-left in image plane)
-        image[i[::-1], j] = val
-
+        image[i[::-1][idx_inside], j[idx_inside]] = val[idx_inside]
+                
         # Transpose x and y to reorient the image correctly
         # im[ra, dec] = arr[col, row]
         image = image.T
