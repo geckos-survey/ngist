@@ -65,7 +65,6 @@ CONT :
   LMAX : 7100
   SIGMA : 100 # Initial guess of the velocity dispersion of the system [in km/s]
   MOM : 4 # Number of kinematic moments to be extracted
-  ADEG : 0 # Degree of the additive Legendre polynomial. Set '-1' to not include any additive polynomials
   MDEG : 8 # Degree of the multiplicative Legendre polynomial. Set '0' to not include any multiplicative polynomials
   REDDENING : null # As opposed to None. Initial guess on the stellar reddening E(B-V), in order to measure the stellar reddening. Note: This cannot be used together with multiplicative polynomials.
   MC_PPXF : 0 # Number of Monte-Carlo simulations to extract errors on the stellar kinematics. Formal errors are saved in any case.
