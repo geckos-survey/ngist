@@ -7,6 +7,15 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V5.4.0	     2024-01-10 FIXED: 
+			Bug in GAS module that prevented the _BIN and _SPAXEL maps files from saving 
+			when run in 'BOTH' mode.
+			OW_OUTPUT = False still overwriting results in the GAS module.
+			ADDED:
+		        Hardcoded ADEG=-1 into the continuum module to be in line with the procedure for 
+			the GAS and SFH modules. The configFile keyword ['CONT']['ADEG'] is no longer 
+			required and should be removed from your MasterConfig.yaml file.
+
 V5.3.2       2023-12-13  FIXED:
 			 Fixed bug in WriteFits LS module where it wasn't using the idx_inside selection
              
