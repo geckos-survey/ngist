@@ -49,7 +49,7 @@ def savefitsmaps(module_id, outdir=""):
 
     runname = outdir
     rootname = outdir.rstrip("/").split("/")[-1]
-    
+
     # Read bintable
     table_hdu = fits.open(os.path.join(outdir, rootname) + "_table.fits")
     idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
@@ -65,7 +65,7 @@ def savefitsmaps(module_id, outdir=""):
     wcs = WCS(oldwcshdr).celestial
     newwcshdr = strip_wcs_from_header(oldwcshdr)
     newwcshdr.update(diagonal_wcs_to_cdelt(wcs).to_header())
-    
+
     # Check spatial coordinates
     if len(np.where(np.logical_or(X == 0.0, np.isnan(X) == True))[0]) == len(X):
         print(
@@ -76,22 +76,22 @@ def savefitsmaps(module_id, outdir=""):
             "All Y-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!\n"
         )
 
-    # Read Results    
+    # Read Results
     if module_id == "SPATIAL_BINNING":
         # Most table results are already read in; add SN
         SNR          = np.array(table_hdu[1].data.SNR)
         SNRBIN       = np.array(table_hdu[1].data.SNRBIN)
-        
+
         #define names
         names = ["BINID","FLUX","SNR","SNRBIN"]
-                
+
         result = np.zeros((len(binNum_long), len(names)))
         result[:,0] = binNum_long
         result[:,1] = FLUX
         result[:,2] = SNR
-        result[:,3] = SNRBIN            
+        result[:,3] = SNRBIN
 
-    
+
     elif module_id == "KIN":
         # read results
         hdu = fits.open(os.path.join(outdir, rootname) + "_kin.fits")
@@ -207,7 +207,6 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
             "All Y-coordinates are 0.0 or np.nan. Plotting maps will not work without reasonable spatial information!\n"
         )
 
-    # Read Gandalf results
     if LEVEL == "SPAXEL":
         results = fits.open(os.path.join(outdir, rootname) + "_gas_SPAXEL.fits")[
             1
@@ -260,9 +259,7 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         # since WCS transformations - like FITS files - assume
         # that the origin is the lower left pixel of the image
         # (origin is in top left for numpy arrays)
-        image[
-            col[::-1][idx_inside][~maskedSpaxel], row[idx_inside][~maskedSpaxel]
-        ] = data[idx_inside][~maskedSpaxel]
+        image[col[::-1][idx_inside][~maskedSpaxel], row[idx_inside][~maskedSpaxel]] = data[idx_inside][~maskedSpaxel]
 
         # Transpose x and y because numpy uses arr[row, col] and FITS uses im[ra, dec] = arr[col, row]
         image = image.T
@@ -364,7 +361,7 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
         # Reverse the i index to each row of the image
         # because ra increases West-East (right-left in image plane)
         image[i[::-1][idx_inside], j[idx_inside]] = val[idx_inside]
-                
+
         # Transpose x and y to reorient the image correctly
         # im[ra, dec] = arr[col, row]
         image = image.T

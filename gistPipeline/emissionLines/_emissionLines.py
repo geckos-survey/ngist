@@ -28,7 +28,7 @@ def emissionLines_Module(config):
             and os.path.isfile(outPrefix + "_gas_BIN.fits") == True
             and os.path.isfile(outPrefix + "_gas-bestfit_BIN.fits") == True
             and os.path.isfile(outPrefix + "_gas-cleaned_BIN.fits") == True
-            and os.path.isfile(outPrefix + "_gas-emission_BIN.fits") == True
+            and os.path.isfile(outPrefix + "_gas_BIN_maps.fits") == True
         ):
             logging.info(
                 "Results of the module are already in the output directory. Module is skipped."
@@ -41,7 +41,7 @@ def emissionLines_Module(config):
             and os.path.isfile(outPrefix + "_gas_SPAXEL.fits") == True
             and os.path.isfile(outPrefix + "_gas-bestfit_SPAXEL.fits") == True
             and os.path.isfile(outPrefix + "_gas-cleaned_SPAXEL.fits") == True
-            and os.path.isfile(outPrefix + "_gas-emission_SPAXEL.fits") == True
+            and os.path.isfile(outPrefix + "_gas_SPAXEL_maps.fits") == True
         ):
             logging.info(
                 "Results of the module are already in the output directory. Module is skipped."
@@ -57,8 +57,8 @@ def emissionLines_Module(config):
             and os.path.isfile(outPrefix + "_gas-bestfit_SPAXEL.fits") == True
             and os.path.isfile(outPrefix + "_gas-cleaned_BIN.fits") == True
             and os.path.isfile(outPrefix + "_gas-cleaned_SPAXEL.fits") == True
-            and os.path.isfile(outPrefix + "_gas-emission_BIN.fits") == True
-            and os.path.isfile(outPrefix + "_gas-emission_SPAXEL.fits") == True
+            and os.path.isfile(outPrefix + "_gas_BIN_maps.fits") == True
+            and os.path.isfile(outPrefix + "_gas_SPAXEL_maps.fits") == True
         ):
             logging.info(
                 "Results of the module are already in the output directory. Module is skipped."
@@ -94,7 +94,9 @@ def emissionLines_Module(config):
     # Execute the chosen emissionLines routine
     try:
         module.performEmissionLineAnalysis(config)
-        _writeFITS.generateFITS(config, "GAS")
+        if config["GAS"]["LEVEL"] == "BOTH": # rerun emission line module for the spaxel products
+            module.performEmissionLineAnalysis(config)
+        _writeFITS.generateFITS(config, "GAS") #Then move on to saving results as usual
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = "emissionLine routine '" + config["GAS"]["METHOD"] + ".py' failed."
