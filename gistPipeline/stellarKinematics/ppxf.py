@@ -147,14 +147,9 @@ def run_ppxf(
     printStatus.progressBar(i, nbins, barLength=50)
 
     try:
-
-        # normalise galaxy spectra and noise
-        median_log_bin_data = np.nanmedian(log_bin_data)
-        log_bin_error /= median_log_bin_data
-        log_bin_data /= median_log_bin_data
-                        
-        # Call PPXF for first time to get optimal template        
+        # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
+            print("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -172,7 +167,6 @@ def run_ppxf(
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
             )
-        
         else:
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
@@ -258,7 +252,7 @@ def run_ppxf(
                 velscale,
                 start,
                 goodpixels=goodPixels,
-                plot=True,
+                plot=False,
                 quiet=True,
                 moments=nmoments,
                 degree=adeg,
@@ -268,14 +262,14 @@ def run_ppxf(
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
             )
-        
+
         # update goodpixels again
         goodPixels = pp.goodpixels
 
         # make spectral mask
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
-        
+
         # Calculate the true S/N from the residual
         noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
         snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
@@ -323,11 +317,6 @@ def run_ppxf(
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
 
-        # add normalisation factor back in main results
-        pp.bestfit *= median_log_bin_data
-        if pp.reddening is not None:
-            pp.reddening *= median_log_bin_data 
-        
         return(
             pp.sol[:],
             pp.reddening,
@@ -426,7 +415,7 @@ def save_ppxf(
     # Add True SNR calculated from residual
     cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
 
-    
+
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "KIN_DATA"
 
@@ -473,7 +462,7 @@ def save_ppxf(
     cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=bin_data.T))
     specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     specHDU.name = "SPEC"
-    
+
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
@@ -690,9 +679,6 @@ def extractStellarKinematics(config):
 
     # ====================
     # Run PPXF once on combined mean spectrum to get a single optimal template
-    printStatus.running("Running PPXF for 1st time to get optimal template")
-    logging.info("Running PPXF for 1st time to get optimal template")
-        
     comb_spec = np.nanmean(bin_data[:, :], axis=1)
     comb_espec = np.nanmean(bin_err[:, :], axis=1)
     optimal_template_init = [0]
@@ -809,7 +795,7 @@ def extractStellarKinematics(config):
         formal_error = formal_error[argidx, :]
         spectral_mask = spectral_mask[argidx, :]
         snr_postfit = snr_postfit[argidx]
-        
+
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
     elif config["GENERAL"]["PARALLEL"] == False:

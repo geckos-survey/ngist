@@ -119,6 +119,61 @@ def workerPPXF(inQueue, outQueue):
             )
         )
 
+def run_ppxf_firsttime(
+    templates,
+    log_bin_data,
+    log_bin_error,
+    velscale,
+    start,
+    goodPixels,
+    nmoments,
+    offset,
+    degree,
+    mdeg,
+    regul_err,
+    doclean,
+    fixed,
+    velscale_ratio,
+    npix,
+    ncomb,
+    nbins,
+    i,
+    optimal_template_in,
+):
+    """
+    Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
+    (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
+    ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
+    non-parametric star-formation histories.
+    """
+        # Call PPXF for first time to get optimal template
+    #print("Running pPXF for the first time")
+    #logging.info("Using the new 3-step pPXF implementation")
+    pp = ppxf(
+        templates,
+        log_bin_data,
+        log_bin_error,
+        velscale,
+        start,
+        goodpixels=goodPixels,
+        plot=False,
+        quiet=True,
+        moments=nmoments,
+        degree=-1,
+        vsyst=offset,
+        mdegree=mdeg,
+        regul = 1./regul_err,
+        fixed=fixed,
+        velscale_ratio=velscale_ratio,
+    )
+
+    normalized_weights = pp.weights / np.sum( pp.weights )
+    optimal_template   = np.zeros( templates.shape[0] )
+    for j in range(0, templates.shape[1]):
+        optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
+
+    return optimal_template
+
 def run_ppxf(
     templates,
     log_bin_data,
@@ -151,34 +206,11 @@ def run_ppxf(
 
     try:
 
-        # normalise galaxy spectra and noise
-        median_log_bin_data = np.nanmedian(log_bin_data)
-        log_bin_error /= median_log_bin_data
-        log_bin_data /= median_log_bin_data
-        
-        # Call PPXF for first time to get optimal template        
-        if len(optimal_template_in) == 1:
-            pp = ppxf(
-                templates,
-                log_bin_data,
-                log_bin_error,
-                velscale,
-                start,
-                goodpixels=goodPixels,
-                plot=False,
-                quiet=True,
-                moments=nmoments,
-                degree=-1,
-                vsyst=offset,
-                mdegree=mdeg,
-                fixed=fixed,
-                velscale_ratio=velscale_ratio,
-            )
-        else:
+        if len(optimal_template_in) > 1:
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
-            fake_noise = np.full_like(log_bin_data, 1.0)
-            
+            fake_noise=np.full_like(log_bin_data, 1.0)
+
             pp_step1 = ppxf(
                 optimal_template_in,
                 log_bin_data,
@@ -303,23 +335,48 @@ def run_ppxf(
         # if nsims != 0:
         #     mc_results = np.nanstd( sol_MC, axis=0 )
         # print(pp.sol[:])
-        
-        # add normalisation factor back in main results
-        pp.bestfit *= median_log_bin_data
 
         return(
-            pp.sol[:], 
-            w_row, 
-            pp.bestfit, 
-            optimal_template, 
-            mc_results, 
-            formal_error, 
+            pp.sol[:],
+            w_row,
+            pp.bestfit,
+            optimal_template,
+            mc_results,
+            formal_error,
             spectral_mask,
             snr_postfit,
-        ) 
+        )
 
     except:
         return( np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+
+
+
+# ## *****************************************************************************
+# #        noise_i = noise_i * np.sqrt(  / len(goodPixels) )
+# #        regul_err =
+#
+#         pp = ppxf(templates, galaxy_i, noise_i, velscale, start, goodpixels=goodPixels, plot=False, quiet=True,\
+#               moments=nmom, degree=-1, vsyst=dv, mdegree=mdeg, regul=1./regul_err, fixed=fixed, velscale_ratio=velscale_ratio)
+#
+# #        if i == 0:
+# #            print()
+# #            print( i, pp.chi2 )
+# #            print( len( goodPixels ) )
+# #            print( np.sqrt(2 * len(goodPixels)) )
+# #            print()
+#
+#         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum()
+#         w_row   = np.reshape(weights, ncomb)
+#
+#         # Correct the formal errors assuming that the fit is good
+#         formal_error = pp.error * np.sqrt(pp.chi2)
+#
+#         return(pp.sol, w_row, pp.bestfit, formal_error)
+#
+#     except:
+#         return(np.nan, np.nan, np.nan, np.nan)
+
 
 
 def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
@@ -527,41 +584,6 @@ def save_sfh(
     )
     logging.info("Wrote: " + outfits_sfh)
 
-    # ============================
-    # SAVE SPECTRAL MASK RESULT
-    outfits = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_sfh-SpectralMask.fits"
-    )
-    printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-SpectralMask.fits"
-    )
-
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
-
-    # Extension 1: Table HDU with optimal templates
-    cols = []
-    cols.append(
-        fits.Column(
-            name="SPECTRAL_MASK",
-            format=str(spectral_mask.shape[1]) + "D",
-            array=spectral_mask,
-        )
-    )
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "SPECTRAL_MASK"
-
-    # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits, overwrite=True)
-
-    printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-SpectralMask.fits"
-    )
-    logging.info("Wrote: " + outfits)
 
 def extractStarFormationHistories(config):
     """
@@ -610,13 +632,12 @@ def extractStarFormationHistories(config):
 
 
     # Read spectra
-    # only read emission line spectra if keyword SPEC_EMICLEAN is set and  spectrum exists
     if (
-        (config['SFH']['SPEC_EMICLEAN'] == True)
-        and
-        (os.path.isfile(
+        os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits') == True)
+            + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits'
+        )
+        == True
     ):
         logging.info(
             "Using emission-subtracted spectra at "
@@ -649,18 +670,21 @@ def extractStarFormationHistories(config):
     logLam = hdu[2].data.LOGLAM
     idx_lam = np.where( np.logical_and( np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX'] ) )[0]
     galaxy = galaxy[:,idx_lam]
+    #galaxy = galaxy/np.median(galaxy) # Amelia added to normalise normalize flux. Do we use this again?
     logLam = logLam[idx_lam]
     nbins = galaxy.shape[0]
     npix = galaxy.shape[1]
     ubins = np.arange(0, nbins)
     noise = np.full(npix, config['SFH']['NOISE'])
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
-    bin_err = np.array( hdu[1].data.ESPEC.T ) 
-    bin_data = np.array( hdu[1].data.SPEC.T ) 
+    #bin_err = np.array( hdu2[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed
+    bin_err = np.array( hdu[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed. Does this still need to be transposed?
+    bin_data = np.array( hdu[1].data.SPEC.T ) # Amelia this doens't bode well
     bin_data = bin_data[idx_lam,:]
     bin_err = bin_err[idx_lam,:]
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0])*C
+    #noise = np.ones((npix,nbins))
     noise = bin_err # is actual noise, not variance
     nsims = config['SFH']['MC_PPXF']
 
@@ -703,48 +727,41 @@ def extractStarFormationHistories(config):
     formal_error = np.zeros((nbins,6))
     spectral_mask = np.zeros((nbins,bin_data.shape[0]))
     snr_postfit = np.zeros(nbins)
-    
+
     # ====================
     # Run PPXF once on combined mean spectrum to get a single optimal template
-    printStatus.running("Running PPXF for 1st time to get optimal template")
-    logging.info("Running PPXF for 1st time to get optimal template")
-
-    comb_spec = np.nanmean(bin_data[:, :], axis=1)
-    comb_espec = np.nanmean(bin_err[:, :], axis=1)
+    comb_spec = np.nanmean(bin_data[:,:],axis=1)
+    comb_espec = np.nanmean(bin_err[:,:],axis=1)
+    #comb_spec = comb_spec/np.nanmedian(comb_spec) # Amelia added to mormalise normalize spectrum
+    #comb_espec = comb_espec/np.nanmedian(comb_espec) # and the error spectrum
     optimal_template_init = [0]
 
-    (
-        tmp_ppxf_result,      
-        tmp_w_row,
-        tmp_ppxf_bestfit,     
-        optimal_template_out, 
-        tmp_mc_results,        
-        tmp_formal_error,     
-        tmp_spectral_mask,    
-        tmp_snr_postfit,                 
-    ) = run_ppxf(
+    optimal_template_out = run_ppxf_firsttime(
         templates,
-        bin_data[:,i],
-        noise[:,i],
+        comb_spec ,
+        comb_espec,
         velscale,
-        start[i,:],
+        start[0,:],
         goodPixels_sfh,
         config['SFH']['MOM'],
-        offset,
-        -1,
+        offset,-1,
         config['SFH']['MDEG'],
         config['SFH']['REGUL_ERR'],
         config["SFH"]["DOCLEAN"],
         fixed,
         velscale_ratio,
-        npix,
         ncomb,
+        nsims,
         nbins,
-        i,
+        0,
         optimal_template_init,
     )
+
     # now define the optimal template that we'll use throughout
     optimal_template_comb = optimal_template_out
+
+    # ====================
+
 
     # ====================
     # Run PPXF
@@ -818,7 +835,7 @@ def extractStarFormationHistories(config):
             formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][6]
             spectral_mask[i,:] = ppxf_tmp[i][7]
             snr_postfit[i] = ppxf_tmp[i][8]
-            
+
         # Sort output
         argidx = np.argsort( index )
         ppxf_result = ppxf_result[argidx,:]
@@ -829,7 +846,7 @@ def extractStarFormationHistories(config):
         formal_error = formal_error[argidx,:]
         spectral_mask = spectral_mask[argidx,:]
         snr_postfit = snr_postfit[argidx]
-        
+
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
     if config['GENERAL']['PARALLEL'] == False: # Amelia you haven't tested this yet. Come back to.

@@ -68,7 +68,7 @@ def run_ppxf(templates, galaxy_i, noise_i, velscale, start, goodPixels, tpl_comp
         # raise exception
         printStatus.running("Emission line fit failed")
         logging.info("Emission line fit failed")
-        
+
         return(np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 def tidy_up_fluxes_and_kinematics(gas_kinematics, kinematics_all_err,gas_flux,\
@@ -181,6 +181,7 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
         outfits_ppxf = rootname+'/'+outdir+'_gas_'+level+'.fits'
         printStatus.running("Writing: "+outfits_ppxf.split('/')[-1])
         printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_"+level+".fits")
+
 
         # Primary HDU
         priHDU = fits.PrimaryHDU()
@@ -362,7 +363,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         config["GAS"]["LEVEL"] == "BOTH"
         and os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_gas_BIN.fits"
+            + "_gas_BIN.fits" # If you haven't already created the BIN products
         )
         == False
     ):
@@ -371,12 +372,12 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         config["GAS"]["LEVEL"] == "BOTH"
         and os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_gas_BIN.fits"
+            + "_gas_BIN.fits" # If you have created BIN products, move on to SPAXEL
         )
         == True
     ):
         currentLevel = "SPAXEL"
-
+        print('currentLevel = %s' % (currentLevel))
     # Oversample the templates by a factor of two
     velscale_ratio = 2
 
@@ -426,7 +427,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
 
         # Prepare templates - This is for the stellar templates
-        logging.info("Using full spectral library for ppxf on SPAXEL level")
+        logging.info("Using full spectral library for ppxf on BIN level")
         (
             templates,
             lamRange_spmod,
@@ -487,7 +488,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
 
         # Prepare templates - This is for the stellar templates
-        logging.info("Using full spectral library for ppxf on BIN level")
+        logging.info("Using full spectral library for ppxf on SPAXEL level")
         (
             templates,
             lamRange_spmod,
@@ -523,7 +524,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
     # --> stack vertically stellar and gas templates
     templates = np.column_stack([star_templates, gas_templates])
-    # New stuff that you need later that has come from util_templates.py define_emission_line_input_for_ppxf
+    # New stuff that you need later that has come from util_templates.py  ine_emission_line_input_for_ppxf
     tpl_comp = np.append(np.zeros(star_templates.shape[1], dtype=int), eml_tying['comp']+1)
     #total number of templates
     n_templ= len(tpl_comp)
@@ -581,7 +582,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
         #if config['GAS']['LEVEL'] == 'BIN':
         # No need to do anything!
 
-        if config['GAS']['LEVEL'] == 'SPAXEL':
+        if currentLevel == 'SPAXEL':
             binNum_long = np.array(fits.open(os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_table.fits')[1].data.BIN_ID)
             ppxf_data_spaxels = np.zeros( (len(ubins), len(ppxf_data[0])))
             nbins = np.max(binNum_long) +1
@@ -589,8 +590,7 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
                 windx = (binNum_long ==i)
                 ppxf_data_spaxels[windx,:] = ppxf_data[i]
             ppxf_data = ppxf_data_spaxels
-            print('Length of ppxf_data=')
-            print(len(ppxf_data))
+
         #start = [[np.zeros((nbins, config['KIN']['MOM']))]] # old
         start, fixed = [], []
         for i in range(0, np.max(ubins)+1): #what is nbins here? AMELIA up to here. Check this works for the spaxel case
@@ -760,10 +760,19 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
     sigma_final_measured  = (sigma_final**2 + templates_sigma**2)**(0.5)
 
     # save results to file
-    save_ppxf_emlines(config, config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID'], config['GAS']['LEVEL'], linesfitted,
-        gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
-        sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra)
+    if config['GAS']['LEVEL'] != 'BOTH':
+        save_ppxf_emlines(config, config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID'], config['GAS']['LEVEL'], linesfitted,
+            gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
+            sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra)
 
+    if config['GAS']['LEVEL'] == 'BOTH': # Special case when wanting the gas in bin and spaxel modes
+        save_ppxf_emlines(config, config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID'], 'BIN', linesfitted,
+            gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
+            sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra)
+
+        save_ppxf_emlines(config, config['GENERAL']['OUTPUT'], config['GENERAL']['RUN_ID'], 'SPAXEL', linesfitted,
+            gas_flux_in_units, gas_err_flux_in_units,vel_final, vel_err_final,
+            sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra)
 
     printStatus.updateDone("Emission line fitting done")
    #print("")
