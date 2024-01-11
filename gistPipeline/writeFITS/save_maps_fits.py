@@ -500,7 +500,7 @@ def saveContLineCube(config):
 
         outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_KIN_{}cube.fits".format(name)
+        + "_{}cube.fits".format(name)
         )
 
         cubehdul = [fits.PrimaryHDU(data=np.float32(cube.reshape((len(linLam), NY, NX))),
