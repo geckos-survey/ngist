@@ -160,7 +160,8 @@ def runGIST(dirPath, galindex):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # Branding
-    _auxiliary.addGISTHeaderComment(config)
+    if config['GENERAL']['OW_OUTPUT'] != False:
+        _auxiliary.addGISTHeaderComment(config)
 
     # Goodbye
     printStatus.module("gist-geckos pipeline")
