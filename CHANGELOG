@@ -6,6 +6,11 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.4.1	     2024-01-11 REMOVED:
+			'KIN' from the continuum cube file names, as this is now a separate module
+			Superfluous Fits header updates that occured even when OW_OUTPUT was set 
+			to False. These updates now only occur if OW_OUTPUT = True or the files are 
+			being created for the first time.
 
 V5.4.0	     2024-01-10 FIXED: 
 			Bug in GAS module that prevented the _BIN and _SPAXEL maps files from saving 
