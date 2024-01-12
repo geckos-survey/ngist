@@ -6,6 +6,11 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.4.2	     2024-01-12 FIXED:
+			Bug that was introduced into the CONT module in V5.4.1 that caused it 
+			to run, even when results were already in the results directory and 
+			OW_OUTPUT = False.
+
 V5.4.1	     2024-01-11 REMOVED:
 			'KIN' from the continuum cube file names, as this is now a separate module
 			Superfluous Fits header updates that occured even when OW_OUTPUT was set 
