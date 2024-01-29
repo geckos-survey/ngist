@@ -56,6 +56,8 @@ def savefitsmaps(module_id, outdir=""):
     X = np.array(table_hdu[1].data.X) * -1
     Y = np.array(table_hdu[1].data.Y)
     FLUX = np.array(table_hdu[1].data.FLUX)
+    XBIN = np.array(table_hdu[1].data.XBIN)
+    YBIN = np.array(table_hdu[1].data.YBIN)
     binNum_long = np.array(table_hdu[1].data.BIN_ID)
     ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
     pixelsize = table_hdu[0].header["PIXSIZE"]
@@ -83,14 +85,15 @@ def savefitsmaps(module_id, outdir=""):
         SNRBIN       = np.array(table_hdu[1].data.SNRBIN)
 
         #define names
-        names = ["BINID","FLUX","SNR","SNRBIN"]
+        names = ["BINID","FLUX","SNR","SNRBIN","XBIN","YBIN"]
 
         result = np.zeros((len(binNum_long), len(names)))
         result[:,0] = binNum_long
         result[:,1] = FLUX
         result[:,2] = SNR
         result[:,3] = SNRBIN
-
+        result[:,4] = XBIN # Units are arcseconds, and (0,0) is the centre spaxel
+        result[:,5] = YBIN
 
     elif module_id == "KIN":
         # read results
