@@ -73,10 +73,10 @@ def emissionLines_Module(config):
             os.path.dirname(os.path.realpath(__file__))
             + "/"
             + config["GAS"]["METHOD"]
-            + ".py",
+            + "_gas_wrapper.py",
         )
         logging.info(
-            "Using the emissionLines routine '" + config["GAS"]["METHOD"] + ".py'"
+            "Using the emissionLines routine '" + config["GAS"]["METHOD"] + "_gas_wrapper.py'"
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

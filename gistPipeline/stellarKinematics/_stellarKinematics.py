@@ -41,10 +41,10 @@ def stellarKinematics_Module(config):
             os.path.dirname(os.path.realpath(__file__))
             + "/"
             + config["KIN"]["METHOD"]
-            + ".py",
+            + "_kin_wrapper.py",
         )
         logging.info(
-            "Using the stellarKinematics routine '" + config["KIN"]["METHOD"] + ".py'"
+            "Using the stellarKinematics routine '" + config["KIN"]["METHOD"] + "_kin_wrapper.py'"
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

@@ -41,7 +41,7 @@ def continuumCube_Module(config):
             os.path.dirname(os.path.realpath(__file__))
             + "/"
             + config["CONT"]["METHOD"]
-            + ".py",
+            + "_cont_wrapper.py",
         )
         logging.info(
             "Using the continuumCube routine '" + config["CONT"]["METHOD"] + ".py'"
