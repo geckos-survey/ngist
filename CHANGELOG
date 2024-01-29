@@ -6,6 +6,13 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.4.3 	     2024-01-29 CHANGED:
+			addGISTHeaderComment so that it doesn't need to open the every fits file 
+			and so that only the ext[0] has the gist-geckos branding added. This 
+			saves a lot of time.
+			ADDED:
+			XBIN and YBIN pixel Voronoi bin centres to the SPATIAL_BINNING maps files.
+
 V5.4.2	     2024-01-12 FIXED:
 			Bug that was introduced into the CONT module in V5.4.1 that caused it 
 			to run, even when results were already in the results directory and 
