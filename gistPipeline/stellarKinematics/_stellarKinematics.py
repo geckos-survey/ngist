@@ -53,7 +53,7 @@ def stellarKinematics_Module(config):
         message = (
             "Failed to import the stellarKinematics routine '"
             + config["KIN"]["METHOD"]
-            + ".py'"
+            + "_kin_wrapper.py'"
         )
         printStatus.failed(message)
         logging.critical(message)

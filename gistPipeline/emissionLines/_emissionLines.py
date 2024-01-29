@@ -85,7 +85,7 @@ def emissionLines_Module(config):
         message = (
             "Failed to import the emissionLines routine '"
             + config["GAS"]["METHOD"]
-            + ".py'"
+            + "_gas_wrapper.py'"
         )
         printStatus.failed(message)
         logging.critical(message)

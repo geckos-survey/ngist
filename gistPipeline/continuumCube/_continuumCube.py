@@ -44,7 +44,7 @@ def continuumCube_Module(config):
             + "_cont_wrapper.py",
         )
         logging.info(
-            "Using the continuumCube routine '" + config["CONT"]["METHOD"] + ".py'"
+            "Using the continuumCube routine '" + config["CONT"]["METHOD"] + "_cont_wrapper.py'"
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

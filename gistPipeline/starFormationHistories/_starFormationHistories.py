@@ -41,7 +41,7 @@ def starFormationHistories_Module(config):
             os.path.dirname(os.path.realpath(__file__))
             + "/"
             + config["SFH"]["METHOD"]
-            + ".py",
+            + "_sfh_wrapper.py",
         )
         logging.info(
             "Using the starFormationHistories routine '"
