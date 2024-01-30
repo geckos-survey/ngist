@@ -99,7 +99,7 @@ def emissionLines_Module(config):
         _writeFITS.generateFITS(config, "GAS") #Then move on to saving results as usual
     except Exception as e:
         logging.critical(e, exc_info=True)
-        message = "emissionLine routine '" + config["GAS"]["METHOD"] + ".py' failed."
+        message = "emissionLine routine '" + config["GAS"]["METHOD"] + "_gas_wrapper.py' failed."
         printStatus.failed(message + " See LOGFILE for further information.")
         logging.critical(message)
         return "SKIP"

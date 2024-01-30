@@ -41,7 +41,7 @@ def starFormationHistories_Module(config):
             os.path.dirname(os.path.realpath(__file__))
             + "/"
             + config["SFH"]["METHOD"]
-            + ".py",
+            + "_sfh_wrapper.py",
         )
         logging.info(
             "Using the starFormationHistories routine '"
@@ -70,7 +70,7 @@ def starFormationHistories_Module(config):
         message = (
             "starFormationHistories routine '"
             + config["SFH"]["METHOD"]
-            + ".py' failed."
+            + "_sfh_wrapper.py' failed."
         )
         printStatus.failed(message + " See LOGFILE for further information.")
         logging.critical(message)
