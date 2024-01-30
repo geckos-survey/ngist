@@ -14,6 +14,8 @@ from printStatus import printStatus
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.prepareTemplates import _prepareTemplates
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 # Physical constants
 C = 299792.458  # speed of light in km/s
 
@@ -770,25 +772,11 @@ def extractStarFormationHistories(config):
         printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
 
-        # Create Queues
-        inQueue = Queue()
-        outQueue = Queue()
-
-        # Create worker processes
-        ps = [
-            Process(target=workerPPXF, args=(inQueue, outQueue))
-            for _ in range(config["GENERAL"]["NCPU"])
-        ]
-
-        # Start worker processes
-        for p in ps:
-            p.start()
-
-        # Fill the queue
-        for i in range(nbins):
-            inQueue.put(
-                (
-                    templates,
+        
+        # Define run_ppxf_wrapper function to be run in parallel
+        def worker(i):
+            return run_ppxf(
+                templates,
                     bin_data[:,i],
                     noise[:,i],
                     velscale,
@@ -807,45 +795,31 @@ def extractStarFormationHistories(config):
                     nbins,
                     i,
                     optimal_template_comb,
-                )
             )
 
+        # Create a pool of threads
+        with ThreadPoolExecutor(max_workers=min(32, config["GENERAL"]["NCPU"]+4)) as executor:
 
-        # now get the results with indices
-        ppxf_tmp = [outQueue.get() for _ in range(nbins)]
+            # Use a list comprehension to create a list of Future objects
+            futures = [executor.submit(worker, i) for i in range(nbins)]
 
-        # send stop signal to stop iteration
-        for _ in range(config["GENERAL"]["NCPU"]):
-            inQueue.put("STOP")
+            # Iterate over the futures as they complete
+            for future in as_completed(futures):
+                # Get the result from the future
+                result = future.result()
 
-        # stop processes
-        for p in ps:
-            p.join()
+                # Get the index of the future in the list
+                i = futures.index(future)
 
-        # Get output
-        index = np.zeros(nbins)
-        for i in range(0, nbins):
-
-            index[i] = ppxf_tmp[i][0]
-            ppxf_result[i,:config['SFH']['MOM']] = ppxf_tmp[i][1]
-            w_row[i,:] = ppxf_tmp[i][2]
-            ppxf_bestfit[i,:] = ppxf_tmp[i][3]
-            optimal_template[i,:] = ppxf_tmp[i][4]
-            mc_results[i,:config['SFH']['MOM']] = ppxf_tmp[i][5]
-            formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][6]
-            spectral_mask[i,:] = ppxf_tmp[i][7]
-            snr_postfit[i] = ppxf_tmp[i][8]
-
-        # Sort output
-        argidx = np.argsort( index )
-        ppxf_result = ppxf_result[argidx,:]
-        w_row = w_row[argidx,:]
-        ppxf_bestfit = ppxf_bestfit[argidx,:]
-        optimal_template = optimal_template[argidx,:]
-        mc_results = mc_results[argidx,:]
-        formal_error = formal_error[argidx,:]
-        spectral_mask = spectral_mask[argidx,:]
-        snr_postfit = snr_postfit[argidx]
+                # Assign the results to the arrays
+                (ppxf_result[i,:config['SFH']['MOM']],
+                w_row[i,:],
+                ppxf_bestfit[i,:],
+                optimal_template[i,:],
+                mc_results[i,:config['SFH']['MOM']],
+                formal_error[i,:config['SFH']['MOM']],
+                spectral_mask[i,:],
+                snr_postfit[i],) = result
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
@@ -878,7 +852,7 @@ def extractStarFormationHistories(config):
                 ncomb,
                 nbins,
                 i,
-                optimal_template_in,
+                optimal_template_init,
             )
         printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
 

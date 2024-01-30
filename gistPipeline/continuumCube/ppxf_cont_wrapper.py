@@ -13,6 +13,8 @@ from printStatus import printStatus
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.prepareTemplates import _prepareTemplates
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
 
@@ -339,80 +341,6 @@ def save_ppxf(
     bin_data,
 ):
     """Saves all results to disk."""
-    # ========================
-    # # SAVE RESULTS
-    # outfits_ppxf = (
-    #     os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-    #     + "_kin.fits"
-    # )
-    # printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin.fits")
-    #
-    # # Primary HDU
-    # priHDU = fits.PrimaryHDU()
-    #
-    # # Table HDU with PPXF output data
-    # cols = []
-    # cols.append(fits.Column(name="V", format="D", array=ppxf_result[:, 0]))
-    # cols.append(fits.Column(name="SIGMA", format="D", array=ppxf_result[:, 1]))
-    # if np.any(ppxf_result[:, 2]) != 0:
-    #     cols.append(fits.Column(name="H3", format="D", array=ppxf_result[:, 2]))
-    # if np.any(ppxf_result[:, 3]) != 0:
-    #     cols.append(fits.Column(name="H4", format="D", array=ppxf_result[:, 3]))
-    # if np.any(ppxf_result[:, 4]) != 0:
-    #     cols.append(fits.Column(name="H5", format="D", array=ppxf_result[:, 4]))
-    # if np.any(ppxf_result[:, 5]) != 0:
-    #     cols.append(fits.Column(name="H6", format="D", array=ppxf_result[:, 5]))
-    #
-    # if np.any(mc_results[:, 0]) != 0:
-    #     cols.append(fits.Column(name="ERR_V", format="D", array=mc_results[:, 0]))
-    # if np.any(mc_results[:, 1]) != 0:
-    #     cols.append(fits.Column(name="ERR_SIGMA", format="D", array=mc_results[:, 1]))
-    # if np.any(mc_results[:, 2]) != 0:
-    #     cols.append(fits.Column(name="ERR_H3", format="D", array=mc_results[:, 2]))
-    # if np.any(mc_results[:, 3]) != 0:
-    #     cols.append(fits.Column(name="ERR_H4", format="D", array=mc_results[:, 3]))
-    # if np.any(mc_results[:, 4]) != 0:
-    #     cols.append(fits.Column(name="ERR_H5", format="D", array=mc_results[:, 4]))
-    # if np.any(mc_results[:, 5]) != 0:
-    #     cols.append(fits.Column(name="ERR_H6", format="D", array=mc_results[:, 5]))
-    #
-    # cols.append(fits.Column(name="FORM_ERR_V", format="D", array=formal_error[:, 0]))
-    # cols.append(
-    #     fits.Column(name="FORM_ERR_SIGMA", format="D", array=formal_error[:, 1])
-    # )
-    # if np.any(formal_error[:, 2]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H3", format="D", array=formal_error[:, 2])
-    #     )
-    # if np.any(formal_error[:, 3]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H4", format="D", array=formal_error[:, 3])
-    #     )
-    # if np.any(formal_error[:, 4]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H5", format="D", array=formal_error[:, 4])
-    #     )
-    # if np.any(formal_error[:, 5]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H6", format="D", array=formal_error[:, 5])
-    #     )
-    #
-    # if np.any(np.isnan(ppxf_reddening)) != True:
-    #     cols.append(fits.Column(name="REDDENING", format="D", array=ppxf_reddening[:]))
-    #
-    # dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # dataHDU.name = "KIN_DATA"
-    #
-    # # Create HDU list and write to file
-    # priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    # dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    # HDUList = fits.HDUList([priHDU, dataHDU])
-    # HDUList.writeto(outfits_ppxf, overwrite=True)
-    #
-    # printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin.fits")
-    # logging.info("Wrote: " + outfits_ppxf)
-
-    # ========================
     # SAVE BESTFIT
     outfits_ppxf = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
@@ -462,96 +390,7 @@ def save_ppxf(
     )
     logging.info("Wrote: " + outfits_ppxf)
 
-    # # ============================
-    # # SAVE OPTIMAL TEMPLATE RESULT
-    # outfits = (
-    #     os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-    #     + "_kin-optimalTemplates.fits"
-    # )
-    # printStatus.running(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-optimalTemplates.fits"
-    # )
-    #
-    # # Primary HDU
-    # priHDU = fits.PrimaryHDU()
-    #
-    # # Extension 1: Table HDU with optimal templates
-    # cols = []
-    # cols.append(
-    #     fits.Column(
-    #         name="OPTIMAL_TEMPLATES",
-    #         format=str(optimal_template.shape[1]) + "D",
-    #         array=optimal_template,
-    #     )
-    # )
-    # dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # dataHDU.name = "OPTIMAL_TEMPLATES"
-    #
-    # # Extension 2: Table HDU with logLam_templates
-    # cols = []
-    # cols.append(fits.Column(name="LOGLAM_TEMPLATE", format="D", array=logLam_template))
-    # logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # logLamHDU.name = "LOGLAM_TEMPLATE"
-    #
-    # # Extension 2: Table HDU with logLam_templates
-    # cols = []
-    # cols.append(
-    #     fits.Column(
-    #         name="OPTIMAL_TEMPLATE_ALL", format="D", array=optimal_template_comb
-    #     )
-    # )
-    # combHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # combHDU.name = "OPTIMAL_TEMPLATE_ALL"
-    #
-    # # Create HDU list and write to file
-    # priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    # dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    # logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
-    # combHDU = _auxiliary.saveConfigToHeader(combHDU, config["KIN"])
-    # HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, combHDU])
-    # HDUList.writeto(outfits, overwrite=True)
-    #
-    # printStatus.updateDone(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-optimalTemplates.fits"
-    # )
-    # logging.info("Wrote: " + outfits)
-    #
-    # # ============================
-    # # SAVE SPECTRAL MASK RESULT
-    # outfits = (
-    #     os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-    #     + "_kin-SpectralMask.fits"
-    # )
-    # printStatus.running(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-SpectralMask.fits"
-    # )
-    #
-    # # Primary HDU
-    # priHDU = fits.PrimaryHDU()
-    #
-    # # Extension 1: Table HDU with optimal templates
-    # cols = []
-    # cols.append(
-    #     fits.Column(
-    #         name="SPECTRAL_MASK",
-    #         format=str(spectral_mask.shape[1]) + "D",
-    #         array=spectral_mask,
-    #     )
-    # )
-    # dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # dataHDU.name = "SPECTRAL_MASK"
-    #
-    # # Create HDU list and write to file
-    # priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    # dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    # HDUList = fits.HDUList([priHDU, dataHDU])
-    # HDUList.writeto(outfits, overwrite=True)
-    #
-    # printStatus.updateDone(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-SpectralMask.fits"
-    # )
-    # logging.info("Wrote: " + outfits)
-
+    
 
 def createContinuumCube(config):
     """
@@ -703,76 +542,52 @@ def createContinuumCube(config):
         printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
 
-        # Create Queues
-        inQueue = Queue()
-        outQueue = Queue()
-
-        # Create worker processes
-        ps = [
-            Process(target=workerPPXF, args=(inQueue, outQueue))
-            for _ in range(config["GENERAL"]["NCPU"])
-        ]
-
-        # Start worker processes
-        for p in ps:
-            p.start()
-
-        # Fill the queue
-        for i in range(nbins):
-            inQueue.put(
-                (
-                    templates,
-                    bin_data[:, i],
-                    noise[:, i],
-                    velscale,
-                    start[i, :],
-                    goodPixels_ppxf,
-                    config["CONT"]["MOM"],
-                    config["CONT"]["MDEG"],
-                    config["CONT"]["REDDENING"],
-                    config["CONT"]["DOCLEAN"],
-                    logLam,
-                    offset,
-                    velscale_ratio,
-                    nsims,
-                    nbins,
-                    i,
-                    optimal_template_comb,
-                )
+        # Define run_ppxf_wrapper function to be run in parallel
+        def worker(i):
+            return run_ppxf(
+                templates,
+                bin_data[:, i],
+                noise[:, i],
+                velscale,
+                start[i, :],
+                goodPixels_ppxf,
+                config["CONT"]["MOM"],
+                config["CONT"]["MDEG"],
+                config["CONT"]["REDDENING"],
+                config["CONT"]["DOCLEAN"],
+                logLam,
+                offset,
+                velscale_ratio,
+                nsims,
+                nbins,
+                i,
+                optimal_template_comb,
             )
 
-        # now get the results with indices
-        ppxf_tmp = [outQueue.get() for _ in range(nbins)]
+        # Create a pool of threads
+        with ThreadPoolExecutor(max_workers=min(32, config["GENERAL"]["NCPU"]+4)) as executor:
 
-        # send stop signal to stop iteration
-        for _ in range(config["GENERAL"]["NCPU"]):
-            inQueue.put("STOP")
+            # Use a list comprehension to create a list of Future objects
+            futures = [executor.submit(worker, i) for i in range(nbins)]
 
-        # stop processes
-        for p in ps:
-            p.join()
+            # Iterate over the futures as they complete
+            for future in as_completed(futures):
+                # Get the result from the future
+                result = future.result()
 
-        # Get output
-        index = np.zeros(nbins)
-        for i in range(0, nbins):
-            index[i] = ppxf_tmp[i][0]
-            ppxf_result[i, : config["CONT"]["MOM"]] = ppxf_tmp[i][1]
-            ppxf_reddening[i] = ppxf_tmp[i][2]
-            ppxf_bestfit[i, :] = ppxf_tmp[i][3]
-            optimal_template[i, :] = ppxf_tmp[i][4]
-            mc_results[i, : config["CONT"]["MOM"]] = ppxf_tmp[i][5]
-            formal_error[i, : config["CONT"]["MOM"]] = ppxf_tmp[i][6]
-            spectral_mask[i, :] = ppxf_tmp[i][7]
+                # Get the index of the future in the list
+                i = futures.index(future)
 
-        # Sort output
-        argidx = np.argsort(index)
-        ppxf_result = ppxf_result[argidx, :]
-        ppxf_reddening = ppxf_reddening[argidx]
-        ppxf_bestfit = ppxf_bestfit[argidx, :]
-        optimal_template = optimal_template[argidx, :]
-        mc_results = mc_results[argidx, :]
-        formal_error = formal_error[argidx, :]
-        spectral_mask = spectral_mask[argidx, :]
+                # Assign the results to the arrays
+                (
+                    ppxf_result[i, : config["CONT"]["MOM"]],
+                    ppxf_reddening[i],
+                    ppxf_bestfit[i, :],
+                    optimal_template[i, :],
+                    mc_results[i, : config["CONT"]["MOM"]],
+                    formal_error[i, : config["CONT"]["MOM"]],
+                    spectral_mask[i, :],
+                ) = result
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 

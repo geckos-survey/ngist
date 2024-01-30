@@ -15,6 +15,9 @@ from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.lineStrengths import lsindex_spec as lsindex
 from gistPipeline.lineStrengths import ssppop_fitting as ssppop
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
 cvel = 299792.458
 
 
@@ -547,24 +550,11 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         printStatus.running("Running lineStrengths in parallel mode")
         logging.info("Running lineStrengths in parallel mode")
 
-        # Create Queues
-        inQueue = Queue()
-        outQueue = Queue()
 
-        # Create worker processes
-        ps = [
-            Process(target=workerLS, args=(inQueue, outQueue))
-            for _ in range(config["GENERAL"]["NCPU"])
-        ]
-
-        # Start worker processes
-        for p in ps:
-            p.start()
-
-        # Fill the queue
-        for i in range(nbins):
-            inQueue.put(
-                (
+        # Define a function to be run in parallel
+        def worker(i):
+            if MCMC == True:
+                return run_ls(
                     wave,
                     spec[i, :],
                     espec[i, :],
@@ -581,36 +571,49 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                     i,
                     MCMC,
                 )
-            )
+            elif MCMC == False:
+                return run_ls(
+                    wave,
+                    spec[i, :],
+                    espec[i, :],
+                    redshift[i, :],
+                    config,
+                    lickfile,
+                    names,
+                    index_names,
+                    model_indices,
+                    params,
+                    tri,
+                    labels,
+                    nbins,
+                    i,
+                    MCMC,
+                )
 
-        # now get the results with indices
-        ls_tmp = [outQueue.get() for _ in range(nbins)]
+        # Create a pool of threads
+        with ThreadPoolExecutor(max_workers=min(32, config["GENERAL"]["NCPU"]+4)) as executor:
 
-        # send stop signal to stop iteration
-        for _ in range(config["GENERAL"]["NCPU"]):
-            inQueue.put("STOP")
+            # Use a list comprehension to create a list of Future objects
+            futures = [executor.submit(worker, i) for i in range(nbins)]
 
-        # stop processes
-        for p in ps:
-            p.join()
+            # Iterate over the futures as they complete
+            for future in as_completed(futures):
+                # Get the result from the future
+                result = future.result()
 
-        # Get output
-        index = np.zeros(nbins)
-        for i in range(0, nbins):
-            index[i] = ls_tmp[i][0]
-            ls_indices[i, :] = ls_tmp[i][1]
-            ls_errors[i, :] = ls_tmp[i][2]
-            if MCMC == True:
-                vals[i, :] = ls_tmp[i][3]
-                percentile[i, :, :] = ls_tmp[i][4]
+                # Get the index of the future in the list
+                i = futures.index(future)
 
-        # Sort output
-        argidx = np.argsort(index)
-        ls_indices = ls_indices[argidx, :]
-        ls_errors = ls_errors[argidx, :]
-        if MCMC == True:
-            vals = vals[argidx, :]
-            percentile = percentile[argidx, :, :]
+                # Assign the results to the arrays
+                
+                if MCMC == True:
+                    (ls_indices[i, :],
+                    ls_errors[i, :],
+                    vals[i, :],
+                    percentile[i, :, :],) = result
+                elif MCMC == False:
+                    (ls_indices[i, :],
+                    ls_errors[i, :],) = result
 
         printStatus.updateDone(
             "Running lineStrengths in parallel mode", progressbar=True
