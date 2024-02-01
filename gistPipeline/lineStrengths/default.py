@@ -4,10 +4,7 @@ import time
 
 import numpy as np
 from astropy.io import ascii, fits
-from multiprocess import Process, Queue
-# Then use system installed version instead
-# import ppxf
-# print(ppxf.__version__)
+
 from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 
@@ -15,8 +12,7 @@ from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.lineStrengths import lsindex_spec as lsindex
 from gistPipeline.lineStrengths import ssppop_fitting as ssppop
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from joblib import Parallel, delayed, dump, load
 
 cvel = 299792.458
 
