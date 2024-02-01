@@ -575,18 +575,16 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator"}
-        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator", "prefer":"threads"}
+        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk) for chunk in chunks)
 
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
         
         for i in range(0, nbins): 
-            ls_indices[i, :], = ppxf_tmp[i][0]
-            ls_errors[i, :], = ppxf_tmp[i][1]
+            ls_indices[i, :], ls_errors[i, :], *extra = ppxf_tmp[i]
             if MCMC == True:
-                vals[i, :], = ppxf_tmp[i][2]
-                percentile[i, :, :] = ppxf_tmp[i][3]
+                vals[i, :], percentile[i, :, :] = extra
             
         printStatus.updateDone(
             "Running lineStrengths in parallel mode", progressbar=True
