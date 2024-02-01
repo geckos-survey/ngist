@@ -2,8 +2,6 @@ import numpy as np
 from astropy.io import fits
 from astropy import table
 
-from multiprocess import Queue, Process
-
 import time
 import os
 import glob
@@ -14,7 +12,7 @@ from printStatus import printStatus
 from gistPipeline.prepareTemplates import _prepareTemplates, prepare_gas_templates
 from gistPipeline.auxiliary import _auxiliary
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from joblib import Parallel, delayed, dump, load
 
 # Then use system installed version instead
 from ppxf.ppxf import ppxf
@@ -30,81 +28,6 @@ PURPOSE:
   Module written for gist-geckos based on the gist SFH module
   combined with the PHANGS DAP emission line module.
 """
-
-
-def workerPPXF(inQueue, outQueue):
-    """
-    Defines the worker process of the parallelisation with multiprocessing.Queue
-    and multiprocessing.Process.
-    """
-    for (
-        i,
-        templates,
-        galaxy_i,
-        noise_i,
-        velscale,
-        start,
-        goodPixels,
-        tpl_comp,
-        moments,
-        offset,
-        mdeg,
-        fixed,
-        velscale_ratio,
-        tied,
-        gas_comp,
-        gas_names,
-        nbins,
-        ubins,
-    ) in iter(inQueue.get, "STOP"):
-        (
-            gas_sol,
-            gas_error,
-            chi2,
-            gas_flux,
-            gas_flux_error,
-            gas_names,
-            bestfit,
-            gas_bestfit,
-            star_sol,
-            star_err,
-        ) = run_ppxf(
-            templates,
-            galaxy_i,
-            noise_i,
-            velscale,
-            start,
-            goodPixels,
-            tpl_comp,
-            moments,
-            offset,
-            mdeg,
-            fixed,
-            velscale_ratio,
-            tied,
-            gas_comp,
-            gas_names,
-            i,
-            nbins,
-            ubins,
-        )
-
-        outQueue.put(
-            (
-                i,
-                gas_sol,
-                gas_error,
-                chi2,
-                gas_flux,
-                gas_flux_error,
-                gas_names,
-                bestfit,
-                gas_bestfit,
-                star_sol,
-                star_err,
-            )
-        )
-
 
 def run_ppxf(
     templates,
@@ -884,57 +807,72 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         printStatus.running("Running PPXF for emission lines analysis in parallel mode")
         logging.info("Running PPXF for emission lines analysis in parallel mode")
 
-        # Define run_ppxf_wrapper function to be run in parallel
-        def worker(i):
-            return run_ppxf(
-                templates,
-                spectra[:, i],
-                error[:, i],
-                velscale,
-                start[i],
-                goodPixels_gas,
-                tpl_comp,
-                moments,
-                offset,
-                emi_mpol_deg,
-                fixed[i],
-                velscale_ratio,
-                tied,
-                gas_comp,
-                gas_names,
-                i,
-                nbins,
-                ubins,
-            )
+        #  Prepare the folder where the memmap will be dumped
+        if os.path.exists("/scratch"):
+            memmap_folder = "/scratch"
+        else:
+            memmap_folder = config["GENERAL"]["OUTPUT"]
 
-        # Create a pool of threads
-        with ThreadPoolExecutor(max_workers=min(32, config["GENERAL"]["NCPU"]+4)) as executor:
+        # dump the arrays and load as memmap
+        templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
+        dump(templates, templates_filename_memmap)
+        templates = load(templates_filename_memmap, mmap_mode='r')
+        
+        spectra_filename_memmap = memmap_folder + "/spectra_memmap.tmp"
+        dump(spectra, spectra_filename_memmap)
+        spectra = load(spectra_filename_memmap, mmap_mode='r')
+        
+        error_filename_memmap = memmap_folder + "/error_memmap.tmp"
+        dump(error, error_filename_memmap)
+        error = load(error_filename_memmap, mmap_mode='r')
 
-            # Use a list comprehension to create a list of Future objects
-            futures = [executor.submit(worker, i) for i in range(nbins)]
+        # Define a function to encapsulate the work done in the loop
+        def worker(chunk, templates):
+            results = []
+            for i in chunk:
+                result = run_ppxf(
+                    templates,
+                    spectra[:, i],
+                    error[:, i],
+                    velscale,
+                    start[i],
+                    goodPixels_gas,
+                    tpl_comp,
+                    moments,
+                    offset,
+                    emi_mpol_deg,
+                    fixed[i],
+                    velscale_ratio,
+                    tied,
+                    gas_comp,
+                    gas_names,
+                    i,
+                    nbins,
+                    ubins,
+                )
+                results.append(result)
+            return results
 
-            # Iterate over the futures as they complete
-            for future in as_completed(futures):
-                
-                # Get the result from the future
-                result = future.result()
+        # Use joblib to parallelize the work
+        max_nbytes = "1M" # max array size before memory mapping is triggered
+        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator"}
+        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
 
-                # Get the index of the future in the list
-                i = futures.index(future)
+        # Flatten the results
+        ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
 
-                # Assign the results to the arrays
-                (
-                    gas_kinematics[i, :, :],
-                    gas_kinematics_err[i, :, :],
-                    chi2[i],
-                    gas_flux[i, :],
-                    gas_flux_error[i, :],
-                    _,
-                    bestfit[i, :],
-                    gas_bestfit[i, :],
-                    stkin[i, :],
-                    stkin_err[i, :],
-                ) = result
+        for i in range(0, nbins):
+            gas_kinematics[i, :, :] = ppxf_tmp[i][0]
+            gas_kinematics_err[i, :, :] = ppxf_tmp[i][1]
+            chi2[i] = ppxf_tmp[i][2]
+            gas_flux[i, :] = ppxf_tmp[i][3]
+            gas_flux_error[i, :] = ppxf_tmp[i][4]
+            bestfit[i, :] = ppxf_tmp[i][6]
+            gas_bestfit[i, :] = ppxf_tmp[i][7]
+            stkin[i, :] = ppxf_tmp[i][8]
+            stkin_err[i, :] = ppxf_tmp[i][9]
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 

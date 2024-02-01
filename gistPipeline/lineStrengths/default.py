@@ -551,70 +551,47 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         logging.info("Running lineStrengths in parallel mode")
 
 
-        # Define a function to be run in parallel
-        def worker(i):
+        # Define a function to encapsulate the work done in the loop
+        def worker(chunk):
+            results = []
+            for i in chunk:
+                result = run_ls(
+                    wave,
+                    spec[i, :],
+                    espec[i, :],
+                    redshift[i, :],
+                    config,
+                    lickfile,
+                    names,
+                    index_names,
+                    model_indices,
+                    params,
+                    tri,
+                    labels,
+                    nbins,
+                    i,
+                    MCMC,
+                )
+                results.append(result)
+            return results
+
+        # Use joblib to parallelize the work
+        max_nbytes = "1M" # max array size before memory mapping is triggered
+        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator"}
+        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
+
+        # Flatten the results
+        ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
+        
+        for i in range(0, nbins): 
+            ls_indices[i, :], = ppxf_tmp[i][0]
+            ls_errors[i, :], = ppxf_tmp[i][1]
             if MCMC == True:
-                return run_ls(
-                    wave,
-                    spec[i, :],
-                    espec[i, :],
-                    redshift[i, :],
-                    config,
-                    lickfile,
-                    names,
-                    index_names,
-                    model_indices,
-                    params,
-                    tri,
-                    labels,
-                    nbins,
-                    i,
-                    MCMC,
-                )
-            elif MCMC == False:
-                return run_ls(
-                    wave,
-                    spec[i, :],
-                    espec[i, :],
-                    redshift[i, :],
-                    config,
-                    lickfile,
-                    names,
-                    index_names,
-                    model_indices,
-                    params,
-                    tri,
-                    labels,
-                    nbins,
-                    i,
-                    MCMC,
-                )
-
-        # Create a pool of threads
-        with ThreadPoolExecutor(max_workers=min(32, config["GENERAL"]["NCPU"]+4)) as executor:
-
-            # Use a list comprehension to create a list of Future objects
-            futures = [executor.submit(worker, i) for i in range(nbins)]
-
-            # Iterate over the futures as they complete
-            for future in as_completed(futures):
-                # Get the result from the future
-                result = future.result()
-
-                # Get the index of the future in the list
-                i = futures.index(future)
-
-                # Assign the results to the arrays
-                
-                if MCMC == True:
-                    (ls_indices[i, :],
-                    ls_errors[i, :],
-                    vals[i, :],
-                    percentile[i, :, :],) = result
-                elif MCMC == False:
-                    (ls_indices[i, :],
-                    ls_errors[i, :],) = result
-
+                vals[i, :], = ppxf_tmp[i][2]
+                percentile[i, :, :] = ppxf_tmp[i][3]
+            
         printStatus.updateDone(
             "Running lineStrengths in parallel mode", progressbar=True
         )

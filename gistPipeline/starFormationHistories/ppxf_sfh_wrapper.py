@@ -6,15 +6,13 @@ import time
 import numpy as np
 from astropy.io import fits
 from astropy.stats import biweight_location
-from multiprocess import Process, Queue
-# Then use system installed version instead
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.prepareTemplates import _prepareTemplates
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from joblib import Parallel, delayed, dump, load
 
 # Physical constants
 C = 299792.458  # speed of light in km/s
@@ -49,77 +47,6 @@ def robust_sigma(y, zero=False):
      sigma = np.sqrt(num/(den*(den - 1.0)))  # see note in above reference
 
      return sigma
-
-def workerPPXF(inQueue, outQueue):
-    """
-    Defines the worker process of the parallelisation with multiprocessing.Queue
-    and multiprocessing.Process.
-    """
-
-    for (
-        templates,
-        galaxy,
-        noise,
-        velscale,
-        start,
-        goodPixels_sfh,
-        mom,
-        offset,
-        degree,
-        mdeg,
-        regul_err,
-        doclean,
-        fixed,
-        velscale_ratio,
-        npix,
-        ncomb,
-        nbins,
-        i,
-        optimal_template_in,
-    ) in iter(inQueue.get,'STOP'):
-        (
-            sol,
-            w_row,
-            bestfit,
-            optimal_template,
-            mc_results,
-            formal_error,
-            spectral_mask,
-            snr_postfit,
-        ) = run_ppxf(templates,
-            galaxy,
-            noise,
-            velscale,
-            start,
-            goodPixels_sfh,
-            mom,
-            offset,
-            degree,
-            mdeg,
-            regul_err,
-            doclean,
-            fixed,
-            velscale_ratio,
-            npix,
-            ncomb,
-            nbins,
-            i,
-            optimal_template_in,
-        )
-
-        outQueue.put(
-            (
-                i,
-                sol,
-                w_row,
-                bestfit,
-                optimal_template,
-                mc_results,
-                formal_error,
-                spectral_mask,
-                snr_postfit,
-            )
-        )
 
 def run_ppxf_firsttime(
     templates,
@@ -772,11 +699,31 @@ def extractStarFormationHistories(config):
         printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
 
+        #  Prepare the folder where the memmap will be dumped
+        if os.path.exists("/scratch"):
+            memmap_folder = "/scratch"
+        else:
+            memmap_folder = config["GENERAL"]["OUTPUT"]
+
+        # dump the arrays and load as memmap
+        templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
+        dump(templates, templates_filename_memmap)
+        templates = load(templates_filename_memmap, mmap_mode='r')
         
-        # Define run_ppxf_wrapper function to be run in parallel
-        def worker(i):
-            return run_ppxf(
-                templates,
+        bin_data_filename_memmap = memmap_folder + "/bin_data_memmap.tmp"
+        dump(bin_data, bin_data_filename_memmap)
+        bin_data = load(bin_data_filename_memmap, mmap_mode='r')
+        
+        noise_filename_memmap = memmap_folder + "/noise_memmap.tmp"
+        dump(noise, noise_filename_memmap)
+        noise = load(noise_filename_memmap, mmap_mode='r')
+
+        # Define a function to encapsulate the work done in the loop
+        def worker(chunk, templates):
+            results = []
+            for i in chunk:
+                result = run_ppxf(
+                    templates,
                     bin_data[:,i],
                     noise[:,i],
                     velscale,
@@ -795,31 +742,30 @@ def extractStarFormationHistories(config):
                     nbins,
                     i,
                     optimal_template_comb,
-            )
+                )
+                results.append(result)
+            return results
 
-        # Create a pool of threads
-        with ThreadPoolExecutor(max_workers=min(32, config["GENERAL"]["NCPU"]+4)) as executor:
+        # Use joblib to parallelize the work
+        max_nbytes = "1M" # max array size before memory mapping is triggered
+        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator"}
+        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
 
-            # Use a list comprehension to create a list of Future objects
-            futures = [executor.submit(worker, i) for i in range(nbins)]
+        # Flatten the results
+        ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
 
-            # Iterate over the futures as they complete
-            for future in as_completed(futures):
-                # Get the result from the future
-                result = future.result()
-
-                # Get the index of the future in the list
-                i = futures.index(future)
-
-                # Assign the results to the arrays
-                (ppxf_result[i,:config['SFH']['MOM']],
-                w_row[i,:],
-                ppxf_bestfit[i,:],
-                optimal_template[i,:],
-                mc_results[i,:config['SFH']['MOM']],
-                formal_error[i,:config['SFH']['MOM']],
-                spectral_mask[i,:],
-                snr_postfit[i],) = result
+        # Unpack results
+        for i in range(0, nbins):
+            ppxf_result[i,:config['SFH']['MOM']] = ppxf_tmp[i][0]
+            w_row[i,:] = ppxf_tmp[i][1]
+            ppxf_bestfit[i,:] = ppxf_tmp[i][2]
+            optimal_template[i,:] = ppxf_tmp[i][3]
+            mc_results[i,:config['SFH']['MOM']] = ppxf_tmp[i][4]
+            formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][5]
+            spectral_mask[i,:] = ppxf_tmp[i][6]
+            snr_postfit[i] = ppxf_tmp[i][7]
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
