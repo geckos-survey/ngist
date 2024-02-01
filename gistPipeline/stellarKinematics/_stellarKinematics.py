@@ -66,7 +66,7 @@ def stellarKinematics_Module(config):
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = (
-            "stellarKinematics routine '" + config["KIN"]["METHOD"] + ".py' failed."
+            "stellarKinematics routine '" + config["KIN"]["METHOD"] + "_kin_wrapper.py' failed."
         )
         printStatus.failed(message + " See LOGFILE for further information.")
         logging.critical(message)
