@@ -4,16 +4,15 @@ import time
 
 import numpy as np
 from astropy.io import ascii, fits
-from multiprocess import Process, Queue
-# Then use system installed version instead
-# import ppxf
-# print(ppxf.__version__)
+
 from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.lineStrengths import lsindex_spec as lsindex
 from gistPipeline.lineStrengths import ssppop_fitting as ssppop
+
+from joblib import Parallel, delayed, dump, load
 
 cvel = 299792.458
 
@@ -547,24 +546,12 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         printStatus.running("Running lineStrengths in parallel mode")
         logging.info("Running lineStrengths in parallel mode")
 
-        # Create Queues
-        inQueue = Queue()
-        outQueue = Queue()
 
-        # Create worker processes
-        ps = [
-            Process(target=workerLS, args=(inQueue, outQueue))
-            for _ in range(config["GENERAL"]["NCPU"])
-        ]
-
-        # Start worker processes
-        for p in ps:
-            p.start()
-
-        # Fill the queue
-        for i in range(nbins):
-            inQueue.put(
-                (
+        # Define a function to encapsulate the work done in the loop
+        def worker(chunk):
+            results = []
+            for i in chunk:
+                result = run_ls(
                     wave,
                     spec[i, :],
                     espec[i, :],
@@ -581,37 +568,24 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                     i,
                     MCMC,
                 )
-            )
+                results.append(result)
+            return results
 
-        # now get the results with indices
-        ls_tmp = [outQueue.get() for _ in range(nbins)]
+        # Use joblib to parallelize the work
+        max_nbytes = "1M" # max array size before memory mapping is triggered
+        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator", "prefer":"threads"}
+        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk) for chunk in chunks)
 
-        # send stop signal to stop iteration
-        for _ in range(config["GENERAL"]["NCPU"]):
-            inQueue.put("STOP")
-
-        # stop processes
-        for p in ps:
-            p.join()
-
-        # Get output
-        index = np.zeros(nbins)
-        for i in range(0, nbins):
-            index[i] = ls_tmp[i][0]
-            ls_indices[i, :] = ls_tmp[i][1]
-            ls_errors[i, :] = ls_tmp[i][2]
+        # Flatten the results
+        ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
+        
+        for i in range(0, nbins): 
+            ls_indices[i, :], ls_errors[i, :], *extra = ppxf_tmp[i]
             if MCMC == True:
-                vals[i, :] = ls_tmp[i][3]
-                percentile[i, :, :] = ls_tmp[i][4]
-
-        # Sort output
-        argidx = np.argsort(index)
-        ls_indices = ls_indices[argidx, :]
-        ls_errors = ls_errors[argidx, :]
-        if MCMC == True:
-            vals = vals[argidx, :]
-            percentile = percentile[argidx, :, :]
-
+                vals[i, :], percentile[i, :, :] = extra
+            
         printStatus.updateDone(
             "Running lineStrengths in parallel mode", progressbar=True
         )
