@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from astropy.io import fits
+from joblib import Parallel, delayed, dump, load, wrap_non_picklable_objects
 from ppxf.ppxf_util import log_rebin
 from printStatus import printStatus
 
@@ -83,7 +84,7 @@ def log_rebinning(config, cube):
     """
     # Log-rebin the spectra
     printStatus.running("Log-rebinning the spectra")
-    log_spec, logLam = run_logrebinning(
+    log_spec, logLam = run_log_rebinning(
         cube["spec"],
         config["PREPARE_SPECTRA"]["VELSCALE"],
         len(cube["x"]),
@@ -94,7 +95,7 @@ def log_rebinning(config, cube):
 
     # Log-rebin the error spectra
     printStatus.running("Log-rebinning the error spectra")
-    log_error, _ = run_logrebinning(
+    log_error, _ = run_log_rebinning(
         cube["error"],
         config["PREPARE_SPECTRA"]["VELSCALE"],
         len(cube["x"]),
@@ -106,43 +107,47 @@ def log_rebinning(config, cube):
     return (log_spec, log_error, logLam)
 
 
-def run_logrebinning(bin_data, velscale, nbins, wave):
+def run_log_rebinning(
+    binned_data, velocity_scale, num_bins, wavelength, chunk_size=1000
+):
     """
-    Calls the log-rebinning routine of pPXF (see Cappellari & Emsellem 2004;
-    ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
-    ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
+    Perform log-rebinning on the given binned_data.
+
+    Args:
+    - binned_data (ndarray): 2D array of shape (num_pixels, num_bins), representing the binned spectra
+    - velocity_scale (float): Velocity scale for the log-rebinning
+    - num_bins (int): Number of bins
+    - wavelength (ndarray): 1D array of shape (num_pixels), representing the wavelength array
+    - chunk_size (int, optional): Size of the chunks for processing. Defaults to 1000.
+
+    Returns:
+    - log_binned_data (ndarray): 2D array of shape (len(log_lam), num_bins), representing the log-rebinned data
+    - log_lam (ndarray): 1D array representing the log-rebinned wavelength array
     """
     # Setup arrays
-    lamRange = np.array([np.amin(wave), np.amax(wave)])
-    sspNew, logLam, _ = log_rebin(lamRange, bin_data[:, 0], velscale=velscale)
-    log_bin_data = np.zeros([len(logLam), nbins])
+    wavelength_range = np.array([np.amin(wavelength), np.amax(wavelength)])
 
-    # Do log-rebinning
-    for i in range(0, nbins):
-        log_bin_data[:, i] = corefunc_logrebin(
-            lamRange, bin_data[:, i], velscale, len(logLam), i, nbins
-        )
+    # Perform log-rebinning for the first bin and initialize the log-rebinned data array
+    ssp_new, log_lam, _ = log_rebin(
+        wavelength_range, binned_data[:, 0], velscale=velocity_scale
+    )
+    log_binned_data = np.zeros([len(log_lam), num_bins])
 
-    return (log_bin_data, logLam)
+    # Do log-rebinning for each chunk of bins
+    for i in range(0, num_bins, chunk_size):
+        for j in range(i, min(i + chunk_size, num_bins)):
+            try:
+                # Perform log-rebinning for the current bin
+                ssp_new, _, _ = log_rebin(
+                    wavelength_range, binned_data[:, j], velscale=velocity_scale
+                )
+                log_binned_data[:, j] = ssp_new
+            except:
+                # If an error occurs, set the log-rebinned data for the current bin to NaN
+                log_binned_data[:, j] = np.zeros(len(log_lam))
+                log_binned_data[:, j][:] = np.nan
 
-
-def corefunc_logrebin(lamRange, bin_data, velscale, npix, iterate, nbins):
-    """
-    Calls the log-rebinning routine of pPXF (see Cappellari & Emsellem 2004;
-    ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
-    ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
-
-    TODO: Should probably be merged with run_logrebinning.
-    """
-    try:
-        sspNew, logLam, _ = log_rebin(lamRange, bin_data, velscale=velscale)
-        printStatus.progressBar(iterate + 1, nbins, barLength=50)
-        return sspNew
-
-    except:
-        out = np.zeros(npix)
-        out[:] = np.nan
-        return out
+    return (log_binned_data, log_lam)
 
 
 def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
@@ -282,3 +287,67 @@ def spatialBinning(binNum, spec, error):
         printStatus.progressBar(i + 1, nbins, barLength=50)
 
     return (bin_data, bin_error, bin_flux)
+
+
+if __name__ == "__main__":
+
+    import sys
+    import time
+    from importlib import reload
+
+    from gistPipeline.initialise import _initialise
+    from gistPipeline.readData import _readData
+    from gistPipeline.spatialBinning import _spatialBinning
+    from gistPipeline.spatialMasking import _spatialMasking
+
+    _readData = reload(_readData)
+
+    class dirPath(object):
+        pass
+
+    # set config and default dir file paths
+    dirPath = dirPath()
+
+    dirPath.configFile = (
+        "/arc/home/thbrown/mauve/productTesting/IC3392/IC3392_test.yaml"
+    )
+    dirPath.defaultDir = (
+        "/arc/home/thbrown/mauve/productTesting/IC3392/IC3392_test.defaultDir"
+    )
+
+    # dirPath.configFile = "/arc/home/thbrown/mauve/dev/gist-geckos-supplementary/gistTutorial/configFiles/MasterConfig.yaml"
+    # dirPath.defaultDir = "/arc/home/thbrown/mauve/dev/gist-geckos-supplementary/gistTutorial/configFiles/defaultDir"
+
+    # Read config
+    config = _initialise.readMasterConfig(dirPath.configFile, 1)
+    config = _initialise.addPathsToConfig(config, dirPath)
+
+    # Check output directory
+    _initialise.checkOutputDirectory(config)
+
+    # Setup logfile
+    _initialise.setupLogfile(config)
+
+    # Check output directory
+    _initialise.checkOutputDirectory(config)
+
+    # Setup logfile
+    _initialise.setupLogfile(config)
+    sys.excepthook = _initialise.handleUncaughtException
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # - - - - - - - -  P R E P A R A T I O N   M O D U L E S  - - - - - - - - - - -
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # - - - - - READ_DATA MODULE - - - -
+    cube = _readData.readData_Module(config)
+
+    # - - - - - SPATIAL MASKING MODULE - - - - -
+    # _ = _spatialMasking.spatialMasking_Module(config, cube)
+
+    # - - - - - SPATIAL BINNING MODULE - - - - -
+    # _ = _spatialBinning.spatialBinning_Module(config, cube)
+
+    # - - - - - PREPARE SPECTRA MODULE - - - - -
+
+    prepSpectra(config, cube)
