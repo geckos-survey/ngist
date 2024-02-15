@@ -651,11 +651,8 @@ def extractStellarKinematics(config):
         printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
         
-        #  Prepare the folder where the memmap will be dumped
-        if os.path.exists("/scratch"):
-            memmap_folder = "/scratch"
-        else:
-            memmap_folder = config["GENERAL"]["OUTPUT"]
+        # Prepare the folder where the memmap will be dumped
+        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
 
         # dump the arrays and load as memmap
         templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
@@ -701,7 +698,7 @@ def extractStellarKinematics(config):
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator"}
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as": "generator"}
         ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
 
         # Flatten the results

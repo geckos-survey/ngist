@@ -571,11 +571,14 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                 results.append(result)
             return results
 
+        # Prepare the folder where the memmap will be dumped
+        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
+        
         # Use joblib to parallelize the work
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator", "prefer":"threads"}
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "temp_folder":memmap_folder, "return_as": "generator", "prefer":"threads"}
         ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk) for chunk in chunks)
 
         # Flatten the results

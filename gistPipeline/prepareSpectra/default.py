@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 from astropy.io import fits
-from joblib import Parallel, delayed, dump, load, wrap_non_picklable_objects
 from ppxf.ppxf_util import log_rebin
 from printStatus import printStatus
 
