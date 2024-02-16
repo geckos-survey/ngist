@@ -150,12 +150,30 @@ def run_log_rebinning(
 
 
 def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
-    """Save all logarithmically rebinned spectra to file."""
+    """
+    Save all logarithmically rebinned spectra to file.
+
+    Args:
+        config (dict): Configuration parameters.
+        log_spec (numpy.ndarray): Logarithmically rebinned spectra.
+        log_error (numpy.ndarray): Logarithmically rebinned error spectra.
+        velscale (float): Velocity scale.
+        logLam (numpy.ndarray): Logarithmically rebinned wavelength array.
+
+    Returns:
+        None
+    """
+    import dask.array as da
+
     outfits_spectra = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_AllSpectra.fits"
     )
     printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.fits")
+
+    # Convert numpy arrays to dask arrays
+    log_spec = da.from_array(log_spec, chunks=(1000, 1000))
+    log_error = da.from_array(log_error, chunks=(1000, 1000))
 
     # Primary HDU
     priHDU = fits.PrimaryHDU()
