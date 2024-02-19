@@ -2,6 +2,7 @@ import logging
 import os
 import time
 
+import h5py
 import numpy as np
 from astropy.io import ascii, fits
 from joblib import Parallel, delayed, dump, load
@@ -428,13 +429,13 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         saveCleanedLinearSpectra(spec, espec, wave, npix, config)
 
     # Read the linearly-binned, cleaned spectra provided by previous LS-run
-else:
-    logging.info(f"Reading {ls_cleaned_file}")
-    with fits.open(ls_cleaned_file, mem_map=True) as hdu:
-        spec = hdu[1].data.SPEC
-        espec = hdu[1].data.ESPEC
-        wave = hdu[2].data.LAM
-        nbins = spec.shape[0]
+    else:
+        logging.info(f"Reading {ls_cleaned_file}")
+        with fits.open(ls_cleaned_file, mem_map=True) as hdu:
+            spec = hdu[1].data.SPEC
+            espec = hdu[1].data.ESPEC
+            wave = hdu[2].data.LAM
+            nbins = spec.shape[0]
 
     # Read PPXF results
     ppxf_data = fits.open(
@@ -549,7 +550,7 @@ else:
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "temp_folder":memmap_folder, "return_as": "generator", "prefer":"threads"}
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "temp_folder":memmap_folder}
         ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk) for chunk in chunks)
 
         # Flatten the results
