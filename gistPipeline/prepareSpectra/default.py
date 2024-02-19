@@ -175,8 +175,14 @@ def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
     # Create a new HDF5 file
     with h5py.File(outfn_spectra, 'w') as f:
         # Create datasets for the spectra and error spectra
-        f.create_dataset('SPEC', data=log_spec)
-        f.create_dataset('ESPEC', data=log_error)
+        spec_dset = f.create_dataset('SPEC', shape=log_spec.shape, dtype=log_spec.dtype)
+        espec_dset = f.create_dataset('ESPEC', shape=log_error.shape, dtype=log_error.dtype)
+
+        # Write the data in chunks
+        chunk_size = 1000  # Adjust this value to fit your memory capacity
+        for i in range(0, len(log_spec), chunk_size):
+            spec_dset[i:i+chunk_size] = log_spec[i:i+chunk_size]
+            espec_dset[i:i+chunk_size] = log_error[i:i+chunk_size]
 
         # Create a dataset for LOGLAM
         f.create_dataset('LOGLAM', data=logLam)
@@ -211,8 +217,14 @@ def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag):
     # Create a new HDF5 file
     with h5py.File(outfn_spectra, 'w') as f:
         # Create datasets for the spectra and error spectra
-        f.create_dataset('SPEC', data=log_spec)
-        f.create_dataset('ESPEC', data=log_error)
+        spec_dset = f.create_dataset('SPEC', shape=log_spec.shape, dtype=log_spec.dtype)
+        espec_dset = f.create_dataset('ESPEC', shape=log_error.shape, dtype=log_error.dtype)
+
+        # Write the data in chunks
+        chunk_size = 1000  # Adjust this value to fit your memory capacity
+        for i in range(0, len(log_spec), chunk_size):
+            spec_dset[i:i+chunk_size] = log_spec[i:i+chunk_size]
+            espec_dset[i:i+chunk_size] = log_error[i:i+chunk_size]
 
         # Create a dataset for LOGLAM
         f.create_dataset('LOGLAM', data=logLam)
