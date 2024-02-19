@@ -4,15 +4,13 @@ import time
 
 import numpy as np
 from astropy.io import ascii, fits
-
+from joblib import Parallel, delayed, dump, load
 from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.lineStrengths import lsindex_spec as lsindex
 from gistPipeline.lineStrengths import ssppop_fitting as ssppop
-
-from joblib import Parallel, delayed, dump, load
 
 cvel = 299792.458
 
@@ -371,55 +369,35 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     # Read LSF information
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "LS")
 
-    # Read the log-rebinned spectra and log-unbin them
-    if (
-        os.path.isfile(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls-cleaned_linear.fits"
-        )
-        == False
-    ):
-        # Read spectra
-        if (
-            os.path.isfile(
-                os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_gas-cleaned_BIN.fits"
-            )
-            == True
-        ):
-            logging.info(
-                "Using emission-subtracted spectra at "
-                + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_gas-cleaned_BIN.fits"
-            )
-            printStatus.done("Using emission-subtracted spectra")
-            hdu_spec = fits.open(
-                os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_gas-cleaned_BIN.fits"
-            )
+    # Define file paths
+    output_dir = config["GENERAL"]["OUTPUT"]
+    run_id = config["GENERAL"]["RUN_ID"]
+    gas_cleaned_file = os.path.join(output_dir, f"{run_id}_gas-cleaned_BIN.fits")
+    bin_spectra_file = os.path.join(output_dir, f"{run_id}_BinSpectra.hdf5")
+    ls_cleaned_file = os.path.join(output_dir, f"{run_id}_ls-cleaned_linear.fits")
+
+    # Check if ls-cleaned file exists
+    if not os.path.isfile(ls_cleaned_file):
+        # Check if emission-subtracted spectra file exists
+        if os.path.isfile(gas_cleaned_file):
+            logging.info(f"Using emission-subtracted spectra at {gas_cleaned_file}")
+            hdu_spec = fits.open(gas_cleaned_file, mem_map=True)
         else:
-            logging.info(
-                "Using regular spectra without any emission-correction at "
-                + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_BinSpectra.fits"
-            )
-            printStatus.done("Using regular spectra without any emission-correction")
-            hdu_spec = fits.open(
-                os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_BinSpectra.fits"
-            )
-        hdu_espec = fits.open(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_BinSpectra.fits"
-        )
-        idx_lamMin = np.where(hdu_spec[2].data.LOGLAM[0] == hdu_espec[2].data.LOGLAM)[0]
-        idx_lamMax = np.where(hdu_spec[2].data.LOGLAM[-1] == hdu_espec[2].data.LOGLAM)[
-            0
-        ]
+            logging.info(f"Using regular spectra without any emission-correction at {bin_spectra_file}")
+            with h5py.File(bin_spectra_file, 'r') as f:
+                spec_data = f['SPEC'][:]
+                logLam = f['LOGLAM'][:]
+
+        with h5py.File(bin_spectra_file, 'r') as f:
+            espec_data = np.sqrt(f['ESPEC'][:])
+
+        idx_lamMin = np.where(logLam[0] == espec_data)[0]
+        idx_lamMax = np.where(logLam[-1] == espec_data)[0]
         idx_lam = np.arange(idx_lamMin, idx_lamMax + 1)
-        oldspec = np.array(hdu_spec[1].data.SPEC)
-        oldespec = np.sqrt(np.array(hdu_espec[1].data.ESPEC)[:, idx_lam])
-        wave = np.array(hdu_spec[2].data.LOGLAM)
+
+        oldspec = spec_data
+        oldespec = espec_data[:, idx_lam]
+        wave = logLam
 
         nbins = oldspec.shape[0]
         npix = oldspec.shape[1]
@@ -450,25 +428,18 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         saveCleanedLinearSpectra(spec, espec, wave, npix, config)
 
     # Read the linearly-binned, cleaned spectra provided by previous LS-run
-    else:
-        logging.info(
-            "Reading "
-            + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls-cleaned_linear.fits"
-        )
-        hdu = fits.open(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls-cleaned_linear.fits"
-        )
-        spec = np.array(hdu[1].data.SPEC)
-        espec = np.array(hdu[1].data.ESPEC)
-        wave = np.array(hdu[2].data.LAM)
+else:
+    logging.info(f"Reading {ls_cleaned_file}")
+    with fits.open(ls_cleaned_file, mem_map=True) as hdu:
+        spec = hdu[1].data.SPEC
+        espec = hdu[1].data.ESPEC
+        wave = hdu[2].data.LAM
         nbins = spec.shape[0]
 
     # Read PPXF results
     ppxf_data = fits.open(
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin.fits"
+        + "_kin.fits", mem_map=True
     )[1].data
     redshift = np.zeros((nbins, 2))  # Dimensionless z
     redshift[:, 0] = np.array(ppxf_data.V[:]) / cvel  # Redshift
@@ -486,10 +457,10 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     # Broaden spectra to LIS resolution taking into account the measured velocity dispersion
     if RESOLUTION == "ADAPTED":
         printStatus.running("Broadening the spectra to LIS resolution")
-        velscale = fits.open(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_BinSpectra.fits"
-        )[0].header["VELSCALE"]
+        # Open the HDF5 file
+        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5", 'r') as f:
+            # Read the VELSCALE attribute from the file
+            velscale = f.attrs['VELSCALE']
         # Iterate over all bins
         for i in range(0, spec.shape[0]):
             printStatus.progressBar(i, nbins, barLength=50)

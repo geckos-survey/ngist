@@ -1,6 +1,7 @@
 import logging
 import os
 
+import h5py
 import numpy as np
 from astropy.io import fits
 from ppxf.ppxf_util import log_rebin
@@ -20,7 +21,7 @@ def prepSpectra(config, cube):
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_mask.fits"
     )
-    mask = fits.open(maskfile)[1].data.MASK
+    mask = fits.open(maskfile, memmap=True)[1].data.MASK
     idxUnmasked = np.where(mask == 0)[0]
     idxMasked = np.where(mask == 1)[0]
 
@@ -29,7 +30,7 @@ def prepSpectra(config, cube):
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_table.fits"
     )
-    binNum = fits.open(tablefile)[1].data.BIN_ID[idxUnmasked]
+    binNum = fits.open(tablefile, mem_map=True)[1].data.BIN_ID[idxUnmasked]
 
     # Apply spatial bins to linear spectra
     bin_data, bin_error, bin_flux = applySpatialBins(
@@ -51,6 +52,7 @@ def prepSpectra(config, cube):
 
     # Log-rebin spectra
     log_spec, log_error, logLam = log_rebinning(config, cube)
+    
     # Save all log-rebinned spectra
     saveAllSpectra(
         config, log_spec, log_error, config["PREPARE_SPECTRA"]["VELSCALE"], logLam
@@ -163,52 +165,32 @@ def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
     Returns:
         None
     """
-    import dask.array as da
 
-    outfits_spectra = (
+    outfn_spectra = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_AllSpectra.fits"
+        + "_AllSpectra.hdf5"
     )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.fits")
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.hdf5")
 
-    # Convert numpy arrays to dask arrays
-    log_spec = da.from_array(log_spec, chunks=(1000, 1000))
-    log_error = da.from_array(log_error, chunks=(1000, 1000))
+    # Create a new HDF5 file
+    with h5py.File(outfn_spectra, 'w') as f:
+        # Create datasets for the spectra and error spectra
+        f.create_dataset('SPEC', data=log_spec)
+        f.create_dataset('ESPEC', data=log_error)
 
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
+        # Create a dataset for LOGLAM
+        f.create_dataset('LOGLAM', data=logLam)
 
-    # Table HDU for spectra
-    cols = []
-    cols.append(
-        fits.Column(name="SPEC", format=str(len(log_spec)) + "D", array=log_spec.T)
-    )
-    cols.append(
-        fits.Column(name="ESPEC", format=str(len(log_spec)) + "D", array=log_error.T)
-    )
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "SPECTRA"
-
-    # Table HDU for LOGLAM
-    cols = []
-    cols.append(fits.Column(name="LOGLAM", format="D", array=logLam))
-    loglamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    loglamHDU.name = "LOGLAM"
-
-    # Create HDU List and save to file
-    HDUList = fits.HDUList([priHDU, dataHDU, loglamHDU])
-    HDUList.writeto(outfits_spectra, overwrite=True)
-
-    # Set header keywords
-    fits.setval(outfits_spectra, "VELSCALE", value=velscale)
-    fits.setval(outfits_spectra, "CRPIX1", value=1.0)
-    fits.setval(outfits_spectra, "CRVAL1", value=logLam[0])
-    fits.setval(outfits_spectra, "CDELT1", value=logLam[1] - logLam[0])
+        # Set attributes
+        f.attrs['VELSCALE'] = velscale
+        f.attrs["CRPIX1"] = 1.0
+        f.attrs["CRVAL1"] = logLam[0]
+        f.attrs["CDELT1"] = logLam[1] - logLam[0]
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.hdf5"
     )
-    logging.info("Wrote: " + outfits_spectra)
+    logging.info("Wrote: " + outfn_spectra)
 
 
 def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag):
@@ -216,53 +198,40 @@ def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag):
     outfile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
 
     if flag == "log":
-        outfits_spectra = outfile + "_BinSpectra.fits"
+        outfn_spectra = outfile + "_BinSpectra.hdf5"
         printStatus.running(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5"
         )
     elif flag == "lin":
-        outfits_spectra = outfile + "_BinSpectra_linear.fits"
+        outfn_spectra = outfile + "_BinSpectra_linear.hdf5"
         printStatus.running(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra_linear.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra_linear.hdf5"
         )
 
-    npix = len(log_spec)
+    # Create a new HDF5 file
+    with h5py.File(outfn_spectra, 'w') as f:
+        # Create datasets for the spectra and error spectra
+        f.create_dataset('SPEC', data=log_spec)
+        f.create_dataset('ESPEC', data=log_error)
 
-    # Create primary HDU
-    priHDU = fits.PrimaryHDU()
+        # Create a dataset for LOGLAM
+        f.create_dataset('LOGLAM', data=logLam)
 
-    # Table HDU for spectra
-    cols = []
-    cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=log_spec.T))
-    cols.append(fits.Column(name="ESPEC", format=str(npix) + "D", array=log_error.T))
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "BIN_SPECTRA"
-
-    # Table HDU for LOGLAM
-    cols = []
-    cols.append(fits.Column(name="LOGLAM", format="D", array=logLam))
-    loglamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    loglamHDU.name = "LOGLAM"
-
-    # Create HDU list and save to file
-    HDUList = fits.HDUList([priHDU, dataHDU, loglamHDU])
-    HDUList.writeto(outfits_spectra, overwrite=True)
-
-    # Set header values
-    fits.setval(outfits_spectra, "VELSCALE", value=velscale)
-    fits.setval(outfits_spectra, "CRPIX1", value=1.0)
-    fits.setval(outfits_spectra, "CRVAL1", value=logLam[0])
-    fits.setval(outfits_spectra, "CDELT1", value=logLam[1] - logLam[0])
+        # Set attributes
+        f.attrs['VELSCALE'] = velscale
+        f.attrs['CRPIX1'] = 1.0
+        f.attrs['CRVAL1'] = logLam[0]
+        f.attrs['CDELT1'] = logLam[1] - logLam[0]
 
     if flag == "log":
         printStatus.updateDone(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5"
         )
     elif flag == "lin":
         printStatus.updateDone(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra_linear.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra_linear.hdf5"
         )
-    logging.info("Wrote: " + outfits_spectra)
+    logging.info("Wrote: " + outfn_spectra)
 
 
 def applySpatialBins(binNum, spec, espec, velscale, flag):
@@ -308,6 +277,7 @@ def spatialBinning(binNum, spec, error):
 
 if __name__ == "__main__":
 
+    import pickle
     import sys
     import time
     from importlib import reload
@@ -326,10 +296,10 @@ if __name__ == "__main__":
     dirPath = dirPath()
 
     dirPath.configFile = (
-        "/arc/home/thbrown/mauve/productTesting/IC3392/IC3392_test.yaml"
+        "/Users/thbrown/mauve/testing/IC3392/IC3392_test.yaml"
     )
     dirPath.defaultDir = (
-        "/arc/home/thbrown/mauve/productTesting/IC3392/IC3392_test.defaultDir"
+        "/Users/thbrown/mauve/testing/IC3392/IC3392_test.defaultDir"
     )
 
     # dirPath.configFile = "/arc/home/thbrown/mauve/dev/gist-geckos-supplementary/gistTutorial/configFiles/MasterConfig.yaml"
@@ -357,7 +327,20 @@ if __name__ == "__main__":
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # - - - - - READ_DATA MODULE - - - -
-    cube = _readData.readData_Module(config)
+    
+    use_pickle = True
+    temp_folder = "/Users/thbrown/mauve/testing/"
+    if not use_pickle:
+
+        cube = _readData.readData_Module(config)
+        
+        with open(temp_folder+'cube.pickle', 'wlsb') as handle:
+            pickle.dump(cube, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    elif use_pickle:
+        with open(temp_folder+'cube.pickle', 'rb') as handle:
+            cube = pickle.load(handle)
+        print("using pickled cube")
 
     # - - - - - SPATIAL MASKING MODULE - - - - -
     # _ = _spatialMasking.spatialMasking_Module(config, cube)
