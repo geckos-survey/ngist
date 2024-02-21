@@ -383,18 +383,17 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         if os.path.isfile(gas_cleaned_file):
             logging.info(f"Using emission-subtracted spectra at {gas_cleaned_file}")
             hdu_spec = fits.open(gas_cleaned_file, mem_map=True)
+            spec_data = hdu_spec[1].data.SPEC
+            espec_data = hdu_spec[1].data.ESPEC
+            logLam = hdu_spec[2].data.LOGLAM
         else:
             logging.info(f"Using regular spectra without any emission-correction at {bin_spectra_file}")
             with h5py.File(bin_spectra_file, 'r') as f:
                 spec_data = f['SPEC'][:]
                 logLam = f['LOGLAM'][:]
+                espec_data = f['ESPEC'][:]
 
-        with h5py.File(bin_spectra_file, 'r') as f:
-            espec_data = np.sqrt(f['ESPEC'][:])
-
-        idx_lamMin = np.where(logLam[0] == espec_data)[0]
-        idx_lamMax = np.where(logLam[-1] == espec_data)[0]
-        idx_lam = np.arange(idx_lamMin, idx_lamMax + 1)
+        idx_lam = np.arange(np.argmin(logLam), np.argmax(logLam) + 1)
 
         oldspec = spec_data
         oldespec = espec_data[:, idx_lam]
