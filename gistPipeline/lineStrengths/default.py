@@ -28,6 +28,155 @@ PURPOSE:
 """
 
 
+def workerLS(inQueue, outQueue):
+    """
+    Defines the worker process of the parallelisation with multiprocessing.Queue
+    and multiprocessing.Process.
+    """
+    for (
+        wave,
+        spec,
+        espec,
+        redshift,
+        config,
+        lickfile,
+        names,
+        index_names,
+        model_indices,
+        params,
+        tri,
+        labels,
+        nbins,
+        i,
+        MCMC,
+    ) in iter(inQueue.get, "STOP"):
+        if MCMC == True:
+            indices, errors, vals, percentile = run_ls(
+                wave,
+                spec,
+                espec,
+                redshift,
+                config,
+                lickfile,
+                names,
+                index_names,
+                model_indices,
+                params,
+                tri,
+                labels,
+                nbins,
+                i,
+                MCMC,
+            )
+
+            outQueue.put((i, indices, errors, vals, percentile))
+
+        elif MCMC == False:
+            indices, errors = run_ls(
+                wave,
+                spec,
+                espec,
+                redshift,
+                config,
+                lickfile,
+                names,
+                index_names,
+                model_indices,
+                params,
+                tri,
+                labels,
+                nbins,
+                i,
+                MCMC,
+            )
+
+            outQueue.put((i, indices, errors))
+
+
+def run_ls(
+    wave,
+    spec,
+    espec,
+    redshift,
+    config,
+    lickfile,
+    names,
+    index_names,
+    model_indices,
+    params,
+    tri,
+    labels,
+    nbins,
+    i,
+    MCMC,
+):
+    """
+    Calls a Python version of the line strength measurement routine of
+    Kuntschner et al. 2006 (ui.adsabs.harvard.edu/?#abs/2006MNRAS.369..497K),
+    and if required, the MCMC algorithm from Martin-Navaroo et al. 2018
+    (ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M) to determine SSP
+    properties.
+    """
+    printStatus.progressBar(i, nbins, barLength=50)
+    nindex = len(index_names)
+
+    try:
+        # Measure the LS indices
+        names, indices, errors = lsindex.lsindex(
+            wave,
+            spec,
+            espec,
+            redshift[0],
+            lickfile,
+            sims=config["LS"]["MC_LS"],
+            z_err=redshift[1],
+            plot=0,
+        )
+
+        # Get the indices in consideration
+        data = np.zeros(nindex)
+        error = np.zeros(nindex)
+        for o in range(nindex):
+            idx = np.where(names == index_names[o])[0]
+            data[o] = indices[idx]
+            error[o] = errors[idx]
+
+        if MCMC == True:
+            # Run the conversion of LS indices to SSP properties
+            vals = np.zeros(len(labels) * 3 + 2)
+            chains = np.zeros(
+                (int(config["LS"]["NWALKER"] * config["LS"]["NCHAIN"] / 2), len(labels))
+            )
+            vals[:], chains[:, :] = ssppop.ssppop_fitting(
+                data,
+                error,
+                model_indices,
+                params,
+                tri,
+                labels,
+                config["LS"]["NWALKER"],
+                config["LS"]["NCHAIN"],
+                False,
+                0,
+                i,
+                nbins,
+                "",
+            )
+
+            percentiles = np.percentile(chains, np.arange(101), axis=0)
+
+            return (indices, errors, vals, percentiles)
+
+        elif MCMC == False:
+            return (indices, errors)
+
+    except:
+        if MCMC == True:
+            return (np.nan, np.nan, np.nan, np.nan)
+        elif MCMC == False:
+            return (np.nan, np.nan)
+
+
 def save_ls(
     names,
     ls_indices,
@@ -363,89 +512,6 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         percentile = np.zeros((nbins, 101, len(labels)))
 
     # Run LS Measurements
-    def run_ls(
-            wave,
-            spec,
-            espec,
-            redshift,
-            config,
-            lickfile,
-            names,
-            index_names,
-            model_indices,
-            params,
-            tri,
-            labels,
-            nbins,
-            i,
-            MCMC,
-        ):
-            """
-            Calls a Python version of the line strength measurement routine of
-            Kuntschner et al. 2006 (ui.adsabs.harvard.edu/?#abs/2006MNRAS.369..497K),
-            and if required, the MCMC algorithm from Martin-Navaroo et al. 2018
-            (ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M) to determine SSP
-            properties.
-            """
-            printStatus.progressBar(i, nbins, barLength=50)
-            nindex = len(index_names)
-
-            try:
-                # Measure the LS indices
-                names, indices, errors = lsindex.lsindex(
-                    wave,
-                    spec,
-                    espec,
-                    redshift[0],
-                    lickfile,
-                    sims=config["LS"]["MC_LS"],
-                    z_err=redshift[1],
-                    plot=0,
-                )
-
-                # Get the indices in consideration
-                data = np.zeros(nindex)
-                error = np.zeros(nindex)
-                for o in range(nindex):
-                    idx = np.where(names == index_names[o])[0]
-                    data[o] = indices[idx]
-                    error[o] = errors[idx]
-
-                if MCMC == True:
-                    # Run the conversion of LS indices to SSP properties
-                    vals = np.zeros(len(labels) * 3 + 2)
-                    chains = np.zeros(
-                        (int(config["LS"]["NWALKER"] * config["LS"]["NCHAIN"] / 2), len(labels))
-                    )
-                    vals[:], chains[:, :] = ssppop.ssppop_fitting(
-                        data,
-                        error,
-                        model_indices,
-                        params,
-                        tri,
-                        labels,
-                        config["LS"]["NWALKER"],
-                        config["LS"]["NCHAIN"],
-                        False,
-                        0,
-                        i,
-                        nbins,
-                        "",
-                    )
-
-                    percentiles = np.percentile(chains, np.arange(101), axis=0)
-
-                    return (indices, errors, vals, percentiles)
-
-                elif MCMC == False:
-                    return (indices, errors)
-
-            except:
-                if MCMC == True:
-                    return (np.nan, np.nan, np.nan, np.nan)
-                elif MCMC == False:
-                    return (np.nan, np.nan)
-                    
     start_time = time.time()
     if config["GENERAL"]["PARALLEL"] == True:
         printStatus.running("Running lineStrengths in parallel mode")
@@ -482,7 +548,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "temp_folder":memmap_folder}
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "temp_folder":memmap_folder, "prefer": "threads"}
         ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk) for chunk in chunks)
 
         # Flatten the results
