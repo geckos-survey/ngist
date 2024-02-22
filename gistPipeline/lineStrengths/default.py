@@ -116,7 +116,28 @@ def run_ls(
     and if required, the MCMC algorithm from Martin-Navaroo et al. 2018
     (ui.adsabs.harvard.edu/#abs/2018MNRAS.475.3700M) to determine SSP
     properties.
+
+    Args:
+    wave (array): Wavelength data
+    spec (array): Spectral data
+    espec (array): Error spectral data
+    redshift (array): Redshift data
+    config (dict): Configuration data
+    lickfile (str): Lick index file
+    names (array): Index names
+    index_names (array): Names of the indices in consideration
+    model_indices (array): Model indices
+    params (array): Parameters
+    tri (array): Triangulation data
+    labels (array): Labels data
+    nbins (int): Number of bins
+    i (int): Iteration number
+    MCMC (bool): Flag for using MCMC algorithm
+
+    Returns:
+    tuple: A tuple of indices, errors, vals, and percentiles
     """
+    # Display progress bar
     printStatus.progressBar(i, nbins, barLength=50)
     nindex = len(index_names)
 
@@ -545,10 +566,10 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
         
         # Use joblib to parallelize the work
-        max_nbytes = "1M" # max array size before memory mapping is triggered
+        max_nbytes = None  # max array size before memory mapping is triggered (None = disabled memory mapping, see https://github.com/scikit-learn-contrib/hdbscan/pull/495#issue-1014324032)
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "temp_folder":memmap_folder, "prefer": "threads"}
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "temp_folder":memmap_folder}
         ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk) for chunk in chunks)
 
         # Flatten the results
