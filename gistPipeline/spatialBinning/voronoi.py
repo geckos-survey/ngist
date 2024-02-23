@@ -6,6 +6,7 @@ import numpy as np
 import scipy.spatial.distance as dist
 from astropy.io import fits
 from printStatus import printStatus
+from scipy.spatial import cKDTree
 from vorbin.voronoi_2d_binning import voronoi_2d_binning
 
 """
@@ -196,8 +197,6 @@ def find_nearest_voronoibin(x, y, idx_outside, xNode, yNode):
     Returns:
     - closest (array): array of indices representing the nearest Voronoi-bin for each spaxel
     """
-    from scipy.spatial import cKDTree
-
     # Create an array of pixel coordinates
     pix_coords = np.column_stack((x[idx_outside], y[idx_outside]))
     # Create an array of bin coordinates

@@ -28,71 +28,6 @@ PURPOSE:
 """
 
 
-def workerLS(inQueue, outQueue):
-    """
-    Defines the worker process of the parallelisation with multiprocessing.Queue
-    and multiprocessing.Process.
-    """
-    for (
-        wave,
-        spec,
-        espec,
-        redshift,
-        config,
-        lickfile,
-        names,
-        index_names,
-        model_indices,
-        params,
-        tri,
-        labels,
-        nbins,
-        i,
-        MCMC,
-    ) in iter(inQueue.get, "STOP"):
-        if MCMC == True:
-            indices, errors, vals, percentile = run_ls(
-                wave,
-                spec,
-                espec,
-                redshift,
-                config,
-                lickfile,
-                names,
-                index_names,
-                model_indices,
-                params,
-                tri,
-                labels,
-                nbins,
-                i,
-                MCMC,
-            )
-
-            outQueue.put((i, indices, errors, vals, percentile))
-
-        elif MCMC == False:
-            indices, errors = run_ls(
-                wave,
-                spec,
-                espec,
-                redshift,
-                config,
-                lickfile,
-                names,
-                index_names,
-                model_indices,
-                params,
-                tri,
-                labels,
-                nbins,
-                i,
-                MCMC,
-            )
-
-            outQueue.put((i, indices, errors))
-
-
 def run_ls(
     wave,
     spec,
@@ -381,6 +316,13 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     convolved to meet the LIS measurement resolution. After the measurement of
     line strength indices and, if required, the estimation of SSP properties,
     the results are saved to file.
+
+    Args:
+        config (dict): Configuration parameters for the line strength analysis.
+        RESOLUTION (str, optional): Resolution type. Defaults to "ORIGINAL".
+
+    Returns:
+        None
     """
     # Run MCMC only on the indices measured from convoluted spectra
     if config["LS"]["TYPE"] == "SPP" and RESOLUTION == "ADAPTED":
@@ -540,6 +482,15 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
 
         # Define a function to encapsulate the work done in the loop
         def worker(chunk):
+            """
+            Apply run_ls() to a chunk of data and return the results.
+
+            Args:
+                chunk (list): A list of indices representing the data chunk to process.
+
+            Returns:
+                list: A list of results obtained from processing the chunk.
+            """
             results = []
             for i in chunk:
                 result = run_ls(
