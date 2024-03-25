@@ -59,6 +59,7 @@ def workerPPXF(inQueue, outQueue):
         noise,
         velscale,
         start,
+        bias,
         goodPixels_ppxf,
         nmoments,
         adeg,
@@ -88,6 +89,7 @@ def workerPPXF(inQueue, outQueue):
             noise,
             velscale,
             start,
+            bias,
             goodPixels_ppxf,
             nmoments,
             adeg,
@@ -124,6 +126,7 @@ def run_ppxf(
     log_bin_error,
     velscale,
     start,
+    bias,
     goodPixels,
     nmoments,
     adeg,
@@ -251,6 +254,7 @@ def run_ppxf(
                 noise_new,
                 velscale,
                 start,
+                bias,
                 goodpixels=goodPixels,
                 plot=False,
                 quiet=True,
@@ -596,6 +600,11 @@ def extractStellarKinematics(config):
     nbins = bin_data.shape[1]
     ubins = np.arange(0, nbins)
     velscale = hdu[0].header["VELSCALE"]
+    # Define bias value if there are more than 2 kin moments calculated
+    if config["KIN"]["BIAS"] == 'Auto' and config["KIN"]["MOM"] > 2: # 'Auto' setting: bias=None
+        bias = None
+    elif config["KIN"]["BIAS"] != 'Auto' and config["KIN"]["MOM"] > 2:
+        bias = config["KIN"]["BIAS"]
 
     # Read LSF information
 
@@ -698,6 +707,7 @@ def extractStellarKinematics(config):
         comb_espec,
         velscale,
         start[0, :],
+        bias,
         goodPixels_ppxf,
         config["KIN"]["MOM"],
         config["KIN"]["ADEG"],
@@ -745,6 +755,7 @@ def extractStellarKinematics(config):
                     noise[:, i],
                     velscale,
                     start[i, :],
+                    bias,
                     goodPixels_ppxf,
                     config["KIN"]["MOM"],
                     config["KIN"]["ADEG"],
@@ -818,6 +829,7 @@ def extractStellarKinematics(config):
                 noise[:, i],
                 velscale,
                 start[i, :],
+                bias,
                 goodPixels_ppxf,
                 config["KIN"]["MOM"],
                 config["KIN"]["ADEG"],
