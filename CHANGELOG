@@ -6,6 +6,15 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.4.4       2024-03-25 CHANGED:
+			Name from gist-geckos to nGIST!
+			ADDED:
+			The ability to define the BIAS value in the KIN module. If not set by the
+			user, the default value in the MasterConfig file is 'Auto', which uses the 
+			default implementation provided with pPXF from Cappellari & Emsellem 2004.
+			CHANGED:
+			_initialise.py ascii text art to reflect code name change.
+
 V5.4.3 	     2024-01-29 CHANGED:
 			addGISTHeaderComment so that it doesn't need to open the every fits file 
 			and so that only the ext[0] has the gist-geckos branding added. This 
