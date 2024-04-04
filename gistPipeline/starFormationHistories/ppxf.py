@@ -2,13 +2,16 @@ import glob
 import logging
 import os
 import time
+import extinction
 
 import numpy as np
 from astropy.io import fits
 from astropy.stats import biweight_location
 from multiprocess import Process, Queue
+from packaging import version
 # Then use system installed version instead
 from ppxf.ppxf import ppxf
+import ppxf as ppxf_package
 from printStatus import printStatus
 
 from gistPipeline.auxiliary import _auxiliary
@@ -74,6 +77,8 @@ def workerPPXF(inQueue, outQueue):
         nbins,
         i,
         optimal_template_in,
+        EBV_init,
+        logLam,
     ) in iter(inQueue.get,'STOP'):
         (
             sol,
@@ -84,6 +89,7 @@ def workerPPXF(inQueue, outQueue):
             formal_error,
             spectral_mask,
             snr_postfit,
+            EBV,
         ) = run_ppxf(templates,
             galaxy,
             noise,
@@ -103,6 +109,8 @@ def workerPPXF(inQueue, outQueue):
             nbins,
             i,
             optimal_template_in,
+            EBV_init,
+            logLam,
         )
 
         outQueue.put(
@@ -116,6 +124,7 @@ def workerPPXF(inQueue, outQueue):
                 formal_error,
                 spectral_mask,
                 snr_postfit,
+                EBV,
             )
         )
 
@@ -194,6 +203,8 @@ def run_ppxf(
     nbins,
     i,
     optimal_template_in,
+    EBV_init,
+    logLam
 ):
 
     """
@@ -207,6 +218,37 @@ def run_ppxf(
     try:
 
         if len(optimal_template_in) > 1:
+
+            # Trying now woth normalising the continuum first
+            #log_bin_data = log_bin_data / np.median(log_bin_data) # Can decide whether to rename this variable later
+            #log_bin_error = log_bin_error / np.median(log_bin_error) # Should this be norm by the data, not the error?
+
+            # Here add in the extra deredenning step to fix the shape of the spectrum before going any further.
+            # Call PPXF, 0th run using an extinction law, no polynomials
+            pp_step0 = ppxf(templates, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), goodpixels=goodPixels,
+                      degree=-1, mdegree=-1, vsyst=offset, velscale_ratio=velscale_ratio,
+                      moments=nmoments, start=start, plot=False, reddening=EBV_init,
+                      regul=0, quiet=True, fixed=fixed)
+
+            # Deredden the spectrum -- but take care about the version of ppxf used.
+            # For ppxf versions > 8.2.1, pp.reddening = Av,
+            # For ppxf versions < 8.2.1, pp.reddening = E(B-V)
+            # Thanks to Luiz Silva-Lima for pointing this out
+
+            Rv = 4.05
+            if version.parse(ppxf_package.__version__) >= version.parse('8.2.1'):
+                Av = pp_step0.reddening
+                EBV = Av/Rv
+            else:
+                EBV = pp_step0.reddening
+                Av =  EBV * Rv
+
+            log_bin_data1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)/np.median(log_bin_data)
+            log_bin_data = (log_bin_data1/np.median(log_bin_data1))*np.median(log_bin_data)
+            log_bin_error1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)/np.median(log_bin_error)
+            log_bin_error = (log_bin_error1/np.median(log_bin_error1))*np.median(log_bin_error)
+            ext_curve = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), np.ones_like(log_bin_data))
+
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
             fake_noise=np.full_like(log_bin_data, 1.0)
@@ -345,10 +387,11 @@ def run_ppxf(
             formal_error,
             spectral_mask,
             snr_postfit,
+            EBV,
         )
 
     except:
-        return( np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+        return( np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
 
@@ -416,6 +459,7 @@ def save_sfh(
     spectral_mask,
     optimal_template_comb,
     snr_postfit,
+    EBV,
 ):
     """ Save all results to disk. """
 
@@ -474,6 +518,8 @@ def save_sfh(
     # Add True SNR calculated from residual
     cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
 
+    # Add E(B-V) derived from pPXF 0th step with reddening but no polynomials
+    cols.append(fits.Column(name="EBV", format="D", array=EBV[:]))
 
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "SFH"
@@ -727,6 +773,7 @@ def extractStarFormationHistories(config):
     formal_error = np.zeros((nbins,6))
     spectral_mask = np.zeros((nbins,bin_data.shape[0]))
     snr_postfit = np.zeros(nbins)
+    EBV = np.zeros(nbins)
 
     # ====================
     # Run PPXF once on combined mean spectrum to get a single optimal template
@@ -761,7 +808,7 @@ def extractStarFormationHistories(config):
     optimal_template_comb = optimal_template_out
 
     # ====================
-
+    EBV_init = 0.1 # PHANGS value
 
     # ====================
     # Run PPXF
@@ -807,6 +854,8 @@ def extractStarFormationHistories(config):
                     nbins,
                     i,
                     optimal_template_comb,
+                    EBV_init,
+                    logLam
                 )
             )
 
@@ -835,6 +884,7 @@ def extractStarFormationHistories(config):
             formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][6]
             spectral_mask[i,:] = ppxf_tmp[i][7]
             snr_postfit[i] = ppxf_tmp[i][8]
+            EBV[i] = ppxf_tmp[i][9]
 
         # Sort output
         argidx = np.argsort( index )
@@ -846,6 +896,7 @@ def extractStarFormationHistories(config):
         formal_error = formal_error[argidx,:]
         spectral_mask = spectral_mask[argidx,:]
         snr_postfit = snr_postfit[argidx]
+        EBV = EBV[argidx]
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
@@ -859,9 +910,10 @@ def extractStarFormationHistories(config):
                 bestfit[i,:],
                 formal_error[i,:config['SFH']['MOM']],
                 snr_postfit[i],
+                EBV[i],
             ) = run_ppxf(
                 templates,
-                galaxy[i,:],
+                bin_data[i,:],
                 noise,
                 velscale,
                 start[i,:],
@@ -879,6 +931,8 @@ def extractStarFormationHistories(config):
                 nbins,
                 i,
                 optimal_template_in,
+                EBV_init,
+                logLam
             )
         printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
 
@@ -938,6 +992,7 @@ def extractStarFormationHistories(config):
         spectral_mask,
         optimal_template_comb,
         snr_postfit,
+        EBV,
     )
 
     # Return
