@@ -204,7 +204,7 @@ def run_ppxf(
     i,
     optimal_template_in,
     EBV_init,
-    logLam
+    logLam,
 ):
 
     """
@@ -223,8 +223,9 @@ def run_ppxf(
             #log_bin_data = log_bin_data / np.median(log_bin_data) # Can decide whether to rename this variable later
             #log_bin_error = log_bin_error / np.median(log_bin_error) # Should this be norm by the data, not the error?
 
-            # Here add in the extra deredenning step to fix the shape of the spectrum before going any further.
-            # Call PPXF, 0th run using an extinction law, no polynomials
+            # Here add in the extra step to estimate the dust and print out the E(B-V) map
+            # Call PPXF, 0th run using an extinction law, no polynomials.
+            # if dust_corr == True:
             pp_step0 = ppxf(templates, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), goodpixels=goodPixels,
                       degree=-1, mdegree=-1, vsyst=offset, velscale_ratio=velscale_ratio,
                       moments=nmoments, start=start, plot=False, reddening=EBV_init,
@@ -243,11 +244,14 @@ def run_ppxf(
                 EBV = pp_step0.reddening
                 Av =  EBV * Rv
 
-            log_bin_data1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)/np.median(log_bin_data)
-            log_bin_data = (log_bin_data1/np.median(log_bin_data1))*np.median(log_bin_data)
-            log_bin_error1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)/np.median(log_bin_error)
-            log_bin_error = (log_bin_error1/np.median(log_bin_error1))*np.median(log_bin_error)
-            ext_curve = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), np.ones_like(log_bin_data))
+                # log_bin_data1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)/np.median(log_bin_data)
+                # log_bin_data = (log_bin_data1/np.median(log_bin_data1))*np.median(log_bin_data)
+                # log_bin_error1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)/np.median(log_bin_error)
+                # log_bin_error = (log_bin_error1/np.median(log_bin_error1))*np.median(log_bin_error)
+                # ext_curve = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), np.ones_like(log_bin_data))
+            # # If dust_corr key is False
+            # else:
+            #     EBV = 0
 
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
@@ -855,7 +859,7 @@ def extractStarFormationHistories(config):
                     i,
                     optimal_template_comb,
                     EBV_init,
-                    logLam
+                    logLam,
                 )
             )
 
@@ -878,7 +882,15 @@ def extractStarFormationHistories(config):
             index[i] = ppxf_tmp[i][0]
             ppxf_result[i,:config['SFH']['MOM']] = ppxf_tmp[i][1]
             w_row[i,:] = ppxf_tmp[i][2]
+            #Here we are un-dereddening the bestfit spectra becuase it looks nicer in Mapviewer. If you want the dereddened spectra, then do the opposite of this
+
+            # Rv = 4.05
+            # if config['SFH']['DUST_CORR'] == 'True': # If you've added the dust correction, unapply it to make the mapviewer output look more normal
+            #     ppxf_bestfit[i,:] = extinction.apply(extinction.calzetti00(np.exp(logLam), ppxf_tmp[i][9], Rv), ppxf_tmp[i][3])#  * (1/(ppxf_tmp[i][3]/bin_data[:,i])) #/np.median(bin_data[:,i])#/np.median(ppxf_tmp[i][3]) OR np.log(bin_data[:,i])??
+            # #log_bin_data = (log_bin_data1/np.median(log_bin_data1))*np.median(log_bin_data) # Don't know if I need this line?
+            # else:
             ppxf_bestfit[i,:] = ppxf_tmp[i][3]
+
             optimal_template[i,:] = ppxf_tmp[i][4]
             mc_results[i,:config['SFH']['MOM']] = ppxf_tmp[i][5]
             formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][6]
@@ -932,7 +944,7 @@ def extractStarFormationHistories(config):
                 i,
                 optimal_template_in,
                 EBV_init,
-                logLam
+                logLam,
             )
         printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
 
