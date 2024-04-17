@@ -2,7 +2,7 @@ import os
 home_dir = os.path.expanduser('~')
 
 print(home_dir)
-output_dir = f"{home_dir}/work/gist-geckos/gist-geckos/NGC0000Example"
+output_dir = f"{home_dir}/work/ngist/ngist/NGC0000Example"
 
 with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
