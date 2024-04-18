@@ -158,6 +158,12 @@ def run_ppxf_firsttime(
         # Call PPXF for first time to get optimal template
     #print("Running pPXF for the first time")
     #logging.info("Using the new 3-step pPXF implementation")
+    printStatus.progressBar(i, nbins, barLength=50)
+    # normalise galaxy spectra and noise
+    median_log_bin_data = np.nanmedian(log_bin_data)
+    log_bin_error /= median_log_bin_data
+    log_bin_data /= median_log_bin_data
+
     pp = ppxf(
         templates,
         log_bin_data,
@@ -222,6 +228,10 @@ def run_ppxf(
             # Trying now woth normalising the continuum first
             #log_bin_data = log_bin_data / np.median(log_bin_data) # Can decide whether to rename this variable later
             #log_bin_error = log_bin_error / np.median(log_bin_error) # Should this be norm by the data, not the error?
+            # normalise galaxy spectra and noise
+            median_log_bin_data = np.nanmedian(log_bin_data)
+            log_bin_error /= median_log_bin_data
+            log_bin_data /= median_log_bin_data
 
             # Here add in the extra step to estimate the dust and print out the E(B-V) map
             # Call PPXF, 0th run using an extinction law, no polynomials.
@@ -364,7 +374,7 @@ def run_ppxf(
         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum()
         w_row   = np.reshape(weights, ncomb)
 
-        # # Do MC-Simulations - Amelia - this is not currently implemented. Add back in later.
+        # # Do MC-Simulations - this is not currently implemented. Add back in later.
         # sol_MC     = np.zeros((nsims,nmoments))
         mc_results = np.zeros(nmoments)
         #
@@ -381,6 +391,9 @@ def run_ppxf(
         # if nsims != 0:
         #     mc_results = np.nanstd( sol_MC, axis=0 )
         # print(pp.sol[:])
+
+        # add normalisation factor back in main results
+        pp.bestfit *= median_log_bin_data
 
         return(
             pp.sol[:],
@@ -678,15 +691,16 @@ def extractStarFormationHistories(config):
         'SFH',
         sortInGrid=True,
     )
-
     templates = templates.reshape( (templates.shape[0], ntemplates) )
+
+
     # Read spectra
     if (
-        os.path.isfile(
+        (config['SFH']['SPEC_EMICLEAN'] == True)
+        and
+        (os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits'
-        )
-        == True
+            + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits') == True)
     ):
         logging.info(
             "Using emission-subtracted spectra at "

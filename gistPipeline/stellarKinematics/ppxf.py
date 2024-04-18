@@ -150,6 +150,12 @@ def run_ppxf(
     printStatus.progressBar(i, nbins, barLength=50)
 
     try:
+
+        # normalise galaxy spectra and noise
+        median_log_bin_data = np.nanmedian(log_bin_data)
+        log_bin_error /= median_log_bin_data
+        log_bin_data /= median_log_bin_data
+
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
             print("Running pPXF for the first time")
@@ -160,7 +166,7 @@ def run_ppxf(
                 velscale,
                 start,
                 goodpixels=goodPixels,
-                plot=True,
+                plot=False,
                 quiet=True,
                 moments=nmoments,
                 degree=adeg,
@@ -242,7 +248,7 @@ def run_ppxf(
                 noise_new = log_bin_error * (noise_est / noise_orig)
                 noise_new_std = robust_sigma(noise_new)
 
-            # A temporary fix for the noise issue where a single high S/N spaxel
+            # A fix for the noise issue where a single high S/N spaxel
             # causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est - noise_new_std)] = noise_est
 
@@ -320,6 +326,11 @@ def run_ppxf(
 
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
+
+        # add normalisation factor back in main results
+        pp.bestfit *= median_log_bin_data
+        if pp.reddening is not None:
+            pp.reddening *= median_log_bin_data
 
         return(
             pp.sol[:],
@@ -600,6 +611,7 @@ def extractStellarKinematics(config):
     nbins = bin_data.shape[1]
     ubins = np.arange(0, nbins)
     velscale = hdu[0].header["VELSCALE"]
+
     # Define bias value if there are more than 2 kin moments calculated
     if config["KIN"]["BIAS"] == 'Auto' and config["KIN"]["MOM"] > 2: # 'Auto' setting: bias=None
         bias = None

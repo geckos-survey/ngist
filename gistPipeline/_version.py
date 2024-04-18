@@ -1,3 +1,3 @@
 """Version information."""
 
-__version__ = "5.4.5"
+__version__ = "6.0.0"
