@@ -164,6 +164,9 @@ def run_ppxf_firsttime(
     log_bin_error /= median_log_bin_data
     log_bin_data /= median_log_bin_data
 
+    # print('Template shape line 167 = ')
+    # print(templates.shape)
+
     pp = ppxf(
         templates,
         log_bin_data,
@@ -182,10 +185,16 @@ def run_ppxf_firsttime(
         velscale_ratio=velscale_ratio,
     )
 
+    # normalized_weights = pp.weights / np.sum( pp.weights )
+    # optimal_template   = np.zeros( templates.shape[0] )
+    # for j in range(0, templates.shape[1]):
+    #     optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
+
+    reshaped_templates = templates.reshape((templates.shape[0], templates.shape[1]*templates.shape[2]*templates.shape[3]))
     normalized_weights = pp.weights / np.sum( pp.weights )
-    optimal_template   = np.zeros( templates.shape[0] )
-    for j in range(0, templates.shape[1]):
-        optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
+    optimal_template   = np.zeros( reshaped_templates.shape[0] )
+    for j in range(0, reshaped_templates.shape[1]):
+        optimal_template = optimal_template + reshaped_templates[:,j]*normalized_weights[j]
 
     return optimal_template
 
@@ -333,6 +342,8 @@ def run_ppxf(
 
             ################ 3 ##################
             # Third Call PPXF - use all templates, get best-fit
+            # print('Template shape line 342 = ')
+            # print(templates.shape)
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -362,12 +373,17 @@ def run_ppxf(
         noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
         snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
 
+        # # Make the unconvolved optimal stellar template
+        # normalized_weights = pp.weights / np.sum( pp.weights )
+        # optimal_template   = np.zeros( templates.shape[0] )
+        # for j in range(0, templates.shape[1]):
+        #     optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
         # Make the unconvolved optimal stellar template
+        reshaped_templates = templates.reshape((templates.shape[0], templates.shape[1]*templates.shape[2]*templates.shape[3]))
         normalized_weights = pp.weights / np.sum( pp.weights )
-        optimal_template   = np.zeros( templates.shape[0] )
-        for j in range(0, templates.shape[1]):
-            optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
-
+        optimal_template   = np.zeros( reshaped_templates.shape[0] )
+        for j in range(0, reshaped_templates.shape[1]):
+            optimal_template = optimal_template + reshaped_templates[:,j]*normalized_weights[j]
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)
 
@@ -691,8 +707,11 @@ def extractStarFormationHistories(config):
         'SFH',
         sortInGrid=True,
     )
-    templates = templates.reshape( (templates.shape[0], ntemplates) )
-
+    # print('Template shape line 702 =')
+    # print(templates.shape)
+    #templates_firsttime = templates.reshape( (templates.shape[0], ntemplates) )
+    # print('Template shape line 706 =')
+    # print(templates.shape)
 
     # Read spectra
     if (
@@ -740,9 +759,9 @@ def extractStarFormationHistories(config):
     ubins = np.arange(0, nbins)
     noise = np.full(npix, config['SFH']['NOISE'])
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
-    #bin_err = np.array( hdu2[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed
-    bin_err = np.array( hdu[1].data.ESPEC.T ) #This will almost certainly not work, as galaxy array isn't transposed. Does this still need to be transposed?
-    bin_data = np.array( hdu[1].data.SPEC.T ) # Amelia this doens't bode well
+    #bin_err = np.array( hdu2[1].data.ESPEC.T )
+    bin_err = np.array( hdu[1].data.ESPEC.T )
+    bin_data = np.array( hdu[1].data.SPEC.T )
     bin_data = bin_data[idx_lam,:]
     bin_err = bin_err[idx_lam,:]
     # Last preparatory steps
@@ -925,15 +944,18 @@ def extractStarFormationHistories(config):
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
-    if config['GENERAL']['PARALLEL'] == False: # Amelia you haven't tested this yet. Come back to.
+    if config['GENERAL']['PARALLEL'] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
         for i in range(nbins):
             (
-                kin[i,:config['SFH']['MOM']],
+                ppxf_result[i,:config['SFH']['MOM']],
                 w_row[i,:],
-                bestfit[i,:],
+                ppxf_bestfit[i,:],
+                optimal_template[i,:],
+                mc_results[i,:config['SFH']['MOM']],
                 formal_error[i,:config['SFH']['MOM']],
+                spectral_mask[i,:],
                 snr_postfit[i],
                 EBV[i],
             ) = run_ppxf(
