@@ -6,6 +6,9 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V5.4.5	     2024-04-18 ADDED:
+			The ability to return an E(B-V) dust map in the SFH module. 
+
 V5.4.4       2024-03-25 CHANGED:
 			Name from gist-geckos to nGIST!
 			ADDED:
