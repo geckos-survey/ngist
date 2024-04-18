@@ -678,9 +678,8 @@ def extractStarFormationHistories(config):
         'SFH',
         sortInGrid=True,
     )
+
     templates = templates.reshape( (templates.shape[0], ntemplates) )
-
-
     # Read spectra
     if (
         os.path.isfile(
