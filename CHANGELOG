@@ -6,6 +6,10 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V6.0.0       2024-04-18 ADDED:
+		  	Continuum normalisation step before running pPXF in KIN, CONT, and 
+			SFH modules. 
+
 V5.4.5	     2024-04-18 ADDED:
 			The ability to return an E(B-V) dust map in the SFH module. 
 
