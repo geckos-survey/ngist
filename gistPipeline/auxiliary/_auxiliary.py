@@ -123,12 +123,12 @@ def addGISTHeaderComment(config):
     filelist = glob.glob(os.path.join(config["GENERAL"]["OUTPUT"], "*.fits"))
 
     for file in filelist:
-        if "Generated with the gist-geckos pipeline" not in str(fits.getheader(file)):
+        if "Generated with the nGIST pipeline" not in str(fits.getheader(file)):
             fits.setval(file, "COMMENT", value="", ext=0)
             fits.setval(
                 file,
                 "COMMENT",
-                value="                Generated with the gist-geckos pipeline , V"
+                value="                Generated with the nGIST pipeline , V"
                 + __version__
                 + "                  ",
                 ext=0,
