@@ -146,7 +146,6 @@ def run_ppxf_firsttime(
     npix,
     ncomb,
     nbins,
-    i,
     optimal_template_in,
 ):
     """
@@ -155,17 +154,13 @@ def run_ppxf_firsttime(
     ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
     non-parametric star-formation histories.
     """
-        # Call PPXF for first time to get optimal template
-    #print("Running pPXF for the first time")
-    #logging.info("Using the new 3-step pPXF implementation")
-    printStatus.progressBar(i, nbins, barLength=50)
+    # Call PPXF for first time to get optimal template
+    print("Running pPXF for the first time")
     # normalise galaxy spectra and noise
     median_log_bin_data = np.nanmedian(log_bin_data)
     log_bin_error /= median_log_bin_data
     log_bin_data /= median_log_bin_data
 
-    # print('Template shape line 167 = ')
-    # print(templates.shape)
 
     pp = ppxf(
         templates,
@@ -185,12 +180,8 @@ def run_ppxf_firsttime(
         velscale_ratio=velscale_ratio,
     )
 
-    # normalized_weights = pp.weights / np.sum( pp.weights )
-    # optimal_template   = np.zeros( templates.shape[0] )
-    # for j in range(0, templates.shape[1]):
-    #     optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
-
-    reshaped_templates = templates.reshape((templates.shape[0], templates.shape[1]*templates.shape[2]*templates.shape[3]))
+    # Templates shape is currently [Wavelength, nAge, nMet, nAlpha]. Reshape to [Wavelength, ncomb] to create optimal template
+    reshaped_templates = templates.reshape((templates.shape[0], ncomb))
     normalized_weights = pp.weights / np.sum( pp.weights )
     optimal_template   = np.zeros( reshaped_templates.shape[0] )
     for j in range(0, reshaped_templates.shape[1]):
@@ -234,26 +225,21 @@ def run_ppxf(
 
         if len(optimal_template_in) > 1:
 
-            # Trying now woth normalising the continuum first
-            #log_bin_data = log_bin_data / np.median(log_bin_data) # Can decide whether to rename this variable later
-            #log_bin_error = log_bin_error / np.median(log_bin_error) # Should this be norm by the data, not the error?
-            # normalise galaxy spectra and noise
+            # Normalise galaxy spectra and noise
             median_log_bin_data = np.nanmedian(log_bin_data)
             log_bin_error /= median_log_bin_data
             log_bin_data /= median_log_bin_data
 
-            # Here add in the extra step to estimate the dust and print out the E(B-V) map
-            # Call PPXF, 0th run using an extinction law, no polynomials.
-            # if dust_corr == True:
+            # Here add in the extra, 0th step to estimate the dust and print out the E(B-V) map
+            # Call PPXF, using an extinction law, no polynomials.
             pp_step0 = ppxf(templates, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), goodpixels=goodPixels,
                       degree=-1, mdegree=-1, vsyst=offset, velscale_ratio=velscale_ratio,
                       moments=nmoments, start=start, plot=False, reddening=EBV_init,
                       regul=0, quiet=True, fixed=fixed)
 
-            # Deredden the spectrum -- but take care about the version of ppxf used.
+            # Take care about the version of ppxf used.
             # For ppxf versions > 8.2.1, pp.reddening = Av,
             # For ppxf versions < 8.2.1, pp.reddening = E(B-V)
-            # Thanks to Luiz Silva-Lima for pointing this out
 
             Rv = 4.05
             if version.parse(ppxf_package.__version__) >= version.parse('8.2.1'):
@@ -263,6 +249,8 @@ def run_ppxf(
                 EBV = pp_step0.reddening
                 Av =  EBV * Rv
 
+                # The following is for if we decide  we want to extinction-correct the spectra in the future.
+                # Uses a config['SFH']['DUST_CORR'] = True keyword added to the MasterConfig.yaml file
                 # log_bin_data1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)/np.median(log_bin_data)
                 # log_bin_data = (log_bin_data1/np.median(log_bin_data1))*np.median(log_bin_data)
                 # log_bin_error1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)/np.median(log_bin_error)
@@ -342,8 +330,6 @@ def run_ppxf(
 
             ################ 3 ##################
             # Third Call PPXF - use all templates, get best-fit
-            # print('Template shape line 342 = ')
-            # print(templates.shape)
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -373,21 +359,17 @@ def run_ppxf(
         noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
         snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
 
-        # # Make the unconvolved optimal stellar template
-        # normalized_weights = pp.weights / np.sum( pp.weights )
-        # optimal_template   = np.zeros( templates.shape[0] )
-        # for j in range(0, templates.shape[1]):
-        #     optimal_template = optimal_template + templates[:,j]*normalized_weights[j]
         # Make the unconvolved optimal stellar template
-        reshaped_templates = templates.reshape((templates.shape[0], templates.shape[1]*templates.shape[2]*templates.shape[3]))
-        normalized_weights = pp.weights / np.sum( pp.weights )
+        reshaped_templates = templates.reshape((templates.shape[0], ncomb)) #
+        normalized_weights = pp.weights / np.sum( pp.weights ) #
         optimal_template   = np.zeros( reshaped_templates.shape[0] )
+
         for j in range(0, reshaped_templates.shape[1]):
             optimal_template = optimal_template + reshaped_templates[:,j]*normalized_weights[j]
+
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)
-
-        weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum()
+        weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum() # Take from 1D list to nD array (nAges, nMet, nAlpha)
         w_row   = np.reshape(weights, ncomb)
 
         # # Do MC-Simulations - this is not currently implemented. Add back in later.
@@ -707,11 +689,6 @@ def extractStarFormationHistories(config):
         'SFH',
         sortInGrid=True,
     )
-    # print('Template shape line 702 =')
-    # print(templates.shape)
-    #templates_firsttime = templates.reshape( (templates.shape[0], ntemplates) )
-    # print('Template shape line 706 =')
-    # print(templates.shape)
 
     # Read spectra
     if (
@@ -752,7 +729,6 @@ def extractStarFormationHistories(config):
     logLam = hdu[2].data.LOGLAM
     idx_lam = np.where( np.logical_and( np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX'] ) )[0]
     galaxy = galaxy[:,idx_lam]
-    #galaxy = galaxy/np.median(galaxy) # Amelia added to normalise normalize flux. Do we use this again?
     logLam = logLam[idx_lam]
     nbins = galaxy.shape[0]
     npix = galaxy.shape[1]
@@ -815,8 +791,6 @@ def extractStarFormationHistories(config):
     # Run PPXF once on combined mean spectrum to get a single optimal template
     comb_spec = np.nanmean(bin_data[:,:],axis=1)
     comb_espec = np.nanmean(bin_err[:,:],axis=1)
-    #comb_spec = comb_spec/np.nanmedian(comb_spec) # Amelia added to mormalise normalize spectrum
-    #comb_espec = comb_espec/np.nanmedian(comb_espec) # and the error spectrum
     optimal_template_init = [0]
 
     optimal_template_out = run_ppxf_firsttime(
@@ -833,10 +807,9 @@ def extractStarFormationHistories(config):
         config["SFH"]["DOCLEAN"],
         fixed,
         velscale_ratio,
+        npix,
         ncomb,
-        nsims,
         nbins,
-        0,
         optimal_template_init,
     )
 
@@ -844,7 +817,7 @@ def extractStarFormationHistories(config):
     optimal_template_comb = optimal_template_out
 
     # ====================
-    EBV_init = 0.1 # PHANGS value
+    EBV_init = 0.1 # PHANGS value initial guess
 
     # ====================
     # Run PPXF
@@ -915,7 +888,6 @@ def extractStarFormationHistories(config):
             ppxf_result[i,:config['SFH']['MOM']] = ppxf_tmp[i][1]
             w_row[i,:] = ppxf_tmp[i][2]
             #Here we are un-dereddening the bestfit spectra becuase it looks nicer in Mapviewer. If you want the dereddened spectra, then do the opposite of this
-
             # Rv = 4.05
             # if config['SFH']['DUST_CORR'] == 'True': # If you've added the dust correction, unapply it to make the mapviewer output look more normal
             #     ppxf_bestfit[i,:] = extinction.apply(extinction.calzetti00(np.exp(logLam), ppxf_tmp[i][9], Rv), ppxf_tmp[i][3])#  * (1/(ppxf_tmp[i][3]/bin_data[:,i])) #/np.median(bin_data[:,i])#/np.median(ppxf_tmp[i][3]) OR np.log(bin_data[:,i])??
