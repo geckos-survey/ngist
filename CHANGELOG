@@ -6,13 +6,15 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V6.0.1			 2024-04-24 FIXED:
+												Minor fixes and code cleanup
 V6.0.0       2024-04-18 FIXED:
-				Parallel = False in SFH module
+												Parallel = False in SFH module
 												REMOVED:
-				Template reshape immediately after creation
+												Template reshape immediately after creation in SFH module
 												ADDED:
-		  	Template reshape before creation of optimal_template in run_ppxf
-V6.0.0       2024-04-18 ADDED:
+		  								  Template reshape before creation of optimal_template in run_ppxf
+ 												ADDED:
 		  	Continuum normalisation step before running pPXF in KIN, CONT, and
 			SFH modules.
 V5.4.5	     2024-04-18 ADDED:
