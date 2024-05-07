@@ -163,9 +163,9 @@ def runGIST(dirPath, galindex):
     _auxiliary.addGISTHeaderComment(config)
 
     # Goodbye
-    printStatus.module("gist-geckos pipeline")
-    printStatus.done("gist-geckos completed successfully.")
-    logging.info("gist-geckos completed successfully.")
+    printStatus.module("nGIST pipeline")
+    printStatus.done("nGIST completed successfully.")
+    logging.info("nGIST completed successfully.")
 
 
 # ============================================================================ #

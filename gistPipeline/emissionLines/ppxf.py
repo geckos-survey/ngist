@@ -25,7 +25,7 @@ C = 299792.458 # speed of light in km/s
 PURPOSE:
   This module executes the emission-line analysis of the pipeline.
   Uses the pPXF implementation, replacing Gandalf.
-  Module written for gist-geckos based on the gist SFH module
+  Module written for nGIST based on the gist SFH module
   combined with the PHANGS DAP emission line module.
 """
 

@@ -97,7 +97,7 @@ def addPathsToConfig(
     if os.path.isfile(dirPath.defaultDir) == True:
         for line in open(dirPath.defaultDir, "r"):
 
-        #for line in open('configFiles/defaultDir', "r"): #Amelia uncomment for testing only
+        #for line in open('configFiles/defaultDir', "r"): #Amelia uncomment for testing only. Need to be in gistTutorial folder
             if not line.startswith('#'):
                 line = line.split('=')
                 line = [x.strip() for x in line]
