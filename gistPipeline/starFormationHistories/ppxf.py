@@ -557,9 +557,9 @@ def save_sfh(
         cols.append(fits.Column(name='ERR_AGE_MC',  format='D', array=mean_result_MC_err[:,0]))
         cols.append(fits.Column(name='ERR_METAL_MC',format='D', array=mean_result_MC_err[:,1]))
         cols.append(fits.Column(name='ERR_ALPHA_MC',format='D', array=mean_result_MC_err[:,2]))
-        cols.append(fits.Column(name='AGE_MC_iter',   format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,0]))
-        cols.append(fits.Column(name='METAL_MC_iter', format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,1]))
-        cols.append(fits.Column(name='ALPHA_MC_iter', format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,2]))
+        # cols.append(fits.Column(name='AGE_MC_iter',   format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,0]))
+        # cols.append(fits.Column(name='METAL_MC_iter', format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,1]))
+        # cols.append(fits.Column(name='ALPHA_MC_iter', format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,2]))
 
     if config["SFH"]["FIXED"] == False:
         cols.append(fits.Column(name="V", format="D", array=ppxf_result[:, 0]))
@@ -628,6 +628,11 @@ def save_sfh(
     # Table HDU with weights
     cols = []
     cols.append(fits.Column(name="WEIGHTS", format=str(w_row.shape[1]) + "D", array=w_row))
+    # if config['SFH']['MC_PPXF'] > 0:
+    #     cols.append( fits.Column(name='WEIGHTS_MC',        format=str(w_row_MC_mean.shape[1])+'D', array=w_row_MC_mean ))
+    #     cols.append( fits.Column(name='ERR_WEIGHTS_MC',    format=str(w_row_MC_err.shape[1])+'D', array=w_row_MC_err  ))
+    #     cols.append( fits.Column(name='WEIGHTS_MC_iter',   format=str(w_row_MC_iter.shape[1]*w_row_MC_iter.shape[2])+'D',
+    #                              array=w_row_MC_iter, dim='(%s,%s)' % (w_row_MC_iter.shape[2],w_row_MC_iter.shape[1])))
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "WEIGHTS"
 
@@ -663,19 +668,39 @@ def save_sfh(
     # ========================
     # SAVE MC RESULTS OF WEIGHTS AND GRID
     if config['SFH']['MC_PPXF'] > 0:
-        cols = []
 
-        # Table HDU with grids
-        cols = []
-        cols.append(fits.Column(name="LOGAGE", format="D", array=logAge_row))
-        cols.append(fits.Column(name="METAL", format="D", array=metal_row))
-        cols.append(fits.Column(name="ALPHA", format="D", array=alpha_row))
-        gridHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-        gridHDU.name = "GRID"
-        cols.append( fits.Column(name='WEIGHTS_MC',        format=str(w_row_MC_mean.shape[1])+'D', array=w_row_MC_mean ))
-        cols.append( fits.Column(name='ERR_WEIGHTS_MC',    format=str(w_row_MC_err.shape[1])+'D', array=w_row_MC_err  ))
-        cols.append( fits.Column(name='WEIGHTS_MC_iter',   format=str(w_row_MC_iter.shape[1]*w_row_MC_iter.shape[2])+'D',
-                                 array=w_row_MC_iter, dim='(%s,%s)' % (w_row_MC_iter.shape[2],w_row_MC_iter.shape[1])))
+        outfits_sfh = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh-weights_mc.fits"
+        )
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights_mc.fits")
+
+        # Primary HDU
+        priHDU = fits.PrimaryHDU()
+
+        # Table HDU with weights from MC results
+        dataHDU_list = []
+        nbins = w_row_MC_iter.shape[0]
+        for bin_i in range(nbins):
+            cols = [fits.Column(name="WEIGHTS_MC", format=str(w_row_MC_iter.shape[2]) + "D", array=w_row_MC_iter[bin_i, :, :])]
+            dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+            dataHDU.name = "VORBIN_%s" % bin_i
+            dataHDU_list.append(dataHDU)
+
+        # Create HDU list and write to file
+        priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
+        HDUList = fits.HDUList([priHDU] + dataHDU_list)
+        HDUList.writeto(outfits_sfh, overwrite=True)
+
+        fits.setval(outfits_sfh, "NAGES", value=nAges)
+        fits.setval(outfits_sfh, "NMETAL", value=nMetal)
+        fits.setval(outfits_sfh, "NALPHA", value=nAlpha)
+
+        printStatus.updateDone(
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights_mc.fits"
+        )
+        logging.info("Wrote: " + outfits_sfh)
+
 
     # ========================
     # SAVE BESTFIT
@@ -1036,13 +1061,13 @@ def extractStarFormationHistories(config):
                 EBV[i],
             ) = run_ppxf(
                 templates,
-                bin_data[i,:],
-                noise,
+                bin_data[:,i],
+                noise[:,i],
                 velscale,
                 start[i,:],
                 goodPixels_sfh,
                 config['SFH']['MOM'],
-                dv,
+                offset,
                 -1,
                 config['SFH']['MDEG'],
                 config['SFH']['REGUL_ERR'],
