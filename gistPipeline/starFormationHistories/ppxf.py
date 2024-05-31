@@ -680,11 +680,11 @@ def save_sfh(
 
         # Table HDU with weights from MC results
         dataHDU_list = []
-        nbins = w_row_MC_iter.shape[0]
-        for bin_i in range(nbins):
-            cols = [fits.Column(name="WEIGHTS_MC", format=str(w_row_MC_iter.shape[2]) + "D", array=w_row_MC_iter[bin_i, :, :])]
+        # nbins = w_row_MC_iter.shape[0]
+        for iter_i in range(config['SFH']['MC_PPXF']):
+            cols = [fits.Column(name="WEIGHTS_MC", format=str(w_row_MC_iter.shape[2]) + "D", array=w_row_MC_iter[:, iter_i, :])]
             dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-            dataHDU.name = "VORBIN_%s" % bin_i
+            dataHDU.name = "MC_ITER_%s" % iter_i
             dataHDU_list.append(dataHDU)
 
         # Create HDU list and write to file
