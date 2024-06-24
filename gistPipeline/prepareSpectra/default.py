@@ -52,9 +52,10 @@ def prepSpectra(config, cube):
     # Log-rebin spectra
     log_spec, log_error, logLam = log_rebinning(config, cube)
     # Save all log-rebinned spectra
-    saveAllSpectra(
-        config, log_spec, log_error, config["PREPARE_SPECTRA"]["VELSCALE"], logLam
-    )
+    # JvdS turned off obsolete saveAllSpectra - June 2024
+    #saveAllSpectra(
+    #    config, log_spec, log_error, config["PREPARE_SPECTRA"]["VELSCALE"], logLam
+    #)
 
     # Apply bins to log spectra
     bin_data, bin_error, bin_flux = applySpatialBins(

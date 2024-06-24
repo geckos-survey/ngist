@@ -19,7 +19,7 @@ assert os.path.isdir(output_dir), "Output dir not created"
 
 #Check the pipeline creates the correct files
 output_files = ["CONFIG","LOGFILE",
-				"NGC0000Example_AllSpectra.fits",
+				# "NGC0000Example_AllSpectra.fits", # no longer outputted
 				"NGC0000Example_BinSpectra_linear.fits",
 				"NGC0000Example_BinSpectra.fits",
 				"NGC0000Example_gas_BIN.fits",
@@ -37,7 +37,7 @@ output_files = ["CONFIG","LOGFILE",
 				"NGC0000Example_sfh.fits",
 				"NGC0000Example_table.fits",
 				"NGC0000Example_KIN_maps.fits",
-	       			"NGC0000Example_gas_BIN_maps.fits",
+	       		"NGC0000Example_gas_BIN_maps.fits",
 				"NGC0000Example_SFH_maps.fits",
 				"NGC0000Example_LS_ORIGINAL_maps.fits",
 				"NGC0000Example_LS_ADAPTED_maps.fits"]

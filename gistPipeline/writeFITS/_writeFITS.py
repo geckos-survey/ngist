@@ -47,6 +47,19 @@ def generateFITS(config, module):
             logging.error(e, exc_info=True)
             logging.error("Failed to produce stellar kinematics maps.")
 
+    # - - - - - STELLAR KINEMATICS TWO COMPONENT MODULE - - - - -
+    if module == "TWOCOMP_KIN":
+        try:
+            printStatus.running("Producing stellar kinematics two component maps in FITS format")
+            save_maps_fits.savefitsmaps("TWOCOMP_KIN", config["GENERAL"]["OUTPUT"])
+            printStatus.updateDone("Producing stellar kinematics two component maps in FITS format")
+            logging.info("Produced stellar kinematics two component maps in FITS format")
+        except Exception as e:
+            printStatus.updateFailed("Producing stellar kinematics two component maps in FITS format")
+            logging.error(e, exc_info=True)
+            logging.error("Failed to produce stellar kinematics two component maps.")
+
+
     # - - - - - CONTINUUM CUBE MODULE - - - - -
     if module == "CONT":
         try:

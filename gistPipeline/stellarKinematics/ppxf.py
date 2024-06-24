@@ -158,7 +158,7 @@ def run_ppxf(
 
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
-            print("Running pPXF for the first time")
+            printStatus.running("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -612,10 +612,10 @@ def extractStellarKinematics(config):
     ubins = np.arange(0, nbins)
     velscale = hdu[0].header["VELSCALE"]
 
-    # Define bias value if there are more than 2 kin moments calculated
-    if config["KIN"]["BIAS"] == 'Auto' and config["KIN"]["MOM"] > 2: # 'Auto' setting: bias=None
+    # Define bias value (even if moments == 2, because keyword needs to be passed on)
+    if config["KIN"]["BIAS"] == 'Auto': # 'Auto' setting: bias=None
         bias = None
-    elif config["KIN"]["BIAS"] != 'Auto' and config["KIN"]["MOM"] > 2:
+    elif config["KIN"]["BIAS"] != 'Auto':
         bias = config["KIN"]["BIAS"]
 
     # Read LSF information

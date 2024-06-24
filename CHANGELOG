@@ -6,6 +6,16 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+
+V6.1.0	     2024-06-24 FIXED:
+			 Multiple bugs in multiple modules. Please use commit history for all changes.
+			 CHANGED:
+			 Turned off saving AllSpectra.fits module.
+			 ADDED:
+			 Two component stellar kinematic fitting module in pPXF. Calling sequence 
+			 "TWOCOMP_KIN" with "twocomp_ppxf.py". Only works with MOM = 2 and MILES SSP 
+			 library.
+
 V6.0.1	     2024-04-24 FIXED:
 			 Minor fixes and code cleanup
 

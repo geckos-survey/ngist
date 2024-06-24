@@ -161,7 +161,6 @@ def run_ppxf_firsttime(
     log_bin_error /= median_log_bin_data
     log_bin_data /= median_log_bin_data
 
-
     pp = ppxf(
         templates,
         log_bin_data,
@@ -170,7 +169,7 @@ def run_ppxf_firsttime(
         start,
         goodpixels=goodPixels,
         plot=False,
-        quiet=True,
+        quiet=False,
         moments=nmoments,
         degree=-1,
         vsyst=offset,
@@ -750,6 +749,12 @@ def extractStarFormationHistories(config):
     # Do fix kinematics to those obtained previously
     if config["SFH"]["FIXED"] == True:
         logging.info("Stellar kinematics are FIXED to the results obtained before.")
+        
+        #check if moments KIN == SFH
+        if config["SFH"]["MOM"] != config["KIN"]["MOM"]:
+            printStatus.running("Moments not the same in KIN and SFH module")
+            printStatus.running("Ignoring SFH MOMENTS, using KIN MOMENTS")
+        
         # Set fixed option to True
         fixed = [True] * config["KIN"]["MOM"]
 
@@ -949,7 +954,7 @@ def extractStarFormationHistories(config):
                 ncomb,
                 nbins,
                 i,
-                optimal_template_in,
+                optimal_template_comb,
                 EBV_init,
                 logLam,
             )
