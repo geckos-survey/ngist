@@ -751,7 +751,7 @@ def extractStarFormationHistories(config):
         logging.info("Stellar kinematics are FIXED to the results obtained before.")
         
         #check if moments KIN == SFH
-        if config["SFH"]["MOMENTS"] != config["KIN"]["MOMENTS"]
+        if config["SFH"]["MOMENTS"] != config["KIN"]["MOMENTS"]:
             printStatus.running("Moments not the same in KIN and SFH module")
             printStatus.running("Ignoring SFH MOMENTS, using KIN MOMENTS")
         
