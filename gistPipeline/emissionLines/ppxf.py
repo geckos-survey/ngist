@@ -597,7 +597,14 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             #start[i,:] = np.array( ppxf_data[i][:config['KIN']['MOM']] ) # old one (needs to be an array?)
             s = [ppxf_data[i][:config['KIN']['MOM']], [ppxf_data[i][0],50], [ppxf_data[i][0],50], [ppxf_data[i][0],50]] # Here I am setting the starting stellar kin guess to the stellar kin results, and the starting gas vel guess to the stellar vel and starting gas sigma to 50
             start.append(s)
-            f = [[1,1,1,1],[0,0],[0,0],[0,0]] # Fix the stellar kinematics, but not the gas
+            if config['KIN']['MOM'] == 2:
+                f = [[1,1],[0,0],[0,0],[0,0]] # Fix the stellar kinematics, but not the gas
+            if config['KIN']['MOM'] == 4:
+                f = [[1,1,1,1],[0,0],[0,0],[0,0]] # Fix the stellar kinematics, but not the gas
+            if config['KIN']['MOM'] == 6:
+                f = [[1,1,1,1,1,1],[0,0],[0,0],[0,0]] # Fix the stellar kinematics, but not the gas
+
+
             fixed.append(f)
 
 
@@ -612,7 +619,13 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
                 #start[i,:] = np.array( [0.0, config['SFH']['SIGMA']] ) # old
                 s = [[0,config['KIN']['SIGMA']], [0,50], [0,50], [0,50]] # Here the velocity guesses are all zero, the sigma guess is the stell kins sig guess for stars and 50 for the gas
                 start.append(s)
-                f = [[0,0,0,0],[0,0],[0,0],[0,0]] # Don't fix any of the kinematics because we're fitting them all!
+                # use the same number of moments as kinematics
+                if config['KIN']['MOM'] == 2:
+                    f = [[0,0],[0,0],[0,0],[0,0]] # Fix the stellar kinematics, but not the gas
+                if config['KIN']['MOM'] == 4:
+                    f = [[0,0,0,0],[0,0],[0,0],[0,0]] # Fix the stellar kinematics, but not the gas
+                if config['KIN']['MOM'] == 6:
+                    f = [[0,0,0,0,0,0],[0,0],[0,0],[0,0]] # Fix the stellar kinematics, but not the gas
                 fixed.append(f)
 
     # Define goodpixels !

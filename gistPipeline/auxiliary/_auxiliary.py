@@ -31,6 +31,10 @@ def getLSF(config, module_used):
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["KIN"]["LSF_TEMP"]
         )
+    if module_used == "TWOCOMP_KIN":
+        lsfTempFile = os.path.join(
+            config["GENERAL"]["CONFIG_DIR"], config["TWOCOMP_KIN"]["LSF_TEMP"]
+        )        
     elif module_used == "CONT":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["CONT"]["LSF_TEMP"]
