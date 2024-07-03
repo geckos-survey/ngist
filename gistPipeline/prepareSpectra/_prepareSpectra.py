@@ -19,12 +19,14 @@ def prepareSpectra_Module(config, cube):
         return None
 
     # Check if outputs are already available
+    # Note that _AllSpectra.fits only needs to exists if config["GAS"]["LEVEL"] == 'SPAXEL'
     outputPrefix = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + ""
     )
     if (
         config["GENERAL"]["OW_OUTPUT"] == False
-        and os.path.isfile(outputPrefix + "_AllSpectra.fits") == True
+        and ((os.path.isfile(outputPrefix + "_AllSpectra.fits") == True) or
+             (config["GAS"]["LEVEL"] != "SPAXEL")) 
         and os.path.isfile(outputPrefix + "_BinSpectra.fits") == True
         and os.path.isfile(outputPrefix + "_BinSpectra_linear.fits") == True
     ):

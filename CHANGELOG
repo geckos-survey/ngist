@@ -7,6 +7,12 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V6.1.1	     2024-07-93 FIXED:
+			 Multiple bugs in multiple modules. Please use commit history for all changes.
+			 CHANGED:
+			 Turned saving AllSpectra.fits module back on if GAS is fitted in SPAXEL mode,
+			 but AllSpectra.fits is removed once GAS routine has finished running.			 
+		 
 V6.1.0	     2024-06-24 FIXED:
 			 Multiple bugs in multiple modules. Please use commit history for all changes.
 			 CHANGED:

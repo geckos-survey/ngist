@@ -308,8 +308,14 @@ def run_twocomp_ppxf(
             #constr_kinem = {"A_ineq": A_ineq, "b_ineq": b_ineq}
 
             # kinematic constraints vel0 <  vel1
-            A_ineq = [[-1, 0, 1, 0]]  # -vel0 + vel1 <= 0
-            b_ineq = [0]
+            #A_ineq = [[-1, 0, 1, 0]]  # -vel0 + vel1 <= 0
+            #b_ineq = [0]
+            #constr_kinem = {"A_ineq": A_ineq, "b_ineq": b_ineq}
+
+            # kinematic constraints vel0 <  vel1 & sigma0 > sigma 1
+            A_ineq = [[-1, 0, 1, 0],  # -vel0 + vel1 <= 0
+                      [0, 1, 0, -1]]  #  sigma0 > sigma 1
+            b_ineq = [0, 0]
             constr_kinem = {"A_ineq": A_ineq, "b_ineq": b_ineq}
 
             input_component = np.arange(np.int32(templates_step3.shape[1]))

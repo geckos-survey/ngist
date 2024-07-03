@@ -788,5 +788,4 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
             sigma_final_measured, sigma_err_final, chi2, templates_sigma, bestfit, gas_bestfit, stkin, spectra, error, goodPixels_gas, logLam_galaxy, ubins, npix, extra)
 
     printStatus.updateDone("Emission line fitting done")
-   #print("")
     logging.info("Emission Line Fitting done\n")
