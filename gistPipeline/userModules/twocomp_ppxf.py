@@ -570,8 +570,8 @@ def save_ppxf(
     dataHDU.name = "KIN_DATA"
 
     # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["TWOCOMP_KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["TWOCOMP_KIN"])
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["UMOD"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["UMOD"])
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
 
@@ -614,11 +614,11 @@ def save_ppxf(
     specHDU.name = "SPEC"
 
     # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["TWOCOMP_KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["TWOCOMP_KIN"])
-    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["TWOCOMP_KIN"])
-    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["TWOCOMP_KIN"])
-    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["TWOCOMP_KIN"])
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["UMOD"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["UMOD"])
+    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["UMOD"])
+    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["UMOD"])
+    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["UMOD"])
 
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
@@ -682,11 +682,11 @@ def save_ppxf(
     combHDU.name = "OPTIMAL_TEMPLATE_ALL"
 
     # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["TWOCOMP_KIN"])
-    dataHDU1 = _auxiliary.saveConfigToHeader(dataHDU1, config["TWOCOMP_KIN"])
-    dataHDU2 = _auxiliary.saveConfigToHeader(dataHDU2, config["TWOCOMP_KIN"])    
-    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["TWOCOMP_KIN"])
-    combHDU = _auxiliary.saveConfigToHeader(combHDU, config["TWOCOMP_KIN"])
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["UMOD"])
+    dataHDU1 = _auxiliary.saveConfigToHeader(dataHDU1, config["UMOD"])
+    dataHDU2 = _auxiliary.saveConfigToHeader(dataHDU2, config["UMOD"])    
+    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["UMOD"])
+    combHDU = _auxiliary.saveConfigToHeader(combHDU, config["UMOD"])
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, combHDU])
     HDUList.writeto(outfits, overwrite=True)
 
@@ -721,8 +721,8 @@ def save_ppxf(
     dataHDU.name = "SPECTRAL_MASK"
 
     # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["TWOCOMP_KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["TWOCOMP_KIN"])
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["UMOD"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["UMOD"])
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
 
@@ -758,8 +758,8 @@ def save_ppxf(
     dataHDU.name = 'WEIGHT_DATA'
     
     # Create HDU list and write to file
-    priHDU  = _auxiliary.saveConfigToHeader(priHDU, config['TWOCOMP_KIN'])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config['TWOCOMP_KIN'])
+    priHDU  = _auxiliary.saveConfigToHeader(priHDU, config['UMOD'])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config['UMOD'])
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
     
@@ -784,8 +784,8 @@ def extractStellarKinematics(config):
     logLam = np.array(hdu[2].data.LOGLAM)
     idx_lam = np.where(
         np.logical_and(
-            np.exp(logLam) > config["TWOCOMP_KIN"]["LMIN"],
-            np.exp(logLam) < config["TWOCOMP_KIN"]["LMAX"],
+            np.exp(logLam) > config["UMOD"]["LMIN"],
+            np.exp(logLam) < config["UMOD"]["LMAX"],
         )
     )[0]
     bin_data = bin_data[idx_lam, :]
@@ -797,14 +797,14 @@ def extractStellarKinematics(config):
     velscale = hdu[0].header["VELSCALE"]
 
     # Define bias value
-    if config["TWOCOMP_KIN"]["BIAS"] == 'Auto': # 'Auto' setting: bias=None
+    if config["UMOD"]["BIAS"] == 'Auto': # 'Auto' setting: bias=None
         bias = None
-    elif config["TWOCOMP_KIN"]["BIAS"] != 'Auto':
-        bias = config["TWOCOMP_KIN"]["BIAS"]
+    elif config["UMOD"]["BIAS"] != 'Auto':
+        bias = config["UMOD"]["BIAS"]
 
     # Read LSF information
 
-    LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "TWOCOMP_KIN")  # added input of module
+    LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "UMOD")  # added input of module
 
     # Prepare template library
     velscale = fits.open(
@@ -828,12 +828,12 @@ def extractStellarKinematics(config):
         nAlpha,
     ) = _prepareTemplates.prepareTemplates_Module(
         config,
-        config["TWOCOMP_KIN"]["LMIN"],
-        config["TWOCOMP_KIN"]["LMAX"],
+        config["UMOD"]["LMIN"],
+        config["UMOD"]["LMAX"],
         velscale / velscale_ratio,
         LSF_Data,
         LSF_Templates,
-        'TWOCOMP_KIN',
+        'UMOD',
         sortInGrid=True,
     )
 
@@ -959,7 +959,7 @@ def extractStellarKinematics(config):
     offset = (logLam_template[0] - logLam[0]) * C
     # noise  = np.ones((npix,nbins))
     noise = bin_err  # is actual noise, not variance
-    nsims = config["TWOCOMP_KIN"]["MC_PPXF"]
+    nsims = config["UMOD"]["MC_PPXF"]
 
     # Initial guesses
     start = np.zeros((nbins, 2, 2))
@@ -999,7 +999,7 @@ def extractStellarKinematics(config):
         logging.info("Using V and SIGMA from the MasterConfig file as initial guesses")
         #ignore guess values for now
         #start[:, 0] = 0.0
-        #start[:, 1] = config["TWOCOMP_KIN"]["SIGMA"]
+        #start[:, 1] = config["UMOD"]["SIGMA"]
         start[:,0,0] = 0
         start[:,1,0] = 0
         start[:,0,1] = 50
@@ -1012,7 +1012,7 @@ def extractStellarKinematics(config):
 
     # Define goodpixels
     goodPixels_ppxf = _auxiliary.spectralMasking(
-        config, config["TWOCOMP_KIN"]["SPEC_MASK"], logLam
+        config, config["UMOD"]["SPEC_MASK"], logLam
     )
 
     # Array to store results of ppxf
@@ -1051,11 +1051,11 @@ def extractStellarKinematics(config):
         start_def[0, :],
         bias,
         goodPixels_ppxf,
-        config["TWOCOMP_KIN"]["MOM"],
-        config["TWOCOMP_KIN"]["ADEG"],
-        config["TWOCOMP_KIN"]["MDEG"],
-        config["TWOCOMP_KIN"]["REDDENING"],
-        config["TWOCOMP_KIN"]["DOCLEAN"],
+        config["UMOD"]["MOM"],
+        config["UMOD"]["ADEG"],
+        config["UMOD"]["MDEG"],
+        config["UMOD"]["REDDENING"],
+        config["UMOD"]["DOCLEAN"],
         logLam,
         offset,
         velscale_ratio,
@@ -1100,11 +1100,11 @@ def extractStellarKinematics(config):
                     start[i, :],
                     bias,
                     goodPixels_ppxf,
-                    config["TWOCOMP_KIN"]["MOM"],
-                    config["TWOCOMP_KIN"]["ADEG"],
-                    config["TWOCOMP_KIN"]["MDEG"],
-                    config["TWOCOMP_KIN"]["REDDENING"],
-                    config["TWOCOMP_KIN"]["DOCLEAN"],
+                    config["UMOD"]["MOM"],
+                    config["UMOD"]["ADEG"],
+                    config["UMOD"]["MDEG"],
+                    config["UMOD"]["REDDENING"],
+                    config["UMOD"]["DOCLEAN"],
                     logLam,
                     offset,
                     velscale_ratio,
@@ -1131,16 +1131,16 @@ def extractStellarKinematics(config):
         index = np.zeros(nbins)
         for i in range(0, nbins):
             index[i] = ppxf_tmp[i][0]
-            ppxf_result[i, 0, : config["TWOCOMP_KIN"]["MOM"]] = ppxf_tmp[i][1][0]
-            ppxf_result[i, 1, : config["TWOCOMP_KIN"]["MOM"]] = ppxf_tmp[i][1][1]            
+            ppxf_result[i, 0, : config["UMOD"]["MOM"]] = ppxf_tmp[i][1][0]
+            ppxf_result[i, 1, : config["UMOD"]["MOM"]] = ppxf_tmp[i][1][1]            
             ppxf_reddening[i] = ppxf_tmp[i][2]
             ppxf_bestfit[i, :] = ppxf_tmp[i][3]
             optimal_template1[i, :] = ppxf_tmp[i][4]
             optimal_template2[i, :] = ppxf_tmp[i][5]            
-            mc_results[i,0, : config["TWOCOMP_KIN"]["MOM"]] = ppxf_tmp[i][6][0]
-            mc_results[i,1, : config["TWOCOMP_KIN"]["MOM"]] = ppxf_tmp[i][6][1]
-            formal_error[i,0, : config["TWOCOMP_KIN"]["MOM"]] = ppxf_tmp[i][7][0]
-            formal_error[i,1, : config["TWOCOMP_KIN"]["MOM"]] = ppxf_tmp[i][7][1]            
+            mc_results[i,0, : config["UMOD"]["MOM"]] = ppxf_tmp[i][6][0]
+            mc_results[i,1, : config["UMOD"]["MOM"]] = ppxf_tmp[i][6][1]
+            formal_error[i,0, : config["UMOD"]["MOM"]] = ppxf_tmp[i][7][0]
+            formal_error[i,1, : config["UMOD"]["MOM"]] = ppxf_tmp[i][7][1]            
             spectral_mask[i, :] = ppxf_tmp[i][8]
             snr_postfit[i] = ppxf_tmp[i][9]
             tweights[i,:] = ppxf_tmp[i][10]            
@@ -1184,11 +1184,11 @@ def extractStellarKinematics(config):
                 start[i, :],
                 bias,
                 goodPixels_ppxf,
-                config["TWOCOMP_KIN"]["MOM"],
-                config["TWOCOMP_KIN"]["ADEG"],
-                config["TWOCOMP_KIN"]["MDEG"],
-                config["TWOCOMP_KIN"]["REDDENING"],
-                config["TWOCOMP_KIN"]["DOCLEAN"],
+                config["UMOD"]["MOM"],
+                config["UMOD"]["ADEG"],
+                config["UMOD"]["MDEG"],
+                config["UMOD"]["REDDENING"],
+                config["UMOD"]["DOCLEAN"],
                 logLam,
                 offset,
                 velscale_ratio,
@@ -1199,12 +1199,12 @@ def extractStellarKinematics(config):
                 optimal_template_comb,
             )
 
-            ppxf_result[i,0,:config['TWOCOMP_KIN']['MOM']] = tmp_result[0]
-            ppxf_result[i,1,:config['TWOCOMP_KIN']['MOM']] = tmp_result[1]
-            mc_results[i,0,:config['TWOCOMP_KIN']['MOM']] = tmp_mc_result #needs to be done properly
-            mc_results[i,1,:config['TWOCOMP_KIN']['MOM']] = tmp_mc_result #needs to be done properly
-            formal_error[i,0,:config['TWOCOMP_KIN']['MOM']] = tmp_formal_error[0]
-            formal_error[i,1,:config['TWOCOMP_KIN']['MOM']] = tmp_formal_error[1]
+            ppxf_result[i,0,:config['UMOD']['MOM']] = tmp_result[0]
+            ppxf_result[i,1,:config['UMOD']['MOM']] = tmp_result[1]
+            mc_results[i,0,:config['UMOD']['MOM']] = tmp_mc_result #needs to be done properly
+            mc_results[i,1,:config['UMOD']['MOM']] = tmp_mc_result #needs to be done properly
+            formal_error[i,0,:config['UMOD']['MOM']] = tmp_formal_error[0]
+            formal_error[i,1,:config['UMOD']['MOM']] = tmp_formal_error[1]
 
         printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
 

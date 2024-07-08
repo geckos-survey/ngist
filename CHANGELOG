@@ -7,6 +7,12 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V7.0.0	     2024-07-93 CHANGED: New user module added called UMOD. This currently only 
+			 accepts a twocomp_ppxf fitting function.
+			 FIXED:
+			 Minor fixes and code cleanup.
+
+
 V6.1.1	     2024-07-93 FIXED:
 			 Multiple bugs in multiple modules. Please use commit history for all changes.
 			 CHANGED:
