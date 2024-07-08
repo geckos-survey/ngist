@@ -128,3 +128,6 @@ LS :
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
   
+# User module kinematics module
+KIN :
+  METHOD : False

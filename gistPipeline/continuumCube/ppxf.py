@@ -150,7 +150,7 @@ def run_ppxf(
 
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
-            print("Running pPXF for the first time")
+            printStatus.running("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,

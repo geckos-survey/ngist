@@ -13,15 +13,8 @@ def stellarKinematics_Module(config):
     This function calls the stellarKinematics routine specified by the user.
     """
     printStatus.module("stellarKinematics module")
-    
-    # determine whether this is KIN or TWOCOMP_KIN
-    
-    if "KIN" in config:
-        kin_config = 'KIN'
-    if "TWOCOMP_KIN" in config:
-        kin_config = 'TWOCOMP_KIN'
-
-    config_use = config[kin_config]["METHOD"]
+        
+    config_use = config['KIN']["METHOD"]
 
     # Check if module is turned off in MasterConfig
     if config_use == False:
@@ -34,9 +27,9 @@ def stellarKinematics_Module(config):
     outPrefix = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])        
     if (
         config["GENERAL"]["OW_OUTPUT"] == False
-        and os.path.isfile(outPrefix + "_" + kin_config + ".fits") == True
-        and os.path.isfile(outPrefix + "_" + kin_config + "-bestfit.fits") == True
-        and os.path.isfile(outPrefix + "_" + kin_config + "-optimalTemplates.fits") == True
+        and os.path.isfile(outPrefix + "_" + 'KIN' + ".fits") == True
+        and os.path.isfile(outPrefix + "_" + 'KIN' + "-bestfit.fits") == True
+        and os.path.isfile(outPrefix + "_" + 'KIN' + "-optimalTemplates.fits") == True
     ):
         logging.info(
             "Results of the module are already in the output directory. Module is skipped."
@@ -73,7 +66,7 @@ def stellarKinematics_Module(config):
     # Execute the chosen stellarKinematics routine
     try:
         module.extractStellarKinematics(config)
-        _writeFITS.generateFITS(config, kin_config)
+        _writeFITS.generateFITS(config, 'KIN')
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = (

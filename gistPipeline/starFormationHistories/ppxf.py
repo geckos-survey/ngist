@@ -732,7 +732,6 @@ def extractStarFormationHistories(config):
     nbins = galaxy.shape[0]
     npix = galaxy.shape[1]
     ubins = np.arange(0, nbins)
-    noise = np.full(npix, config['SFH']['NOISE'])
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
     #bin_err = np.array( hdu2[1].data.ESPEC.T )
     bin_err = np.array( hdu[1].data.ESPEC.T )
@@ -741,6 +740,7 @@ def extractStarFormationHistories(config):
     bin_err = bin_err[idx_lam,:]
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0])*C
+    #noise = np.full(npix, config['SFH']['NOISE'])
     #noise = np.ones((npix,nbins))
     noise = bin_err # is actual noise, not variance
     nsims = config['SFH']['MC_PPXF']

@@ -27,7 +27,9 @@ def generateFITS(config, module):
     if module == "SPATIAL_BINNING":
         try:
             printStatus.running("Producing table binned maps in FITS format")
-            save_maps_fits.savefitsmaps("SPATIAL_BINNING", config["GENERAL"]["OUTPUT"])
+            save_maps_fits.savefitsmaps("SPATIAL_BINNING", config["SPATIAL_BINNING"]["METHOD"],
+                                        config["GENERAL"]["OUTPUT"]
+                                        )
             printStatus.updateDone("Producing table binned maps in FITS format")
             logging.info("Produced table binned maps in FITS format")
         except Exception as e:
@@ -39,26 +41,15 @@ def generateFITS(config, module):
     if module == "KIN":
         try:
             printStatus.running("Producing stellar kinematics maps in FITS format")
-            save_maps_fits.savefitsmaps("KIN", config["GENERAL"]["OUTPUT"])
+            save_maps_fits.savefitsmaps("KIN", config["KIN"]["METHOD"],
+                                        config["GENERAL"]["OUTPUT"]
+                                        )
             printStatus.updateDone("Producing stellar kinematics maps in FITS format")
             logging.info("Produced stellar kinematics maps in FITS format")
         except Exception as e:
             printStatus.updateFailed("Producing stellar kinematics maps in FITS format")
             logging.error(e, exc_info=True)
             logging.error("Failed to produce stellar kinematics maps.")
-
-    # - - - - - STELLAR KINEMATICS TWO COMPONENT MODULE - - - - -
-    if module == "TWOCOMP_KIN":
-        try:
-            printStatus.running("Producing stellar kinematics two component maps in FITS format")
-            save_maps_fits.savefitsmaps("TWOCOMP_KIN", config["GENERAL"]["OUTPUT"])
-            printStatus.updateDone("Producing stellar kinematics two component maps in FITS format")
-            logging.info("Produced stellar kinematics two component maps in FITS format")
-        except Exception as e:
-            printStatus.updateFailed("Producing stellar kinematics two component maps in FITS format")
-            logging.error(e, exc_info=True)
-            logging.error("Failed to produce stellar kinematics two component maps.")
-
 
     # - - - - - CONTINUUM CUBE MODULE - - - - -
     if module == "CONT":
@@ -134,7 +125,7 @@ def generateFITS(config, module):
     if module == "SFH":
         try:
             printStatus.running("Producing SFH maps in FITS format")
-            save_maps_fits.savefitsmaps("SFH", config["GENERAL"]["OUTPUT"])
+            save_maps_fits.savefitsmaps("SFH", config["SFH"]["METHOD"], config["GENERAL"]["OUTPUT"])
             printStatus.updateDone("Producing SFH maps in FITS format")
             logging.info("Produced SFH maps in FITS format")
         except Exception as e:
@@ -158,5 +149,20 @@ def generateFITS(config, module):
             printStatus.updateFailed("Producing line strength maps in FITS format")
             logging.error(e, exc_info=True)
             logging.error("Failed to produce line strength maps.")
+
+    # - - - - - USER MODULE - - - - -
+    if module == "UMOD":
+        try:
+            printStatus.running("Producing User Module maps in FITS format")
+            save_maps_fits.savefitsmaps("UMOD",  config["UMOD"]["METHOD"],
+                                        config["GENERAL"]["OUTPUT"]
+                                       )
+            printStatus.updateDone("Producing User Module maps in FITS format")
+            logging.info("Produced User Module maps in FITS format")
+        except Exception as e:
+            printStatus.updateFailed("Producing User Module maps in FITS format")
+            logging.error(e, exc_info=True)
+            logging.error("Failed to produce User Module component maps.")
+
 
     return None

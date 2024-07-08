@@ -35,7 +35,8 @@ def write_fits_cube(hdulist, filename, overwrite=False,
     except TypeError:
         fits.HDUList(hdulist).writeto(filename, clobber=overwrite)
 
-def savefitsmaps(module_id, outdir=""):
+def savefitsmaps(module_id, method_id, outdir=""):
+    
     """
     savefitsmaps _summary_
 
@@ -104,15 +105,6 @@ def savefitsmaps(module_id, outdir=""):
         for i, name in enumerate(names):
             result[:, i] = np.array(hdu[1].data[name])
 
-    elif module_id == "TWOCOMP_KIN":
-        # read results
-        hdu = fits.open(os.path.join(outdir, rootname) + "_twocomp_kin.fits")
-        names = list(hdu[1].data.dtype.names)
-
-        result = np.zeros((len(ubins), len(names)))
-        for i, name in enumerate(names):
-            result[:, i] = np.array(hdu[1].data[name])
-
     elif module_id == "SFH":
         # Read results
         sfh_hdu = fits.open(os.path.join(outdir, rootname) + "_sfh.fits")
@@ -121,8 +113,23 @@ def savefitsmaps(module_id, outdir=""):
         result = np.zeros((len(ubins), len(names)))
         for i, name in enumerate(names):
             result[:, i] = np.array(sfh_hdu[1].data[name])
+    
+    elif module_id == "UMOD":
+        if method_id == "twocomp_ppxf":
+            # read results
+            print(outdir, rootname)
+            hdu = fits.open(os.path.join(outdir, rootname) + "_twocomp_kin.fits")
+            names = list(hdu[1].data.dtype.names)
 
-    if (module_id == 'KIN') | (module_id == "TWOCOMP_KIN") | (module_id == "SFH"):
+            result = np.zeros((len(ubins), len(names)))
+            for i, name in enumerate(names):
+                result[:, i] = np.array(hdu[1].data[name])
+        else:
+            printStatus.warning(
+            "UMOD Method not recognised for saving maps"
+            )
+
+    if (module_id == 'KIN') | (module_id == "UMOD") | (module_id == "SFH"):
         # Convert results to long version
         result_long = np.zeros((len(binNum_long), result.shape[1]))
         result_long[:, :] = np.nan

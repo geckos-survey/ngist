@@ -30,10 +30,6 @@ def getLSF(config, module_used):
     if module_used == "KIN":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["KIN"]["LSF_TEMP"]
-        )
-    if module_used == "TWOCOMP_KIN":
-        lsfTempFile = os.path.join(
-            config["GENERAL"]["CONFIG_DIR"], config["TWOCOMP_KIN"]["LSF_TEMP"]
         )        
     elif module_used == "CONT":
         lsfTempFile = os.path.join(
@@ -50,6 +46,10 @@ def getLSF(config, module_used):
     elif module_used == "LS":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["LS"]["LSF_TEMP"]
+        )
+    if module_used == "UMOD":
+        lsfTempFile = os.path.join(
+            config["GENERAL"]["CONFIG_DIR"], config["UMOD"]["LSF_TEMP"]
         )
     LSF = np.genfromtxt(lsfDataFile, comments="#")
     LSF[:, 0] = LSF[:, 0] / (1 + config["GENERAL"]["REDSHIFT"])
