@@ -129,5 +129,5 @@ LS :
   NORM_TEMP : 'LIGHT'
   
 # User module kinematics module
-KIN :
+UMOD :
   METHOD : False
