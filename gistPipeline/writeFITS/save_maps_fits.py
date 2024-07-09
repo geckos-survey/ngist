@@ -191,10 +191,21 @@ def savefitsmaps(module_id, method_id, outdir="", tag=None):
         image_hdu = fits.ImageHDU(image, header=newwcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
-    hdu1.writeto(
-        os.path.join(outdir, rootname) + "_" + module_id + "_maps.fits", overwrite=True
-    )
-    hdu1.close()
+    if tag == None:
+        hdu1.writeto(
+            os.path.join(outdir, rootname) + "_" + module_id + "_maps.fits", overwrite=True
+        )
+        hdu1.close()
+    elif tag == 'YOUNG':
+        hdu1.writeto(
+            os.path.join(outdir, rootname) + "_" + module_id + "_young_maps.fits", overwrite=True
+        )
+        hdu1.close()
+    elif tag == 'OLD':
+        hdu1.writeto(
+            os.path.join(outdir, rootname) + "_" + module_id + "_old_maps.fits", overwrite=True
+        )
+        hdu1.close()
 
 
 def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4):
