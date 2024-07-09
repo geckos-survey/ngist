@@ -191,7 +191,7 @@ def savefitsmaps(module_id, method_id, outdir="", tag=None):
         image_hdu = fits.ImageHDU(image, header=newwcshdr, name=names[iterate])
         # Append fits image
         hdu1.append(image_hdu)
-    if tag == None:
+    if tag == 'ALL':
         hdu1.writeto(
             os.path.join(outdir, rootname) + "_" + module_id + "_maps.fits", overwrite=True
         )

@@ -130,7 +130,7 @@ def generateFITS(config, module):
             logging.info("Produced SFH maps in FITS format")
 
             printStatus.running("Producing YOUNG SFH maps in FITS format")
-            save_maps_fits.savefitsmaps("SFH", config["SFH"]["METHOD"], config["GENERAL"]["OUTPUT"], tag = 'OLD')
+            save_maps_fits.savefitsmaps("SFH", config["SFH"]["METHOD"], config["GENERAL"]["OUTPUT"], tag = 'YOUNG')
             printStatus.updateDone("Producing YOUNG SFH maps in FITS format")
             logging.info("Produced YOUNG SFH maps in FITS format")
 
