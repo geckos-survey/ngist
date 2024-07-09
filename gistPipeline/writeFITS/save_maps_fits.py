@@ -18,7 +18,7 @@ from gistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
                                           strip_wcs_from_header)
 
 warnings.filterwarnings("ignore")
-
+#
 def write_fits_cube(hdulist, filename, overwrite=False,
                     include_origin_notes=True):
     """
