@@ -436,17 +436,32 @@ def run_ppxf(
 
 
 
-def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
+def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins, tag):
     """
     Calculate the mean age, metallicity and alpha enhancement in each bin.
     """
     mean = np.zeros( (nbins,3) ); mean[:,:] = np.nan
-
-    for i in range( nbins ):
-        mean[i,0] = np.sum(w_row[i] * ageGrid.ravel())   / np.sum(w_row[i])
-        mean[i,1] = np.sum(w_row[i] * metalGrid.ravel()) / np.sum(w_row[i])
-        mean[i,2] = np.sum(w_row[i] * alphaGrid.ravel()) / np.sum(w_row[i])
-
+    if tag == 'all':
+        for i in range( nbins ):
+            mean[i,0] = np.sum(w_row[i] * ageGrid.ravel())   / np.sum(w_row[i])
+            mean[i,1] = np.sum(w_row[i] * metalGrid.ravel()) / np.sum(w_row[i])
+            mean[i,2] = np.sum(w_row[i] * alphaGrid.ravel()) / np.sum(w_row[i])
+    elif tag =='young':
+        for i in range(nbins):
+            a = np.array(w_row[i])
+            a[216::] = 0 # I've tried to set all weights above the age limit to zero here, so they shouldn't contribute to the metallicity.
+            # Here, in MILES_safe_github, logAge[216] = 0.3 = 2 Gyr. I've called everything younger than this young and everything greater old.
+            mean[i,0] = np.sum(a * ageGrid.ravel())   / np.sum(a) # This is the mean age, it will be somewhat meaningless.
+            mean[i,1] = np.sum(a * metalGrid.ravel()) / np.sum(a) # mean met. This should be the mean met of young stars only. 
+            mean[i,2] = np.sum(a * alphaGrid.ravel()) / np.sum(a) # this is just alpha. Not in use. 
+    elif tag =='old':
+        for i in range(nbins):
+            a = np.array(w_row[i])
+            a[0:216] = 0 # I've tried to set all weights below the age limit to zero here, so they shouldn't contribute to the metallicity.
+            # Here, in MILES_safe_github, logAge[216] = 0.3 = 2 Gyr. I've called everything younger than this young and everything greater old.
+            mean[i,0] = np.sum(a * ageGrid.ravel())   / np.sum(a) # This is the mean age, it will be somewhat meaningless.
+            mean[i,1] = np.sum(a * metalGrid.ravel()) / np.sum(a) # mean met. This should be the mean met of old stars only. 
+            mean[i,2] = np.sum(a * alphaGrid.ravel()) / np.sum(a) # this is just alpha. Not in use.             
     return(mean)
 
 
@@ -474,16 +489,32 @@ def save_sfh(
     optimal_template_comb,
     snr_postfit,
     EBV,
+    tag,
 ):
     """ Save all results to disk. """
 
     # ========================
     # SAVE KINEMATICS
-    outfits_sfh = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_sfh.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh.fits")
+    if tag =='ALL':
+        outfits_sfh = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh.fits"
+        )
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh.fits")
+
+    elif tag =='YOUNG':
+        outfits_sfh = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh_young.fits"
+        )
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_young.fits")  
+
+    elif tag =='OLD':
+        outfits_sfh = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh_old.fits"
+        )
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_old.fits")   
 
     # Primary HDU
     priHDU = fits.PrimaryHDU()
@@ -549,100 +580,102 @@ def save_sfh(
 
     # ========================
     # SAVE WEIGHTS AND GRID
-    outfits_sfh = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_sfh-weights.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights.fits")
+    if tag =='ALL':
+        outfits_sfh = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh-weights.fits"
+        )
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights.fits")
 
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
+        # Primary HDU
+        priHDU = fits.PrimaryHDU()
 
-    # Table HDU with weights
-    cols = []
-    cols.append(
-        fits.Column(name="WEIGHTS", format=str(w_row.shape[1]) + "D", array=w_row)
-    )
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "WEIGHTS"
+        # Table HDU with weights
+        cols = []
+        cols.append(
+            fits.Column(name="WEIGHTS", format=str(w_row.shape[1]) + "D", array=w_row)
+        )
+        dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        dataHDU.name = "WEIGHTS"
 
-    logAge_row = np.reshape(logAge_grid, ncomb)
-    metal_row = np.reshape(metal_grid, ncomb)
-    alpha_row = np.reshape(alpha_grid, ncomb)
+        logAge_row = np.reshape(logAge_grid, ncomb)
+        metal_row = np.reshape(metal_grid, ncomb)
+        alpha_row = np.reshape(alpha_grid, ncomb)
 
-    # Table HDU with grids
-    cols = []
-    cols.append(fits.Column(name="LOGAGE", format="D", array=logAge_row))
-    cols.append(fits.Column(name="METAL", format="D", array=metal_row))
-    cols.append(fits.Column(name="ALPHA", format="D", array=alpha_row))
-    gridHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    gridHDU.name = "GRID"
+        # Table HDU with grids
+        cols = []
+        cols.append(fits.Column(name="LOGAGE", format="D", array=logAge_row))
+        cols.append(fits.Column(name="METAL", format="D", array=metal_row))
+        cols.append(fits.Column(name="ALPHA", format="D", array=alpha_row))
+        gridHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        gridHDU.name = "GRID"
 
-    # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
-    gridHDU = _auxiliary.saveConfigToHeader(gridHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU, gridHDU])
-    HDUList.writeto(outfits_sfh, overwrite=True)
+        # Create HDU list and write to file
+        priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
+        dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
+        gridHDU = _auxiliary.saveConfigToHeader(gridHDU, config["SFH"])
+        HDUList = fits.HDUList([priHDU, dataHDU, gridHDU])
+        HDUList.writeto(outfits_sfh, overwrite=True)
 
-    fits.setval(outfits_sfh, "NAGES", value=nAges)
-    fits.setval(outfits_sfh, "NMETAL", value=nMetal)
-    fits.setval(outfits_sfh, "NALPHA", value=nAlpha)
+        fits.setval(outfits_sfh, "NAGES", value=nAges)
+        fits.setval(outfits_sfh, "NMETAL", value=nMetal)
+        fits.setval(outfits_sfh, "NALPHA", value=nAlpha)
 
-    printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights.fits"
-    )
-    logging.info("Wrote: " + outfits_sfh)
+        printStatus.updateDone(
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights.fits"
+        )
+        logging.info("Wrote: " + outfits_sfh)
 
-    # ========================
-    # SAVE BESTFIT
-    outfits_sfh = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_sfh-bestfit.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-bestfit.fits")
+        # ========================
+        # SAVE BESTFIT
+        outfits_sfh = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh-bestfit.fits"
+        )
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-bestfit.fits")
 
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
+        # Primary HDU
+        priHDU = fits.PrimaryHDU()
 
-    # Table HDU with SFH bestfit
-    cols = []
-    cols.append( fits.Column(name='BESTFIT', format=str(npix)+'D', array=ppxf_bestfit ))
+        # Table HDU with SFH bestfit
+        cols = []
+        cols.append( fits.Column(name='BESTFIT', format=str(npix)+'D', array=ppxf_bestfit ))
 
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "BESTFIT"
+        dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        dataHDU.name = "BESTFIT"
 
-    # Table HDU with SFH logLam
-    cols = []
+        # Table HDU with SFH logLam
+        cols = []
 
-    cols.append( fits.Column(name='LOGLAM', format='D', array=logLam ))
+        cols.append( fits.Column(name='LOGLAM', format='D', array=logLam ))
 
-    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    logLamHDU.name = "LOGLAM"
+        logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        logLamHDU.name = "LOGLAM"
 
-    # Table HDU with SFH goodpixels
-    cols = []
-    cols.append(fits.Column(name="GOODPIX", format="J", array=goodPixels))
-    goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    goodpixHDU.name = "GOODPIX"
+        # Table HDU with SFH goodpixels
+        cols = []
+        cols.append(fits.Column(name="GOODPIX", format="J", array=goodPixels))
+        goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+        goodpixHDU.name = "GOODPIX"
 
-    # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
-    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["SFH"])
-    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU])
-    HDUList.writeto(outfits_sfh, overwrite=True)
+        # Create HDU list and write to file
+        priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
+        dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
+        logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["SFH"])
+        goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["SFH"])
+        HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU])
+        HDUList.writeto(outfits_sfh, overwrite=True)
 
-    fits.setval(outfits_sfh, "VELSCALE", value=velscale)
-    fits.setval(outfits_sfh, "CRPIX1", value=1.0)
-    fits.setval(outfits_sfh, "CRVAL1", value=logLam1[0])
-    fits.setval(outfits_sfh, "CDELT1", value=logLam1[1] - logLam1[0])
+        fits.setval(outfits_sfh, "VELSCALE", value=velscale)
+        fits.setval(outfits_sfh, "CRPIX1", value=1.0)
+        fits.setval(outfits_sfh, "CRVAL1", value=logLam1[0])
+        fits.setval(outfits_sfh, "CDELT1", value=logLam1[1] - logLam1[0])
 
-    printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-bestfit.fits"
-    )
-    logging.info("Wrote: " + outfits_sfh)
+        printStatus.updateDone(
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-bestfit.fits"
+        )
+        logging.info("Wrote: " + outfits_sfh)
+
 
 
 def extractStarFormationHistories(config):
@@ -987,11 +1020,14 @@ def extractStarFormationHistories(config):
     print("")
 
     # Calculate mean age, metallicity and alpha
+    print('Determining the mean met of ALL, YOUNG and OLD stellar populations')
     mean_results = mean_agemetalalpha(
-        w_row, 10**logAge_grid, metal_grid, alpha_grid, nbins
+        w_row, 10**logAge_grid, metal_grid, alpha_grid, nbins, tag='all'
     )
+    mean_results_young = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, nbins, tag='young')
 
-    # Save to file
+    mean_results_old = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, nbins, tag='old')
+    # Save to file 
 
     save_sfh(
         mean_results,
@@ -1017,7 +1053,62 @@ def extractStarFormationHistories(config):
         optimal_template_comb,
         snr_postfit,
         EBV,
+        tag = 'ALL',
     )
 
+    # Now save the young SPs to file 
+    save_sfh(
+        mean_results_young,
+        ppxf_result,
+        w_row,
+        mc_results,
+        formal_error,
+        logAge_grid,
+        metal_grid,
+        alpha_grid,
+        ppxf_bestfit,
+        logLam,
+        goodPixels_sfh,
+        velscale,
+        logLam,
+        ncomb,
+        nAges,
+        nMetal,
+        nAlpha,
+        npix,
+        config,
+        spectral_mask,
+        optimal_template_comb,
+        snr_postfit,
+        EBV,
+        tag = 'YOUNG',
+    )
+    # Now save the old SPs to file
+    save_sfh(
+        mean_results_old,
+        ppxf_result,
+        w_row,
+        mc_results,
+        formal_error,
+        logAge_grid,
+        metal_grid,
+        alpha_grid,
+        ppxf_bestfit,
+        logLam,
+        goodPixels_sfh,
+        velscale,
+        logLam,
+        ncomb,
+        nAges,
+        nMetal,
+        nAlpha,
+        npix,
+        config,
+        spectral_mask,
+        optimal_template_comb,
+        snr_postfit,
+        EBV,
+        tag = 'OLD',
+    )
     # Return
     return None

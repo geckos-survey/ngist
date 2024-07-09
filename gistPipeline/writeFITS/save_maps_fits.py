@@ -35,7 +35,7 @@ def write_fits_cube(hdulist, filename, overwrite=False,
     except TypeError:
         fits.HDUList(hdulist).writeto(filename, clobber=overwrite)
 
-def savefitsmaps(module_id, method_id, outdir=""):
+def savefitsmaps(module_id, method_id, outdir="", tag=None):
     
     """
     savefitsmaps _summary_
@@ -105,14 +105,36 @@ def savefitsmaps(module_id, method_id, outdir=""):
         for i, name in enumerate(names):
             result[:, i] = np.array(hdu[1].data[name])
 
-    elif module_id == "SFH":
+    elif module_id == "SFH" and tag == "ALL":
         # Read results
+        print('all')
         sfh_hdu = fits.open(os.path.join(outdir, rootname) + "_sfh.fits")
         names = list(sfh_hdu[1].data.dtype.names)
 
         result = np.zeros((len(ubins), len(names)))
         for i, name in enumerate(names):
             result[:, i] = np.array(sfh_hdu[1].data[name])
+
+    elif module_id == "SFH" and tag == "YOUNG":
+        # Read results
+        print('young')
+        sfh_hdu = fits.open(os.path.join(outdir, rootname) + "_sfh_young.fits")
+        names = list(sfh_hdu[1].data.dtype.names)
+
+        result = np.zeros((len(ubins), len(names)))
+        for i, name in enumerate(names):
+            result[:, i] = np.array(sfh_hdu[1].data[name])
+
+    elif module_id == "SFH" and tag == "OLD":
+        print('old')
+        # Read results
+        sfh_hdu = fits.open(os.path.join(outdir, rootname) + "_sfh_old.fits")
+        names = list(sfh_hdu[1].data.dtype.names)
+
+        result = np.zeros((len(ubins), len(names)))
+        for i, name in enumerate(names):
+            result[:, i] = np.array(sfh_hdu[1].data[name])
+    
     
     elif module_id == "UMOD":
         if method_id == "twocomp_ppxf":

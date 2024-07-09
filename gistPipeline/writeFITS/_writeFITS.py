@@ -125,9 +125,20 @@ def generateFITS(config, module):
     if module == "SFH":
         try:
             printStatus.running("Producing SFH maps in FITS format")
-            save_maps_fits.savefitsmaps("SFH", config["SFH"]["METHOD"], config["GENERAL"]["OUTPUT"])
+            save_maps_fits.savefitsmaps("SFH", config["SFH"]["METHOD"], config["GENERAL"]["OUTPUT"], tag = 'ALL')
             printStatus.updateDone("Producing SFH maps in FITS format")
             logging.info("Produced SFH maps in FITS format")
+
+            printStatus.running("Producing YOUNG SFH maps in FITS format")
+            save_maps_fits.savefitsmaps("SFH", config["SFH"]["METHOD"], config["GENERAL"]["OUTPUT"], tag = 'OLD')
+            printStatus.updateDone("Producing YOUNG SFH maps in FITS format")
+            logging.info("Produced YOUNG SFH maps in FITS format")
+
+            printStatus.running("Producing OLD SFH maps in FITS format")
+            save_maps_fits.savefitsmaps("SFH", config["SFH"]["METHOD"], config["GENERAL"]["OUTPUT"], tag = 'OLD')
+            printStatus.updateDone("Producing OLD SFH maps in FITS format")
+            logging.info("Produced OLD SFH maps in FITS format")
+
         except Exception as e:
             printStatus.updateFailed("Producing SFH maps in FITS format")
             logging.error(e, exc_info=True)
