@@ -7,6 +7,11 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V7.1.0	     2024-07-93 ADDED: Added a new option for a SNR depended bias setting similar 
+			 to what was adopted for SAMI in van de Sande et al. 2017-ApJ
+			 The new option can be called as "muse" which uses the SNR from the best-fit 
+			 solution or "muse_snr_prefit" that uses the snr from the pre-scaled variance
+			 
 V7.0.0	     2024-07-93 CHANGED: New user module added called UMOD. This currently only 
 			 accepts a twocomp_ppxf fitting function.
 			 FIXED:
