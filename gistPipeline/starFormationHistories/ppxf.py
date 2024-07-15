@@ -1067,7 +1067,7 @@ def extractStarFormationHistories(config):
             ) = run_ppxf(
                 templates,
                 bin_data[:,i],
-                noise[:,i]
+                noise[:,i],
                 velscale,
                 start[i,:],
                 goodPixels_sfh,
