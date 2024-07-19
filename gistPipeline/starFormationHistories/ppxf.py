@@ -390,7 +390,7 @@ def run_ppxf(
 
             for o in range(0, nsims):
                 # Add noise to input spectrum "log_bin_data":
-                #   - MC iterated spectrum is created by a gaussian distribution with the mean of galaxy spectrum "log_bin_data" and sigma of "noise_new"
+                #   - MC iterated spectrum is created by a gaussian random sampling with the mean of galaxy spectrum "log_bin_data" and sigma of "noise_new"
                 #   - no regularization is applied for this step
                 log_bin_data_iter = np.random.normal(loc=log_bin_data, scale=noise_new)
                 mc_iter = ppxf(
