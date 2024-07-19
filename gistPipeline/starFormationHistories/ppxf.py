@@ -383,15 +383,14 @@ def run_ppxf(
         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum() # Take from 1D list to nD array (nAges, nMet, nAlpha)
         w_row   = np.reshape(weights, ncomb)
 
-        # Do MC-Simulations - this is not currently implemented. Add back in later.
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
         if nsims > 0:
 
             w_row_MC               = np.zeros((nsims, w_row.shape[0]))
 
             for o in range(0, nsims):
-                # Add noise to bestfit:
-                #   - Draw random numbers from normal distribution with mean of galaxy spectrum and sigma of noise_new
+                # Add noise to input spectrum "log_bin_data":
+                #   - MC iterated spectrum is created by a gaussian distribution with the mean of galaxy spectrum "log_bin_data" and sigma of "noise_new"
                 #   - no regularization is applied for this step
                 log_bin_data_iter = np.random.normal(loc=log_bin_data, scale=noise_new)
                 mc_iter = ppxf(
@@ -413,7 +412,7 @@ def run_ppxf(
                 weights_mc_iter   = mc_iter.weights.reshape(templates.shape[1:])/mc_iter.weights.sum()
                 w_row_MC[o, :]    = np.reshape(weights_mc_iter, ncomb)
 
-            # Calculate median and error of weights and weighted properties from MC realizations
+            # Calculate mean and error of weights and weighted properties from MC realizations
             w_row_MC_mean         = np.nanmean(w_row_MC, axis=0)
             w_row_MC_err          = (np.nanpercentile(w_row_MC, q=84, axis=0) - np.nanpercentile(w_row_MC, q=16, axis=0))/2
             mean_results_MC_array = mean_agemetalalpha(w_row_MC, 10**logAge_grid, metal_grid, alpha_grid, nsims)
@@ -503,14 +502,11 @@ def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
 
 def save_sfh(
     mean_result,
-    mean_results_MC_iter,
     mean_result_MC_mean,
     mean_result_MC_err,
     ppxf_result,
     w_row,
     w_row_MC_iter,
-    w_row_MC_mean,
-    w_row_MC_err,
     formal_error,
     logAge_grid,
     metal_grid,
@@ -556,9 +552,6 @@ def save_sfh(
         cols.append(fits.Column(name='ERR_AGE_MC',  format='D', array=mean_result_MC_err[:,0]))
         cols.append(fits.Column(name='ERR_METAL_MC',format='D', array=mean_result_MC_err[:,1]))
         cols.append(fits.Column(name='ERR_ALPHA_MC',format='D', array=mean_result_MC_err[:,2]))
-        # cols.append(fits.Column(name='AGE_MC_iter',   format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,0]))
-        # cols.append(fits.Column(name='METAL_MC_iter', format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,1]))
-        # cols.append(fits.Column(name='ALPHA_MC_iter', format=str(mean_results_MC_iter.shape[1])+'D', array=mean_results_MC_iter[:,:,2]))
 
     if config["SFH"]["FIXED"] == False:
         cols.append(fits.Column(name="V", format="D", array=ppxf_result[:, 0]))
@@ -627,11 +620,6 @@ def save_sfh(
     # Table HDU with weights
     cols = []
     cols.append(fits.Column(name="WEIGHTS", format=str(w_row.shape[1]) + "D", array=w_row))
-    # if config['SFH']['MC_PPXF'] > 0:
-    #     cols.append( fits.Column(name='WEIGHTS_MC',        format=str(w_row_MC_mean.shape[1])+'D', array=w_row_MC_mean ))
-    #     cols.append( fits.Column(name='ERR_WEIGHTS_MC',    format=str(w_row_MC_err.shape[1])+'D', array=w_row_MC_err  ))
-    #     cols.append( fits.Column(name='WEIGHTS_MC_iter',   format=str(w_row_MC_iter.shape[1]*w_row_MC_iter.shape[2])+'D',
-    #                              array=w_row_MC_iter, dim='(%s,%s)' % (w_row_MC_iter.shape[2],w_row_MC_iter.shape[1])))
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "WEIGHTS"
 
@@ -679,7 +667,6 @@ def save_sfh(
 
         # Table HDU with weights from MC results
         dataHDU_list = []
-        # nbins = w_row_MC_iter.shape[0]
         for iter_i in range(config['SFH']['MC_PPXF']):
             cols = [fits.Column(name="WEIGHTS_MC", format=str(w_row_MC_iter.shape[2]) + "D", array=w_row_MC_iter[:, iter_i, :])]
             dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
@@ -1134,14 +1121,11 @@ def extractStarFormationHistories(config):
 
     save_sfh(
         mean_results,
-        mean_results_MC_iter,
         mean_results_MC_mean,
         mean_results_MC_err,
         ppxf_result,
         w_row,
         w_row_MC_iter,
-        w_row_MC_mean,
-        w_row_MC_err,
         formal_error,
         logAge_grid,
         metal_grid,
