@@ -6,6 +6,10 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.2.0       2024-07-21 ADDED: Implemented MC realizations to estimate
+             uncertainties of template weights and mean stellar population properties
+             for the SFH module using the method in Pessa et al. 2023-AA.
+
 
 V7.1.0	     2024-07-20 ADDED: Added a new option for a SNR depended bias setting similar 
 			 to what was adopted for SAMI in van de Sande et al. 2017-ApJ
