@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rcParams
+from matplotlib.colors import ListedColormap
+
 
 rcParams.update({"figure.autolayout": True})
 from plotbin.sauron_colormap import register_sauron_colormap
@@ -84,20 +86,58 @@ def plotMap(self, module, maptype):
     image[i, j] = val
 
     # Show map
-    image = self.axes[0].imshow(
-        np.rot90(image),
-        cmap="inferno",
-        interpolation="none",
-        extent=[
-            xmin - self.pixelsize / 2,
-            xmax + self.pixelsize / 2,
-            ymin - self.pixelsize / 2,
-            ymax + self.pixelsize / 2,
-        ],
-    )
+    if maptype == "NII_Ha_BPT" or maptype == "SII_Ha_BPT": 
+        image = self.axes[0].imshow(
+            np.rot90(image),
+            cmap=plt.cm.get_cmap('inferno', 3),
+            interpolation="none",
+            extent=[
+                xmin - self.pixelsize / 2,
+                xmax + self.pixelsize / 2,
+                ymin - self.pixelsize / 2,
+                ymax + self.pixelsize / 2,
+            ],
+        )
+        
+    else:
+        image = self.axes[0].imshow(
+            np.rot90(image),
+            cmap='inferno',
+            interpolation="none",
+            extent=[
+                xmin - self.pixelsize / 2,
+                xmax + self.pixelsize / 2,
+                ymin - self.pixelsize / 2,
+                ymax + self.pixelsize / 2,
+            ],
+        )
 
     # Define colorbar
-    cbar = plt.colorbar(image, cax=self.cax)
+    if maptype == "NII_Ha_BPT":
+        cmap = plt.cm.get_cmap('rainbow', 3)
+        cbar = plt.colorbar(image, cax=self.cax)#
+        # calculate tick positions 
+        # (so that each ticklabel can be placed in the center of its color)
+        yticks = np.linspace(*cbar.ax.get_ylim(), cmap.N+1)[:-1]
+        yticks += (yticks[1] - yticks[0]) / 2
+        # add tick labels to colorbar
+        cbar.set_ticks(yticks, labels=['Star-forming', 'Composite', 'AGN'])
+        cbar.ax.tick_params(length=0)          # remove tick lines
+
+    elif maptype == "SII_Ha_BPT":
+        cmap = plt.cm.get_cmap('inferno', 3)
+        cbar = plt.colorbar(image, cax=self.cax)#
+        # calculate tick positions 
+        # (so that each ticklabel can be placed in the center of its color)
+        yticks = np.linspace(*cbar.ax.get_ylim(), cmap.N+1)[:-1]
+        yticks += (yticks[1] - yticks[0]) / 2
+        # add tick labels to colorbar
+        cbar.set_ticks(yticks, labels=['Star-forming', 'LINER', 'Seyfert'])
+        cbar.ax.tick_params(length=0)          # remove tick lines
+
+
+    else:
+        cbar = plt.colorbar(image, cax=self.cax)
     cbar.solids.set_edgecolor("face")
 
     # Define special labels
