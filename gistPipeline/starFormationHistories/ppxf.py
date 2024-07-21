@@ -79,6 +79,10 @@ def workerPPXF(inQueue, outQueue):
         optimal_template_in,
         EBV_init,
         logLam,
+        nsims,
+        logAge_grid,
+        metal_grid,
+        alpha_grid
     ) in iter(inQueue.get,'STOP'):
         (
             sol,
@@ -111,6 +115,10 @@ def workerPPXF(inQueue, outQueue):
             optimal_template_in,
             EBV_init,
             logLam,
+            nsims,
+            logAge_grid,
+            metal_grid,
+            alpha_grid
         )
 
         outQueue.put(
@@ -210,6 +218,10 @@ def run_ppxf(
     optimal_template_in,
     EBV_init,
     logLam,
+    nsims,
+    logAge_grid,
+    metal_grid,
+    alpha_grid
 ):
 
     """
@@ -371,23 +383,61 @@ def run_ppxf(
         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum() # Take from 1D list to nD array (nAges, nMet, nAlpha)
         w_row   = np.reshape(weights, ncomb)
 
-        # # Do MC-Simulations - this is not currently implemented. Add back in later.
-        # sol_MC     = np.zeros((nsims,nmoments))
-        mc_results = np.zeros(nmoments)
-        #
-        # for o in range(0, nsims):
-        #     # Add noise to bestfit:
-        #     #   - Draw random numbers from normal distribution with mean of 0 and sigma of 1 (np.random.normal(0,1,npix)
-        #     #   - standard deviation( (galaxy spectrum - bestfit)[goodpix] )
-        #     noisy_bestfit = pp.bestfit  +  np.random.normal(0, 1, len(log_bin_data)) * np.std( log_bin_data[goodPixels] - pp.bestfit[goodPixels] )
-        #
-        #     mc = ppxf(templates, noisy_bestfit, log_bin_error, velscale, start, goodpixels=goodPixels, plot=False, \
-        #             quiet=True, moments=nmoments, degree=-1, mdegree=mdeg, velscale_ratio=velscale_ratio, vsyst=offset, bias=0.0)
-        #     sol_MC[o,:] = mc.sol[:]
-        #
-        # if nsims != 0:
-        #     mc_results = np.nanstd( sol_MC, axis=0 )
-        # print(pp.sol[:])
+        # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
+        if nsims > 0:
+
+            w_row_MC               = np.zeros((nsims, w_row.shape[0]))
+
+            for o in range(0, nsims):
+                # Add noise to input spectrum "log_bin_data":
+                #   - MC iterated spectrum is created by a gaussian random sampling with the mean of galaxy spectrum "log_bin_data" and sigma of "noise_new"
+                #   - no regularization is applied for this step
+                log_bin_data_iter = np.random.normal(loc=log_bin_data, scale=noise_new)
+                mc_iter = ppxf(
+                    templates,
+                    log_bin_data_iter,
+                    noise_new,
+                    velscale,
+                    start,
+                    goodpixels=goodPixels,
+                    plot=False,
+                    quiet=True,
+                    moments=nmoments,
+                    degree=-1,
+                    vsyst=offset,
+                    mdegree=mdeg,
+                    fixed=fixed,
+                    velscale_ratio=velscale_ratio
+                )
+                weights_mc_iter   = mc_iter.weights.reshape(templates.shape[1:])/mc_iter.weights.sum()
+                w_row_MC[o, :]    = np.reshape(weights_mc_iter, ncomb)
+
+            # Calculate mean and error of weights and weighted properties from MC realizations
+            w_row_MC_mean         = np.nanmean(w_row_MC, axis=0)
+            w_row_MC_err          = (np.nanpercentile(w_row_MC, q=84, axis=0) - np.nanpercentile(w_row_MC, q=16, axis=0))/2
+            mean_results_MC_array = mean_agemetalalpha(w_row_MC, 10**logAge_grid, metal_grid, alpha_grid, nsims)
+            mean_results_MC_mean  = np.nanmean(mean_results_MC_array, axis=0)
+            mean_results_MC_err  = (np.nanpercentile(mean_results_MC_array, q=84, axis=0) - np.nanpercentile(mean_results_MC_array, q=16, axis=0))/2
+
+            mc_results = {
+                "w_row_MC_iter": w_row_MC,
+                "w_row_MC_mean": w_row_MC_mean,
+                "w_row_MC_err": w_row_MC_err,
+                "mean_results_MC_iter": mean_results_MC_array,
+                "mean_results_MC_mean":  mean_results_MC_mean,
+                "mean_results_MC_err":  mean_results_MC_err
+            }
+
+        else:
+            mc_results = {
+                "w_row_MC_iter": np.nan,
+                "w_row_MC_mean": np.nan,
+                "w_row_MC_err": np.nan,
+                "mean_results_MC_iter": np.nan,
+                "mean_results_MC_mean":  np.nan,
+                "mean_results_MC_err":  np.nan
+            }
+
 
         # add normalisation factor back in main results
         pp.bestfit *= median_log_bin_data
@@ -452,9 +502,11 @@ def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
 
 def save_sfh(
     mean_result,
+    mean_result_MC_mean,
+    mean_result_MC_err,
     ppxf_result,
     w_row,
-    mc_results,
+    w_row_MC_iter,
     formal_error,
     logAge_grid,
     metal_grid,
@@ -493,18 +545,25 @@ def save_sfh(
     cols.append(fits.Column(name="AGE", format="D", array=mean_result[:, 0]))
     cols.append(fits.Column(name="METAL", format="D", array=mean_result[:, 1]))
     cols.append(fits.Column(name="ALPHA", format="D", array=mean_result[:, 2]))
+    if config['SFH']['MC_PPXF'] > 0:
+        cols.append(fits.Column(name='AGE_MC',   format='D', array=mean_result_MC_mean[:,0]))
+        cols.append(fits.Column(name='METAL_MC', format='D', array=mean_result_MC_mean[:,1]))
+        cols.append(fits.Column(name='ALPHA_MC', format='D', array=mean_result_MC_mean[:,2]))
+        cols.append(fits.Column(name='ERR_AGE_MC',  format='D', array=mean_result_MC_err[:,0]))
+        cols.append(fits.Column(name='ERR_METAL_MC',format='D', array=mean_result_MC_err[:,1]))
+        cols.append(fits.Column(name='ERR_ALPHA_MC',format='D', array=mean_result_MC_err[:,2]))
 
     if config["SFH"]["FIXED"] == False:
-        cols.append(fits.Column(name="V", format="D", array=kin[:, 0]))
-        cols.append(fits.Column(name="SIGMA", format="D", array=kin[:, 1]))
-        if np.any(kin[:, 2]) != 0:
-            cols.append(fits.Column(name="H3", format="D", array=kin[:, 2]))
-        if np.any(kin[:, 3]) != 0:
-            cols.append(fits.Column(name="H4", format="D", array=kin[:, 3]))
-        if np.any(kin[:, 4]) != 0:
-            cols.append(fits.Column(name="H5", format="D", array=kin[:, 4]))
-        if np.any(kin[:, 5]) != 0:
-            cols.append(fits.Column(name="H6", format="D", array=kin[:, 5]))
+        cols.append(fits.Column(name="V", format="D", array=ppxf_result[:, 0]))
+        cols.append(fits.Column(name="SIGMA", format="D", array=ppxf_result[:, 1]))
+        if np.any(ppxf_result[:, 2]) != 0:
+            cols.append(fits.Column(name="H3", format="D", array=ppxf_result[:, 2]))
+        if np.any(ppxf_result[:, 3]) != 0:
+            cols.append(fits.Column(name="H4", format="D", array=ppxf_result[:, 3]))
+        if np.any(ppxf_result[:, 4]) != 0:
+            cols.append(fits.Column(name="H5", format="D", array=ppxf_result[:, 4]))
+        if np.any(ppxf_result[:, 5]) != 0:
+            cols.append(fits.Column(name="H6", format="D", array=ppxf_result[:, 5]))
 
         cols.append(
             fits.Column(name="FORM_ERR_V", format="D", array=formal_error[:, 0])
@@ -560,9 +619,7 @@ def save_sfh(
 
     # Table HDU with weights
     cols = []
-    cols.append(
-        fits.Column(name="WEIGHTS", format=str(w_row.shape[1]) + "D", array=w_row)
-    )
+    cols.append(fits.Column(name="WEIGHTS", format=str(w_row.shape[1]) + "D", array=w_row))
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "WEIGHTS"
 
@@ -593,6 +650,43 @@ def save_sfh(
         "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights.fits"
     )
     logging.info("Wrote: " + outfits_sfh)
+
+
+    # ========================
+    # SAVE MC RESULTS OF WEIGHTS AND GRID
+    if config['SFH']['MC_PPXF'] > 0:
+
+        outfits_sfh = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh-weights_mc.fits"
+        )
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights_mc.fits")
+
+        # Primary HDU
+        priHDU = fits.PrimaryHDU()
+
+        # Table HDU with weights from MC results
+        dataHDU_list = []
+        for iter_i in range(config['SFH']['MC_PPXF']):
+            cols = [fits.Column(name="WEIGHTS_MC", format=str(w_row_MC_iter.shape[2]) + "D", array=w_row_MC_iter[:, iter_i, :])]
+            dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+            dataHDU.name = "MC_ITER_%s" % iter_i
+            dataHDU_list.append(dataHDU)
+
+        # Create HDU list and write to file
+        priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
+        HDUList = fits.HDUList([priHDU] + dataHDU_list)
+        HDUList.writeto(outfits_sfh, overwrite=True)
+
+        fits.setval(outfits_sfh, "NAGES", value=nAges)
+        fits.setval(outfits_sfh, "NMETAL", value=nMetal)
+        fits.setval(outfits_sfh, "NALPHA", value=nAlpha)
+
+        printStatus.updateDone(
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights_mc.fits"
+        )
+        logging.info("Wrote: " + outfits_sfh)
+
 
     # ========================
     # SAVE BESTFIT
@@ -786,11 +880,20 @@ def extractStarFormationHistories(config):
     w_row = np.zeros((nbins,ncomb))
     ppxf_bestfit = np.zeros((nbins,npix))
     optimal_template = np.zeros((nbins,templates.shape[0]))
-    mc_results = np.zeros((nbins,6))
     formal_error = np.zeros((nbins,6))
     spectral_mask = np.zeros((nbins,bin_data.shape[0]))
     snr_postfit = np.zeros(nbins)
     EBV = np.zeros(nbins)
+
+    # Define output arrays of MC realizations
+    if nsims > 0:
+        logging.info('MC realizations will be applied with %s iterations to estimate weights uncertainties.' % nsims)
+    w_row_MC_iter        = np.zeros((nbins,nsims,ncomb))
+    w_row_MC_mean        = np.zeros((nbins,ncomb))
+    w_row_MC_err         = np.zeros((nbins,ncomb))
+    mean_results_MC_iter = np.zeros((nbins,nsims,3))
+    mean_results_MC_mean = np.zeros((nbins,3))
+    mean_results_MC_err  = np.zeros((nbins,3))
 
     # ====================
     # Run PPXF once on combined mean spectrum to get a single optimal template
@@ -870,6 +973,10 @@ def extractStarFormationHistories(config):
                     optimal_template_comb,
                     EBV_init,
                     logLam,
+                    config['SFH']['MC_PPXF'],
+                    logAge_grid,
+                    metal_grid,
+                    alpha_grid
                 )
             )
 
@@ -899,9 +1006,13 @@ def extractStarFormationHistories(config):
             # #log_bin_data = (log_bin_data1/np.median(log_bin_data1))*np.median(log_bin_data) # Don't know if I need this line?
             # else:
             ppxf_bestfit[i,:] = ppxf_tmp[i][3]
-
             optimal_template[i,:] = ppxf_tmp[i][4]
-            mc_results[i,:config['SFH']['MOM']] = ppxf_tmp[i][5]
+            w_row_MC_iter[i,:,:] = ppxf_tmp[i][5]["w_row_MC_iter"]
+            w_row_MC_mean[i,:] = ppxf_tmp[i][5]["w_row_MC_mean"]
+            w_row_MC_err[i,:] = ppxf_tmp[i][5]["w_row_MC_err"]
+            mean_results_MC_iter[i,:,:] = ppxf_tmp[i][5]["mean_results_MC_iter"]
+            mean_results_MC_mean[i,:]  = ppxf_tmp[i][5]["mean_results_MC_mean"]
+            mean_results_MC_err[i,:]  = ppxf_tmp[i][5]["mean_results_MC_err"]
             formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][6]
             spectral_mask[i,:] = ppxf_tmp[i][7]
             snr_postfit[i] = ppxf_tmp[i][8]
@@ -913,7 +1024,12 @@ def extractStarFormationHistories(config):
         w_row = w_row[argidx,:]
         ppxf_bestfit = ppxf_bestfit[argidx,:]
         optimal_template = optimal_template[argidx,:]
-        mc_results = mc_results[argidx,:]
+        w_row_MC_iter = w_row_MC_iter[argidx,:,:]
+        w_row_MC_mean = w_row_MC_mean[argidx,:]
+        w_row_MC_err  = w_row_MC_err[argidx,:]
+        mean_results_MC_iter = mean_results_MC_iter[argidx,:,:]
+        mean_results_MC_mean = mean_results_MC_mean[argidx,:]
+        mean_results_MC_err  = mean_results_MC_err[argidx,:]
         formal_error = formal_error[argidx,:]
         spectral_mask = spectral_mask[argidx,:]
         snr_postfit = snr_postfit[argidx]
@@ -930,20 +1046,20 @@ def extractStarFormationHistories(config):
                 w_row[i,:],
                 ppxf_bestfit[i,:],
                 optimal_template[i,:],
-                mc_results[i,:config['SFH']['MOM']],
+                mc_results_i,
                 formal_error[i,:config['SFH']['MOM']],
                 spectral_mask[i,:],
                 snr_postfit[i],
                 EBV[i],
             ) = run_ppxf(
                 templates,
-                bin_data[i,:],
-                noise,
+                bin_data[:,i],
+                noise[:,i],
                 velscale,
                 start[i,:],
                 goodPixels_sfh,
                 config['SFH']['MOM'],
-                dv,
+                offset,
                 -1,
                 config['SFH']['MDEG'],
                 config['SFH']['REGUL_ERR'],
@@ -957,7 +1073,17 @@ def extractStarFormationHistories(config):
                 optimal_template_comb,
                 EBV_init,
                 logLam,
+                config['SFH']['MC_PPXF'],
+                logAge_grid,
+                metal_grid,
+                alpha_grid
             )
+            w_row_MC_iter[i,:,:] = mc_results_i["w_row_MC_iter"]
+            w_row_MC_mean[i,:] = mc_results_i["w_row_MC_mean"]
+            w_row_MC_err[i,:] = mc_results_i["w_row_MC_err"]
+            mean_results_MC_iter[i,:,:] = mc_results_i["mean_results_MC_iter"]
+            mean_results_MC_mean[i,:] = mc_results_i["mean_results_MC_mean"]
+            mean_results_MC_err[i,:] = mc_results_i["mean_results_MC_err"]
         printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
 
     print(
@@ -995,9 +1121,11 @@ def extractStarFormationHistories(config):
 
     save_sfh(
         mean_results,
+        mean_results_MC_mean,
+        mean_results_MC_err,
         ppxf_result,
         w_row,
-        mc_results,
+        w_row_MC_iter,
         formal_error,
         logAge_grid,
         metal_grid,
