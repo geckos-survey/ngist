@@ -195,7 +195,6 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
         #emission lines names
         names = np.char.array( linesfitted['name'] )+np.char.array(['{:d}'.format(int(j)) for j in linesfitted['lambda']])
 
-
         for i in range(len(names)):
             cols.append( fits.Column(name=names[i]+'_FLUX' , format='D', array=gas_flux_in_units[:,i]  ))
             cols.append( fits.Column(name=names[i]+'_FLUX_ERR' , format='D', array=gas_err_flux_in_units[:,i]  ))
@@ -209,6 +208,57 @@ def save_ppxf_emlines(config, rootname, outdir, level, linesfitted,
                 cols.append( fits.Column(name=names[i]+'_H3' , format='D', array=extra['h3'][:,i]  ))
             if (extra is not None) and ('h4' in extra.keys()):
                 cols.append( fits.Column(name=names[i]+'_H4' , format='D', array=extra['h4'][:,i]  ))
+
+        # Add in spatial BPT maps if all the lines are available 
+        # 1) NII/Ha NPT
+        if np.any(names == 'Hb4861') and np.any(names == 'OIII5006')and np.any(names == 'Ha6562') and np.any(names == 'NII6583'):
+            # Create NII/Ha BPT map 
+            hb_idx = np.where(names == 'Hb4861')
+            oiii_idx = np.where(names == 'OIII5006')
+            ha_idx = np.where(names == 'Ha6562')
+            nii_idx = np.where(names == 'NII6583')
+
+            l_nii_ha = np.log10(gas_flux_in_units[:,nii_idx]/gas_flux_in_units[:,ha_idx])
+            l_oiii_hb = np.log10(gas_flux_in_units[:,oiii_idx]/gas_flux_in_units[:,hb_idx])
+#             l_sii_ha = np.log10((Sii_6717+Sii_6730)/Ha)     
+   
+            niihabpt = np.zeros((len(gas_flux_in_units)))
+            for i in range(0,len(gas_flux_in_units)):
+                if l_oiii_hb[i] < (0.61/(l_nii_ha[i]-0.05)) + 1.3:
+                    niihabpt[i] = 1 #SFing?
+                elif l_oiii_hb[i] > (0.61/(l_nii_ha[i]-0.05)) + 1.3 and l_oiii_hb[i] < (0.61/(l_nii_ha[i]-0.47)) + 1.19:
+                    niihabpt[i] = 2 #Composite
+                elif l_oiii_hb[i] > (0.61/(l_nii_ha[i]-0.47)) + 1.19:
+                    niihabpt[i] = 3 # AGN
+                        
+            cols.append(fits.Column(name='NII_Ha_BPT', format='D', array=niihabpt))
+
+       # 2) SII/Ha NPT
+        if np.any(names == 'Hb4861') and np.any(names == 'OIII5006')and np.any(names == 'Ha6562') and np.any(names == 'SII6716') and np.any(names == 'SII6730'):
+            # Create NII/Ha BPT map 
+            hb_idx = np.where(names == 'Hb4861')
+            oiii_idx = np.where(names == 'OIII5006')
+            ha_idx = np.where(names == 'Ha6562')
+            sii6716_idx = np.where(names == 'SII6716')
+            sii6730_idx = np.where(names == 'SII6730')
+
+            l_oiii_hb = np.log10(gas_flux_in_units[:,oiii_idx]/gas_flux_in_units[:,hb_idx])
+            l_sii_ha = np.log10((gas_flux_in_units[:,sii6716_idx]+gas_flux_in_units[:,sii6730_idx])/gas_flux_in_units[:,ha_idx])     
+   
+            siihabpt = np.zeros((len(gas_flux_in_units)))
+            for i in range(0,len(gas_flux_in_units)):
+                if l_oiii_hb[i] < (0.72/(l_sii_ha[i]-0.32)) + 1.3:
+                    siihabpt[i] = 1 #SFing?
+                elif l_oiii_hb[i] > (0.72/(l_sii_ha[i]-0.32)) + 1.3 and l_oiii_hb[i] > (1.89 * l_sii_ha[i]) + 0.76:
+                    siihabpt[i] = 2 # LINER
+                elif l_oiii_hb[i] > (0.72/(l_sii_ha[i]-0.32)) + 1.3 and l_oiii_hb[i] < (1.89 * l_sii_ha[i]) + 0.76:
+                    siihabpt[i] = 3 #Seyfert
+
+
+            cols.append(fits.Column(name='SII_Ha_BPT', format='D', array=siihabpt))
+
+
+
 
         dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
         dataHDU.name = 'EMISSION'
@@ -771,6 +821,8 @@ def performEmissionLineAnalysis(config): #This is your main emission line fittin
 
    # templates_sigma = np.zeros(sigma_final.shape)+templates_sigma
     sigma_final_measured  = (sigma_final**2 + templates_sigma**2)**(0.5)
+
+    # Create BPT diagrams
 
     # save results to file
     if config['GAS']['LEVEL'] != 'BOTH':

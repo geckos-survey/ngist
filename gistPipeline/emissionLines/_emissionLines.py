@@ -125,7 +125,7 @@ def emissionLines_Module(config):
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
             + "_AllSpectra.fits"
             )        
-    
+
 
     # Return
     return None

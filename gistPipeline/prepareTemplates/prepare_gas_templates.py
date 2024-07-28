@@ -207,9 +207,11 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
     tied_all = np.array([m[0] == 'a' for m in emldb['mode']])
     nlinesdb=len(emldb)
     ntpl = nlinesdb - np.sum(ignore_line) - np.sum(tied_all)
+    print('ntpl= %s' % (ntpl))
 
     # Initialize the components
     comp = np.zeros(ntpl, dtype=int)-1
+    print('comp shape = %s' % comp.shape)
     vgrp = np.zeros(ntpl, dtype=int)-1
     sgrp = np.zeros(ntpl, dtype=int)-1
 
@@ -220,6 +222,7 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
 
     nprimary = np.sum(primary_line)
     tpli[primary_line] = np.arange(nprimary)
+    print('tpli[primary_line] = %s' % (tpli[primary_line]))
     comp[:nprimary] = np.arange(nprimary)
     vgrp[:nprimary] = np.arange(nprimary)
     sgrp[:nprimary] = np.arange(nprimary)
@@ -246,8 +249,10 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
                 tpli[i] = tpli[indx]
             # Mode=k: Line is part of a different template but an
             # existing kinematic component
+            print('i= %s' % (i))
             if emldb['mode'][i][0] == 'k':
                 tpli[i] = np.amax(tpli)+1
+                print(tpli[i])
                 comp[tpli[i]] = comp[tpli[indx]]
                 vgrp[tpli[i]] = vgrp[tpli[indx]]
                 sgrp[tpli[i]] = sgrp[tpli[indx]]
