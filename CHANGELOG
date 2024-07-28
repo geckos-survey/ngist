@@ -6,6 +6,10 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.2.1	     2024-07-28 ADDED: Ability to create BPT maps in the GAS module if all required
+			emission lines are present. Note: there is currently no AoN 
+			threshold applied to these lines.
+
 V7.2.0       2024-07-21 ADDED: Implemented MC realizations to estimate
 			 uncertainties of template weights and mean stellar population properties
 			 for the SFH module using the method in Pessa et al. 2023-AA.
