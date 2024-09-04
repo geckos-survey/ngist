@@ -44,7 +44,6 @@ from gistPipeline.spatialMasking import _spatialMasking
 from gistPipeline.starFormationHistories import _starFormationHistories
 from gistPipeline.stellarKinematics import _stellarKinematics
 from gistPipeline.continuumCube import _continuumCube
-from gistPipeline.userModules import _userModules
 
 
 def skipGalaxy(config):
@@ -156,14 +155,6 @@ def runGIST(dirPath, galindex):
         skipGalaxy(config)
         return None
 
-    # - - - - - USERS  MODULE - - - - -
-
-    _ = _userModules.user_Modules(config)
-    if _ == "SKIP":
-        skipGalaxy(config)
-        return None
-
-
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - -  F I N A L I S E   T H E   A N A L Y S I S  - - - - - - - - -
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -172,9 +163,9 @@ def runGIST(dirPath, galindex):
     _auxiliary.addGISTHeaderComment(config)
 
     # Goodbye
-    printStatus.module("nGIST pipeline")
-    printStatus.done("nGIST completed successfully.")
-    logging.info("nGIST completed successfully.")
+    printStatus.module("gist-geckos pipeline")
+    printStatus.done("gist-geckos completed successfully.")
+    logging.info("gist-geckos completed successfully.")
 
 
 # ============================================================================ #

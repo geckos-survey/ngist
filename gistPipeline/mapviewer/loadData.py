@@ -166,10 +166,9 @@ def loadData(self):
         if self.gasLevel == "SPAXEL":
             self.gasResults = gas
 
-        # following line does not work if your data is not symetric around centre
-        #for name in self.gasResults.names:
-        #    if name.split("_")[-1] == "V":
-        #        self.gasResults[name] = self.gasResults[name] - median_V_stellar
+        for name in self.gasResults.names:
+            if name.split("_")[-1] == "V":
+                self.gasResults[name] = self.gasResults[name] - median_V_stellar
     else:
         self.gasResults = None
         self.gasBestfit = None
@@ -189,9 +188,8 @@ def loadData(self):
             3
         ].data.GOODPIX
 
-        # following line does not work if your data is not symetric around centre
-        #if "V" in self.sfhResults.names:
-        #    self.sfhResults.V = self.sfhResults.V - median_V_stellar
+        if "V" in self.sfhResults.names:
+            self.sfhResults.V = self.sfhResults.V - median_V_stellar
 
         # Read the age, metallicity and [Mg/Fe] grid
         grid = fits.open(self.dirprefix + "_sfh-weights.fits")[2].data
