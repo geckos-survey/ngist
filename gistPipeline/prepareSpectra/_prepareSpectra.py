@@ -23,18 +23,34 @@ def prepareSpectra_Module(config, cube):
     outputPrefix = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + ""
     )
-    if (
-        config["GENERAL"]["OW_OUTPUT"] == False
-        and ((os.path.isfile(outputPrefix + "_AllSpectra.fits") == True) or
-             (config["GAS"]["LEVEL"] != "SPAXEL")) 
-        and os.path.isfile(outputPrefix + "_BinSpectra.fits") == True
-        and os.path.isfile(outputPrefix + "_BinSpectra_linear.fits") == True
-    ):
-        logging.info(
-            "Results of the module are already in the output directory. Module is skipped."
-        )
+    
+    # Check if the 'OW_OUTPUT' flag in the config is set to False
+    if config["GENERAL"]["OW_OUTPUT"] == False:
+        # List of FITS files to check
+        fits_files = [
+            outputPrefix + "_AllSpectra.fits",
+            outputPrefix + "_BinSpectra.fits",
+            outputPrefix + "_BinSpectra_linear.fits"
+        ]
+        # List of HDF5 files to check
+        hdf5_files = [
+            outputPrefix + "_AllSpectra.hdf5",
+            outputPrefix + "_BinSpectra.hdf5",
+            outputPrefix + "_BinSpectra_linear.hdf5"
+        ]
+
+        # Combine both lists and check for missing files
+        missing_files = [f for f in fits_files + hdf5_files if not os.path.isfile(f)]
+
+        # Raise an error if any files are missing
+        if missing_files:
+            raise FileNotFoundError(f"Missing files: {', '.join(missing_files)}")
+
+        # Log and print status if all files are present
+        logging.info("Results of the module are already in the output directory. Module is skipped.")
         printStatus.done("Results are already available. Module is skipped.")
         return None
+
 
     # Import the chosen prepareSpectra routine
     try:

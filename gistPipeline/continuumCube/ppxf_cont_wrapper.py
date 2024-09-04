@@ -3,17 +3,16 @@ import logging
 import os
 import time
 
+import h5py
 import numpy as np
 from astropy.io import fits
 from astropy.stats import biweight_location
+from joblib import Parallel, delayed, dump, load
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.prepareTemplates import _prepareTemplates
-
-
-from joblib import Parallel, delayed, dump, load
 
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
@@ -344,26 +343,28 @@ def createContinuumCube(config):
     saves the outputs following the GIST conventions.
     """
     # Read data from file
-    hdu = fits.open(
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_BinSpectra.fits"
-    )
-    bin_data = np.array(hdu[1].data.SPEC.T)
-    bin_err = np.array(hdu[1].data.ESPEC.T)
-    logLam = np.array(hdu[2].data.LOGLAM)
-    idx_lam = np.where(
+    infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"
+    printStatus.running("Reading: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5")
+    
+    # Open the HDF5 file
+    with h5py.File(infile, 'r') as f:
+        
+        # Read the data from the file
+        logLam = f['LOGLAM'][:]
+        idx_lam = np.where(
         np.logical_and(
             np.exp(logLam) > config["KIN"]["LMIN"],
             np.exp(logLam) < config["KIN"]["LMAX"],
         )
-    )[0]
-    bin_data = bin_data[idx_lam, :]
-    bin_err = bin_err[idx_lam, :]
+        )[0]
+
+        bin_data = f['SPEC'][:][idx_lam, :]
+        bin_err = f['ESPEC'][:][idx_lam, :]
+        velscale = f.attrs['VELSCALE']
     logLam = logLam[idx_lam]
     npix = bin_data.shape[0]
     nbins = bin_data.shape[1]
     ubins = np.arange(0, nbins)
-    velscale = hdu[0].header["VELSCALE"]
 
     # Read LSF information
 
@@ -487,11 +488,8 @@ def createContinuumCube(config):
         printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
 
-        #  Prepare the folder where the memmap will be dumped
-        if os.path.exists("/scratch"):
-            memmap_folder = "/scratch"
-        else:
-            memmap_folder = config["GENERAL"]["OUTPUT"]
+        # Prepare the folder where the memmap will be dumped
+        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
 
         # dump the arrays and load as memmap
         templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
@@ -536,7 +534,7 @@ def createContinuumCube(config):
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator"}
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c"}
         ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
 
         # Flatten the results

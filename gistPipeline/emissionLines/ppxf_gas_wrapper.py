@@ -1,21 +1,20 @@
-import numpy as np
-from astropy.io import fits
-from astropy import table
-
-import time
-import os
 import glob
 import logging
+import os
+import time
 
-from printStatus import printStatus
-
-from gistPipeline.prepareTemplates import _prepareTemplates, prepare_gas_templates
-from gistPipeline.auxiliary import _auxiliary
-
+import h5py
+import numpy as np
+from astropy import table
+from astropy.io import fits
 from joblib import Parallel, delayed, dump, load
-
 # Then use system installed version instead
 from ppxf.ppxf import ppxf
+from printStatus import printStatus
+
+from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.prepareTemplates import (_prepareTemplates,
+                                           prepare_gas_templates)
 
 # Physical constants
 C = 299792.458  # speed of light in km/s
@@ -497,35 +496,38 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
     ## --------------------- ##
     # Read data if we run on BIN level
     if currentLevel == "BIN":
-        # Read spectra from file
-        hdu = fits.open(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_BinSpectra.fits"
-        )
-        spectra = np.array(hdu[1].data.SPEC.T)
-        error = np.array(hdu[1].data.ESPEC.T)
-        logLam_galaxy = np.array(hdu[2].data.LOGLAM)
+        # Open the HDF5 file
+        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5", 'r') as f:
+            # Read the data from the file
+            spectra = f['SPEC'][:]
+            error = f['ESPEC'][:]
+            logLam_galaxy = f['LOGLAM'][:]
+            velscale = f.attrs['VELSCALE']
+
+        # Select the indices where the wavelength is within the specified range
         idx_lam = np.where(
             np.logical_and(
                 np.exp(logLam_galaxy) > config["GAS"]["LMIN"],
                 np.exp(logLam_galaxy) < config["GAS"]["LMAX"],
             )
         )[0]
+
+        # Apply the selection to the spectra, error, and logLam_galaxy arrays
         spectra = spectra[idx_lam, :]
-        error = error[idx_lam, :]  # AJB added
+        error = error[idx_lam, :]
         logLam_galaxy = logLam_galaxy[idx_lam]
+
         npix = spectra.shape[0]
         nbins = spectra.shape[1]
         ubins = np.arange(0, nbins)
         nstmom = config["KIN"]["MOM"]  # Usually = 4
-        velscale = hdu[0].header["VELSCALE"]
         # # the wav range of the data (observed)
         LamRange = (np.exp(logLam_galaxy[0]), np.exp(logLam_galaxy[-1]))
 
         # Determining the number of spaxels per bin
         hdu2 = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_table.fits"
+            + "_table.fits", mem_map=True
         )
         bin_id = hdu2["TABLE"].data["BIN_ID"]
         n_spaxels_per_bin = np.zeros(nbins)
@@ -561,35 +563,39 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         ## --------------------- ##
 
     if currentLevel == "SPAXEL":
-        # Read spectra from file
-        hdu = fits.open(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_AllSpectra.fits"
-        )
-        spectra = np.array(hdu[1].data.SPEC.T)
-        error = np.array(hdu[1].data.ESPEC.T)
-        logLam_galaxy = np.array(hdu[2].data.LOGLAM)
+
+        # Open the HDF5 file
+        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_AllSpectra.hdf5", 'r') as f:
+            # Read the data from the file
+            spectra = f['SPEC'][:]
+            error = f['ESPEC'][:]
+            logLam_galaxy = f['LOGLAM'][:]
+            velscale = f.attrs['VELSCALE']
+
+        # Select the indices where the wavelength is within the specified range
         idx_lam = np.where(
             np.logical_and(
                 np.exp(logLam_galaxy) > config["GAS"]["LMIN"],
                 np.exp(logLam_galaxy) < config["GAS"]["LMAX"],
             )
         )[0]
+
+        # Apply the selection to the spectra, error, and logLam_galaxy arrays
         spectra = spectra[idx_lam, :]
-        error = error[idx_lam, :]  # AJB added
+        error = error[idx_lam, :]
         logLam_galaxy = logLam_galaxy[idx_lam]
+
         npix = spectra.shape[0]
         nbins = spectra.shape[1]  # This should now = the number of spaxels
         ubins = np.arange(0, nbins)
         nstmom = config["KIN"]["MOM"]  # Usually = 4
-        velscale = hdu[0].header["VELSCALE"]
         # # the wav range of the data (observed)
         LamRange = (np.exp(logLam_galaxy[0]), np.exp(logLam_galaxy[-1]))
 
         # Determining the number of spaxels per bin
         hdu2 = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_table.fits"
+            + "_table.fits", mem_map=True
         )
         bin_id = hdu2["TABLE"].data["BIN_ID"]
         n_spaxels_per_bin = np.zeros(nbins)
@@ -709,7 +715,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         # Read PPXF results, add not just stellar, but 3x gas guesses
         ppxf_data = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin.fits"
+            + "_kin.fits", mem_map=True
         )[1].data
         # if config['GAS']['LEVEL'] == 'BIN':
         # No need to do anything!
@@ -720,7 +726,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                     os.path.join(
                         config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]
                     )
-                    + "_table.fits"
+                    + "_table.fits", mem_map=True
                 )[1].data.BIN_ID
             )
             ppxf_data_spaxels = np.zeros((len(ubins), len(ppxf_data[0])))
@@ -807,11 +813,8 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         printStatus.running("Running PPXF for emission lines analysis in parallel mode")
         logging.info("Running PPXF for emission lines analysis in parallel mode")
 
-        #  Prepare the folder where the memmap will be dumped
-        if os.path.exists("/scratch"):
-            memmap_folder = "/scratch"
-        else:
-            memmap_folder = config["GENERAL"]["OUTPUT"]
+        # Prepare the folder where the memmap will be dumped
+        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
 
         # dump the arrays and load as memmap
         templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
@@ -857,7 +860,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "mmap_mode": "c", "return_as": "generator"}
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c"}
         ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
 
         # Flatten the results
