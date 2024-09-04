@@ -40,8 +40,12 @@ def age_metal_alpha(passedFiles):
         # Alpha
         if s.find("baseFe") == -1:
             EMILES = False
+            logging.info("EMILES=False")
+
         elif s.find("baseFe") != -1:
             EMILES = True
+            logging.info("EMILES=True")
+
 
         if EMILES == False:
             # Usage of MILES: There is a alpha defined

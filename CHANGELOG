@@ -6,51 +6,110 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.2.1	     2024-07-28 ADDED: Ability to create BPT maps in the GAS module if all required
+			emission lines are present. Note: there is currently no AoN 
+			threshold applied to these lines.
+
+V7.2.0       2024-07-21 ADDED: Implemented MC realizations to estimate
+			 uncertainties of template weights and mean stellar population properties
+			 for the SFH module using the method in Pessa et al. 2023-AA.
+
+
+V7.1.0	     2024-07-20 ADDED: Added a new option for an SNR-dependent bias setting similar 
+			 to what was adopted for SAMI in van de Sande et al. 2017-ApJ
+			 The new option can be called as "muse" which uses the SNR from the best-fit 
+			 solution or "muse_snr_prefit" that uses the snr from the pre-scaled variance
+			 
+V7.0.0	     2024-07-08 CHANGED: New user module added called UMOD. This currently only 
+			 accepts a twocomp_ppxf fitting function.
+			 FIXED:
+			 Minor fixes and code cleanup.
+
+V6.1.1	     2024-07-03 FIXED:
+			 Multiple bugs in multiple modules. Please use commit history for all changes.
+			 CHANGED:
+			 Turned saving AllSpectra.fits module back on if GAS is fitted in SPAXEL mode,
+			 but AllSpectra.fits is removed once GAS routine has finished running.			 
+		 
+V6.1.0	     2024-06-24 FIXED:
+			 Multiple bugs in multiple modules. Please use commit history for all changes.
+			 CHANGED:
+			 Turned off saving AllSpectra.fits module.
+			 ADDED:
+			 Two component stellar kinematic fitting module in pPXF. Calling sequence 
+			 "TWOCOMP_KIN" with "twocomp_ppxf.py". Only works with MOM = 2 and MILES SSP 
+			 library.
+
+V6.0.1	     2024-04-24 FIXED:
+			 Minor fixes and code cleanup
+
+V6.0.0       2024-04-18 FIXED:
+			 Parallel = False in SFH module
+			 REMOVED:
+			 Template reshape immediately after creation in SFH module
+			 ADDED:
+		  	 Template reshape before creation of optimal_template in run_ppxf
+ 			 ADDED:
+		  	 Continuum normalisation step before running pPXF in KIN, CONT, and
+			 SFH modules.
+
+V5.4.5	     2024-04-18 ADDED:
+			 The ability to return an E(B-V) dust map in the SFH module.
+
+V5.4.4       2024-03-25 CHANGED:
+			 Name from gist-geckos to nGIST!
+			 ADDED:
+			 The ability to define the BIAS value in the KIN module. If not set by the
+			 user, the default value in the MasterConfig file is 'Auto', which uses the
+			 default implementation provided with pPXF from Cappellari & Emsellem 2004.
+			 CHANGED:
+			 _initialise.py ascii text art to reflect code name change.
+
 V5.4.3 	     2024-01-29 CHANGED:
-			addGISTHeaderComment so that it doesn't need to open the every fits file 
-			and so that only the ext[0] has the gist-geckos branding added. This 
-			saves a lot of time.
-			ADDED:
-			XBIN and YBIN pixel Voronoi bin centres to the SPATIAL_BINNING maps files.
+			 addGISTHeaderComment so that it doesn't need to open the every fits file
+			 and so that only the ext[0] has the gist-geckos branding added. This
+			 saves a lot of time.
+			 ADDED:
+			 XBIN and YBIN pixel Voronoi bin centres to the SPATIAL_BINNING maps files.
 
 V5.4.2	     2024-01-12 FIXED:
-			Bug that was introduced into the CONT module in V5.4.1 that caused it 
-			to run, even when results were already in the results directory and 
-			OW_OUTPUT = False.
+			 Bug that was introduced into the CONT module in V5.4.1 that caused it
+			 to run, even when results were already in the results directory and
+			 OW_OUTPUT = False.
 
 V5.4.1	     2024-01-11 REMOVED:
-			'KIN' from the continuum cube file names, as this is now a separate module
-			Superfluous Fits header updates that occured even when OW_OUTPUT was set 
-			to False. These updates now only occur if OW_OUTPUT = True or the files are 
-			being created for the first time.
+			 'KIN' from the continuum cube file names, as this is now a separate module
+			 Superfluous Fits header updates that occured even when OW_OUTPUT was set
+			 to False. These updates now only occur if OW_OUTPUT = True or the files are
+			 being created for the first time.
 
-V5.4.0	     2024-01-10 FIXED: 
-			Bug in GAS module that prevented the _BIN and _SPAXEL maps files from saving 
-			when run in 'BOTH' mode.
-			OW_OUTPUT = False still overwriting results in the GAS module.
-			ADDED:
-		        Hardcoded ADEG=-1 into the continuum module to be in line with the procedure for 
-			the GAS and SFH modules. The configFile keyword ['CONT']['ADEG'] is no longer 
-			required and should be removed from your MasterConfig.yaml file.
+V5.4.0	     2024-01-10 FIXED:
+			 Bug in GAS module that prevented the _BIN and _SPAXEL maps files from saving
+			 when run in 'BOTH' mode.
+			 OW_OUTPUT = False still overwriting results in the GAS module.
+			 ADDED:
+		     Hardcoded ADEG=-1 into the continuum module to be in line with the procedure for
+			 the GAS and SFH modules. The configFile keyword ['CONT']['ADEG'] is no longer
+			 required and should be removed from your MasterConfig.yaml file.
 
 V5.3.2       2023-12-13  FIXED:
 			 Fixed bug in WriteFits LS module where it wasn't using the idx_inside selection
-             
+
 V5.3.1       2023-12-11  CHANGED:
 			 Removed the subtraction of the median Velocity in the MapViewer velocity maps.
-             
+
 V5.3.0       2023-12-10  ADDED:
-			 Added keyword to config file SPEC_EMICLEAN (True/False) to enable/disable the 
+			 Added keyword to config file SPEC_EMICLEAN (True/False) to enable/disable the
 			 use of emission line cleaned spectra from the Emission Line Fitting Module.
 			 Minor changes to 'ppxf.py' scripts for printing status during fitting.
-             
+
 V5.2.3       2023-12-09  FIXED:
-			 Changed the velscale_ratio from 1 to 2 to match the KIN and SFH 
+			 Changed the velscale_ratio from 1 to 2 to match the KIN and SFH
 			 module.
-             
+
 V5.2.2       2023-12-08  FIXED:
-			 Galaxy spectra our now normalised before being fitted in the 
-			 StellarKinematics and SFH modules. Output best-fit model is scaled 
+			 Galaxy spectra our now normalised before being fitted in the
+			 StellarKinematics and SFH modules. Output best-fit model is scaled
 			 back to match original flux of galaxy spectrum.
 
 V5.2.1       2023-11-23  ADDED:
@@ -60,11 +119,11 @@ V5.2.1       2023-11-23  ADDED:
 
 V5.2.0       2023-11-8  ADDED:
 			 A new continuum module was created based on the StellarKinematics module.
-             
+
 V5.1.5       2023-10-11  FIXED:
-			 SFH module ppxf.py so that it now recognises whether the emission 
+			 SFH module ppxf.py so that it now recognises whether the emission
 			 line module has already been run. If so, it will take the emission-
-			 subtracted 'cleaned' spectrum as input to the SFH module. 
+			 subtracted 'cleaned' spectrum as input to the SFH module.
 
 V5.1.4       2023-09-12  ADDED:
 			 Ability to turn the pPXF CLEAN function on or off using the keywords:
@@ -72,7 +131,7 @@ V5.1.4       2023-09-12  ADDED:
 			 config['SFH']['DOCLEAN'] = True/False
 			 FIXED:
 			 Cleaned the ppxf.py SFH module code to match the format of Kinematic module
-                    
+
 V5.1.3       2023-08-10  ADDED:
 			 Ability to use the stellar templates from Walcher et al. 2009
 			 in the stellar kinematics module.
@@ -80,168 +139,168 @@ V5.1.3       2023-08-10  ADDED:
 			 config['KIN']['LSF_TEMP'] = 'lsf_WALCHER'
 			 config['KIN']['TEMPLATE_SET'] = 'walcher'
 			 config['KIN']['LIBRARY'] = '/Walcher/'
-             
+
 V5.1.2       2023-08-07  FIXED:
 			 Ability to run spaxel-based emission line fits using the pPXF module.
-			 if config['GAS']['METHOD'] = 'ppxf', 'MAGPIGandalf', or 'Gandalf', 
- 			 config['GAS']['LEVEL'] can be 'BIN' or 'SPAXEL' ('BOTH not yet implemented 
-			 for ppxf module. 
+			 if config['GAS']['METHOD'] = 'ppxf', 'MAGPIGandalf', or 'Gandalf',
+ 			 config['GAS']['LEVEL'] can be 'BIN' or 'SPAXEL' ('BOTH not yet implemented
+			 for ppxf module.
 			 ADDED:
-			 config['GENERAL']['OUTPUT']_KIN_ORIGcube.fits, a file containing the 
-			 original spectra cut to the wavelength range at which the continuum 
-			 cube was made, for use with config['GENERAL']['OUTPUT']_KIN_CONTcube.fits 
-			 and config['GENERAL']['OUTPUT']_KIN_LINEcube.fits for work with the 
-			 continuum cubes. 
-             
+			 config['GENERAL']['OUTPUT']_KIN_ORIGcube.fits, a file containing the
+			 original spectra cut to the wavelength range at which the continuum
+			 cube was made, for use with config['GENERAL']['OUTPUT']_KIN_CONTcube.fits
+			 and config['GENERAL']['OUTPUT']_KIN_LINEcube.fits for work with the
+			 continuum cubes.
+
 V5.1.1       2023-07-28  ADDED:
-			 Ability to implement a foreground Galactic dust extinction using the 
+			 Ability to implement a foreground Galactic dust extinction using the
 			 config['READ_DATA']['EBmV'] keyword.
-             
+
 V5.1.0	     2023-07-26  ADDED:
 			 A new ppxf-based emission line fitting module based on the PHANGS DAP
-             
+
 V5.0.5       2023-07-18  ADDED:
-			 SFH module has been updated to use a 3-step noise estimation and 
+			 SFH module has been updated to use a 3-step noise estimation and
 			 sigma clipping method, in line with the stellar kinematics module.
-             
+
 V5.0.4.	     2023-05-26  ADDED:
-			 MAGPI gandalf implementation sub-module. There are now two options 
-			 for GAS METHOD: 'gandalf' and 'MAGPI_gandalf'. Recommend adopting 
+			 MAGPI gandalf implementation sub-module. There are now two options
+			 for GAS METHOD: 'gandalf' and 'MAGPI_gandalf'. Recommend adopting
 			 'MAGPI_gandalf' from now on.
-             
+
 V5.0.3.      2023-05-24  ADDED:
-			 Code to subtract the bestfit stellar continuum and construct a 
-			 continuum subtracted cube. 
-             
+			 Code to subtract the bestfit stellar continuum and construct a
+			 continuum subtracted cube.
+
 V5.0.2       2023-05-17  FIXED:
 			 * Identified origin of LSF module crash which was due to a bug in
-			 ppxf_util.gaussian_filter1d(). This bug will be fixed in version 
-			 8.2.5 of pPXF. In older pPXF version replace line 665 in 
-			 ppxf_util.py with p = int(1.0 + 4*np.max(sig))	
-             		 
+			 ppxf_util.gaussian_filter1d(). This bug will be fixed in version
+			 8.2.5 of pPXF. In older pPXF version replace line 665 in
+			 ppxf_util.py with p = int(1.0 + 4*np.max(sig))
+
 V5.0.1       2023-05-05   FIXED:
-			 * Fixed bugs in mapviewer/createFigure.py and mapviewer/helperFunctions.py 
+			 * Fixed bugs in mapviewer/createFigure.py and mapviewer/helperFunctions.py
 			 by changing all references of PyQT to PyQT5,
 			 * Fixed bug in mapviewer/plotData.py by changing np.int to np.int32
 
-V5.0	   2023-04-06	CHANGED:
+V5.0	    2023-04-06	CHANGED:
 			 * Created the ability to use multiple stellar template libraries in the one GIST
-             call. This will be useful is you for e.g. want to use one template set for 
+             call. This will be useful is you for e.g. want to use one template set for
 			 the stellar kinematics, and another for the emission lines and stellar populations.
-			 * MasterConfig.yaml now has a slightly different format, where you define the 
+			 * MasterConfig.yaml now has a slightly different format, where you define the
 			 template set used for each module individually.
-			
-V4.0.1	   2023-03-27	 FIXED:
-			* Fixed bug in MUSE_WFM.py to accept cubes with more than 2 
-			  extensions. 
+
+V4.0.1	    2023-03-27	 FIXED:
+			* Fixed bug in MUSE_WFM.py to accept cubes with more than 2
+			  extensions.
 			* Fixed calculation of SNR, which was done as median(flux)/median(error)
 			  but should be defined as median(flux/error)
-			* Updated spatialMasking default.py script to allow for using actual 
-			  SNR cutoff of spaxels instead of isophote based SNR. Two choices are 
-			  the default threshold_method = 'isophote' and threshold_method = 
+			* Updated spatialMasking default.py script to allow for using actual
+			  SNR cutoff of spaxels instead of isophote based SNR. Two choices are
+			  the default threshold_method = 'isophote' and threshold_method =
 			 'actual'. Two choices are NOT available within yaml file just yet.
-	                    
-V4.0	   2023-03-09	 First version of the gist-geckos pipeline! 
-			 CHANGED:
-			 * Updated the MasterConfig file to MasterConfig.yaml to make more 
-			 human-readable. This is now the input file to use.
-			 * Updated _initialise.py and main_pipeline.py to accept YAML.
-			 * New GIST call is: 
-			 gistPipeline --config configFiles/MasterConfig.yaml --default-dir configFiles/defaultDir
+
+V4.0	    2023-03-09	 First version of the gist-geckos pipeline!
+			CHANGED:
+			* Updated the MasterConfig file to MasterConfig.yaml to make more
+			  human-readable. This is now the input file to use.
+			* Updated _initialise.py and main_pipeline.py to accept YAML.
+			* New GIST call is:
+			  gistPipeline --config configFiles/MasterConfig.yaml --default-dir configFiles/defaultDir
 
 V3.1.0     2021-09-09    Last GIST version maintained by Adrian Bittner as Astronomer.
 			 FIXED:
 			  * Fixed bug in GAS plotting routine related to defunct spaxels
 
 V3.0.5     2021-05-28    FIXED:
-			  * Fixed bug in KIN plotting routine to work with both two and 
-			    four kinematic moments. Thanks to Geoff Chih-Fan Chen for 
-			    pointing out this issue. 
+			  * Fixed bug in KIN plotting routine to work with both two and
+			    four kinematic moments. Thanks to Geoff Chih-Fan Chen for
+			    pointing out this issue.
 
-V3.0.4     2021-03-19    FIXED: 
-			  * Replaced MUSE_WFMAO read-in routine by MUSE_WFMAON and 
-			    MUSE_WFMAOE to account for the distinct wavelength ranges 
+V3.0.4     2021-03-19    FIXED:
+			  * Replaced MUSE_WFMAO read-in routine by MUSE_WFMAON and
+			    MUSE_WFMAOE to account for the distinct wavelength ranges
 			    affected by the LGS facility in the nominal and extended modes
-			    of the MUSE wide-field mode. 
+			    of the MUSE wide-field mode.
 			    Thanks to Aishwarya Girdhar for pointing out this bug.
-			  * Fixed Mapviewer, gandalf.py, and gistPlot_kin.py to work with 
-			    only two kinematic moments. Thanks to Sebastien Comeron for 
-			    reporting these issues. 
-			  * Account for the correct de-redshifting of sky-masks in 
-			    pyGandALF. Thanks to Andrew Battisti for the suggestion. 
+			  * Fixed Mapviewer, gandalf.py, and gistPlot_kin.py to work with
+			    only two kinematic moments. Thanks to Sebastien Comeron for
+			    reporting these issues.
+			  * Account for the correct de-redshifting of sky-masks in
+			    pyGandALF. Thanks to Andrew Battisti for the suggestion.
 
-V3.0.3     2020-12-11    FIXED: 
+V3.0.3     2020-12-11    FIXED:
 			  * Change MUSE read-in routines to read pixelsize from header
-			  * Correct wavelength range affected by laser guide stars in MUSE 
+			  * Correct wavelength range affected by laser guide stars in MUSE
 			    adaptive optics read-in routines. Masking now extends to 6050A
-			  * Fixed Mapviewer to show wavelengths in Angstrom if only a 
+			  * Fixed Mapviewer to show wavelengths in Angstrom if only a
 			    plain spectrum (without any other analysis) is displayed.
-			    Thanks to Sebastien Comeron for pointing out these bugs. 
+			    Thanks to Sebastien Comeron for pointing out these bugs.
 
 V3.0.2     2020-10-19    FIXED:
 			  * Fixed typo in log-messages from read-in routines
 			  * Fixed bug in gandalf.py that prevented some output columns to
 			    be written to disk. Thanks to Andrew Battisti for pointing
-			    out these two issues. 
+			    out these two issues.
 
-V3.0.1     2020-09-03    CHANGED: 
-			  * Assure compatibility with pPXF version 7 by adopting the 
+V3.0.1     2020-09-03    CHANGED:
+			  * Assure compatibility with pPXF version 7 by adopting the
 			    _bvls_solve and nnls_flags from pPXF version 6 into pyGandALF.
-			    Thanks to Michele Cappellari for his permission to include 
-			    these functions. 
+			    Thanks to Michele Cappellari for his permission to include
+			    these functions.
 			  * Relaxed version dependencies of other packages in setup.py.
-			  * Changed the default value of the ftol parameter in pyGandALF 
+			  * Changed the default value of the ftol parameter in pyGandALF
 			    to 1e-5, in order to improve the reliability of the fit.
 
 V3.0       2020-08-20    Substantial revision and restructuring of the source code. Please
-			 consider the documentation for a detailed description of all 
-			 changes. 
+			 consider the documentation for a detailed description of all
+			 changes.
 
-V2.1       2020-04-06	 CHANGED: 
-			  * Changed definition of npad variable in Gandalf analogue 
-			    to PPXF. Thanks to Alireza Molaeinezhad for the suggestion. 
-			  * Check dimensions of templates at read-in to allow the use of 
-			    Miles stars. Thanks to Thomas Spriggs for the suggestion. 
-			  * Modified CALIFA read-in routines to pass variances in 
-			    error spectra. 
+V2.1       2020-04-06	 CHANGED:
+			  * Changed definition of npad variable in Gandalf analogue
+			    to PPXF. Thanks to Alireza Molaeinezhad for the suggestion.
+			  * Check dimensions of templates at read-in to allow the use of
+			    Miles stars. Thanks to Thomas Spriggs for the suggestion.
+			  * Modified CALIFA read-in routines to pass variances in
+			    error spectra.
 			 FIXED:
 			  * Added missing np.sqrt in the calculation of error spectra
-			    of bins consisting of single spaxels. Thanks to Sebastien 
-			    Comeron for reporting this bug. 
-			  * Neglect negative BIN_IDs in the calculation of the reference 
-			    velocity in Mapviewer. Thanks to Isabel Pérez. 
+			    of bins consisting of single spaxels. Thanks to Sebastien
+			    Comeron for reporting this bug.
+			  * Neglect negative BIN_IDs in the calculation of the reference
+			    velocity in Mapviewer. Thanks to Isabel Pérez.
 			  * Enable DEBUG-mode in read-in routines by passing shape of cube
-			    Thanks to Adriano Poci for reporting this bug. 
+			    Thanks to Adriano Poci for reporting this bug.
 			  * Mapviewer: Plot the spectrum of the nearest valid bin if a bin
-			    outside of the Voronoi-region is selected. 
-			    Thanks to Michela Rubino. 
+			    outside of the Voronoi-region is selected.
+			    Thanks to Michela Rubino.
 
-V2.0.0     2019-11-13    ADDED: 
+V2.0.0     2019-11-13    ADDED:
 			  * Support different wavelength ranges in different modules,
 			    including a separate wavelength range for the SNR calculation.
 			  * Support AO in MUSE wide- and narrow-field mode
-			    Thanks to Sebastien Comeron for the suggestion. 
+			    Thanks to Sebastien Comeron for the suggestion.
 			  * Support of sky-lines in spectralMasking_*.config
-			    Thanks to Sebastien Comeron for the suggestion. 
-			 CHANGED: 
+			    Thanks to Sebastien Comeron for the suggestion.
+			 CHANGED:
 			  * Propagate defunct spaxels through the pipeline
 
-V1.1.1     2019-10-31    FIXED: 
+V1.1.1     2019-10-31    FIXED:
 			  * Apply de-redshifting to laser wavelength range in MUSE_NFM.py
 			  * Apply de-redshifting to LSF
-			    Thanks to Sebastien Comeron for reporting these bugs. 
+			    Thanks to Sebastien Comeron for reporting these bugs.
 
-V1.1.0     2019-08-16    ADDED:   
+V1.1.0     2019-08-16    ADDED:
 			  * Allow different initial guesses for different bins in pPXF
-			    Thanks to Michela Rubino for the suggestion. 
+			    Thanks to Michela Rubino for the suggestion.
 			  * Read-in routine for single spectra in txt-format "PLAINTXT.py"
-	      	   	 FIXED:   
+	      	   	 FIXED:
 			  * spectralMasking_SFH.config to handle one or zero masks
 	      	   	  * Orientation of maps in plotting routines
 	      	   	  * GandALF taking into account the LSF in doublet lines
 	      	   	 CHANGED:
 			  * Use stellar kinematics as initial guess on GandALF fit
-	      	   	  * Use np.nansum instead of np.nanmean to co-add spectra into 
+	      	   	  * Use np.nansum instead of np.nanmean to co-add spectra into
 			    Voronoi-bins
 	      	   	  * Pass ORIGIN in units of pixels
 	      	   	 REMOVED:

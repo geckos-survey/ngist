@@ -78,9 +78,15 @@ def run_ppxf(
     printStatus.progressBar(i, nbins, barLength=50)
 
     try:
+
+        # normalise galaxy spectra and noise
+        median_log_bin_data = np.nanmedian(log_bin_data)
+        log_bin_error /= median_log_bin_data
+        log_bin_data /= median_log_bin_data
+
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
-            print("Running pPXF for the first time")
+            printStatus.running("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -243,6 +249,11 @@ def run_ppxf(
 
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
+
+        # add normalisation factor back in main results
+        pp.bestfit *= median_log_bin_data
+        if pp.reddening is not None:
+            pp.reddening *= median_log_bin_data
 
         return (
             pp.sol[:],

@@ -45,9 +45,9 @@ def getVoronoiBin(self):
 
 def dialogAbout(self):
     message = "{:10}\n{:10}\n\n{:10}".format(
-        "The GIST Pipeline",
+        "The nGIST Pipeline",
         "Version " + __version__,
-        "For a thorough documentation of this software package, please see https://abittner.gitlab.io/thegistpipeline",
+        "For a thorough documentation of this software package, please see https://geckos-survey.github.io/gist-documentation/",
     )
     pyqt.QMessageBox.about(self, "About", message)
 
