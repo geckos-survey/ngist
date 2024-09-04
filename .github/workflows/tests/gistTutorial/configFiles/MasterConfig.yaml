@@ -46,6 +46,7 @@ KIN :
   LMIN : 4800
   LMAX : 7000
   SIGMA : 200
+  BIAS : 'Auto'
   MOM : 4
   ADEG : 8
   MDEG : 0
@@ -127,3 +128,6 @@ LS :
   LIBRARY : 'MILES/'
   NORM_TEMP : 'LIGHT'
   
+# User module kinematics module
+UMOD :
+  METHOD : False

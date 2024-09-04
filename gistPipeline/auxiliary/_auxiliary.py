@@ -30,7 +30,7 @@ def getLSF(config, module_used):
     if module_used == "KIN":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["KIN"]["LSF_TEMP"]
-        )
+        )        
     elif module_used == "CONT":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["CONT"]["LSF_TEMP"]
@@ -46,6 +46,10 @@ def getLSF(config, module_used):
     elif module_used == "LS":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["LS"]["LSF_TEMP"]
+        )
+    if module_used == "UMOD":
+        lsfTempFile = os.path.join(
+            config["GENERAL"]["CONFIG_DIR"], config["UMOD"]["LSF_TEMP"]
         )
     LSF = np.genfromtxt(lsfDataFile, comments="#")
     LSF[:, 0] = LSF[:, 0] / (1 + config["GENERAL"]["REDSHIFT"])
@@ -123,12 +127,12 @@ def addGISTHeaderComment(config):
     filelist = glob.glob(os.path.join(config["GENERAL"]["OUTPUT"], "*.fits"))
 
     for file in filelist:
-        if "Generated with the gist-geckos pipeline" not in str(fits.getheader(file)):
+        if "Generated with the nGIST pipeline" not in str(fits.getheader(file)):
             fits.setval(file, "COMMENT", value="", ext=0)
             fits.setval(
                 file,
                 "COMMENT",
-                value="                Generated with the gist-geckos pipeline , V"
+                value="                Generated with the nGIST pipeline , V"
                 + __version__
                 + "                  ",
                 ext=0,

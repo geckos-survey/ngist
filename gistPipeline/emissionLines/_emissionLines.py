@@ -47,6 +47,18 @@ def emissionLines_Module(config):
                 "Results of the module are already in the output directory. Module is skipped."
             )
             printStatus.done("Results are already available. Module is skipped.")
+
+            #check if AllSpectra.fits exists and if so remove it.
+            AllSpectra_file = (os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) 
+            + "_AllSpectra.fits")
+            if os.path.exists(AllSpectra_file):    
+                printStatus.warning(
+                    "Removing the AllSpectra.fits file to save space"
+                )
+                os.remove(
+                    AllSpectra_file
+                    )        
+    
             return None
     elif config["GAS"]["LEVEL"] == "BOTH":
         if (
@@ -103,6 +115,17 @@ def emissionLines_Module(config):
         printStatus.failed(message + " See LOGFILE for further information.")
         logging.critical(message)
         return "SKIP"
+
+     # Remove AllSpectra file which is now no longer needed and takes up a lot of space
+    if config["GAS"]["LEVEL"] == "SPAXEL":
+        printStatus.warning(
+            "Removing the AllSpectra.fits file to save space"
+        )
+        os.remove(
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_AllSpectra.fits"
+            )        
+
 
     # Return
     return None
