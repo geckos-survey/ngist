@@ -44,11 +44,19 @@ def stellarKinematics_Module(config):
             "",
             os.path.dirname(os.path.realpath(__file__))
             + "/"
+<<<<<<< HEAD
+            + config["KIN"]["METHOD"]
+            + "_kin_wrapper.py",
+        )
+        logging.info(
+            "Using the stellarKinematics routine '" + config["KIN"]["METHOD"] + "_kin_wrapper.py'"
+=======
             + config_use
             + ".py",
         )
         logging.info(
             "Using the stellarKinematics routine '" + config_use + ".py'"
+>>>>>>> upstream/main
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -56,8 +64,13 @@ def stellarKinematics_Module(config):
         logging.critical(e, exc_info=True)
         message = (
             "Failed to import the stellarKinematics routine '"
+<<<<<<< HEAD
+            + config["KIN"]["METHOD"]
+            + "_kin_wrapper.py'"
+=======
             + config_use
             + ".py'"
+>>>>>>> upstream/main
         )
         printStatus.failed(message)
         logging.critical(message)
@@ -70,7 +83,11 @@ def stellarKinematics_Module(config):
     except Exception as e:
         logging.critical(e, exc_info=True)
         message = (
+<<<<<<< HEAD
+            "stellarKinematics routine '" + config["KIN"]["METHOD"] + "_kin_wrapper.py' failed."
+=======
             "stellarKinematics routine '" + config_use + ".py' failed."
+>>>>>>> upstream/main
         )
         printStatus.failed(message + " See LOGFILE for further information.")
         logging.critical(message)
