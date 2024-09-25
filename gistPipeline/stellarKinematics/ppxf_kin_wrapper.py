@@ -3,15 +3,15 @@ import logging
 import os
 import time
 
+import h5py
 import numpy as np
 from astropy.io import fits
 from astropy.stats import biweight_location
-from multiprocess import Process, Queue
-from ppxf.ppxf import ppxf
-from printStatus import printStatus
-
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.prepareTemplates import _prepareTemplates
+from joblib import Parallel, delayed, dump, load
+from ppxf.ppxf import ppxf
+from printStatus import printStatus
 
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
@@ -47,86 +47,12 @@ def robust_sigma(y, zero=False):
 
     return sigma
 
-
-def workerPPXF(inQueue, outQueue):
-    """
-    Defines the worker process of the parallelisation with multiprocessing.Queue
-    and multiprocessing.Process.
-    """
-    for (
-        templates,
-        bin_data,
-        noise,
-        velscale,
-        start,
-        bias,
-        goodPixels_ppxf,
-        nmoments,
-        adeg,
-        mdeg,
-        reddening,
-        doclean,
-        logLam,
-        offset,
-        velscale_ratio,
-        nsims,
-        nbins,
-        i,
-        optimal_template_in,
-    ) in iter(inQueue.get, "STOP"):
-        (
-            sol,
-            ppxf_reddening,
-            bestfit,
-            optimal_template,
-            mc_results,
-            formal_error,
-            spectral_mask,
-            snr_postfit,
-        ) = run_ppxf(
-            templates,
-            bin_data,
-            noise,
-            velscale,
-            start,
-            bias,
-            goodPixels_ppxf,
-            nmoments,
-            adeg,
-            mdeg,
-            reddening,
-            doclean,
-            logLam,
-            offset,
-            velscale_ratio,
-            nsims,
-            nbins,
-            i,
-            optimal_template_in,
-        )
-
-        outQueue.put(
-            (
-                i,
-                sol,
-                ppxf_reddening,
-                bestfit,
-                optimal_template,
-                mc_results,
-                formal_error,
-                spectral_mask,
-                snr_postfit,
-            )
-        )
-
-
 def run_ppxf(
     templates,
     log_bin_data,
     log_bin_error,
     velscale,
     start,
-    bias,
     goodPixels,
     nmoments,
     adeg,
@@ -150,18 +76,9 @@ def run_ppxf(
     printStatus.progressBar(i, nbins, barLength=50)
 
     try:
-
-        # normalise galaxy spectra and noise
-        median_log_bin_data = np.nanmedian(log_bin_data)
-        log_bin_error /= median_log_bin_data
-        log_bin_data /= median_log_bin_data
-
-        #calculate the snr before the fit (may be used for bias)
-        snr_prefit = np.nanmedian(log_bin_data/log_bin_error)
-
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
-            printStatus.running("Running pPXF for the first time")
+            print("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -169,7 +86,7 @@ def run_ppxf(
                 velscale,
                 start,
                 goodpixels=goodPixels,
-                plot=False,
+                plot=True,
                 quiet=True,
                 moments=nmoments,
                 degree=adeg,
@@ -251,29 +168,18 @@ def run_ppxf(
                 noise_new = log_bin_error * (noise_est / noise_orig)
                 noise_new_std = robust_sigma(noise_new)
 
-            # A fix for the noise issue where a single high S/N spaxel
+            # A temporary fix for the noise issue where a single high S/N spaxel
             # causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est - noise_new_std)] = noise_est
 
             ################ 3 ##################
             # Third Call PPXF - use all templates, get best-fit
-            if bias == 'muse_snr_prefit':
-                bias = 0.01584469*snr_prefit**0.54639427 - 0.01687899
-            elif bias == 'muse':
-                # recalculate the snr
-                snr_step2 = np.nanmedian(log_bin_data[goodPixels]/noise_new[goodPixels])
-                bias = 0.01584469*snr_step2**0.54639427 - 0.01687899
-            else:
-                bias = bias
-
-            
             pp = ppxf(
                 templates,
                 log_bin_data,
                 noise_new,
                 velscale,
                 start,
-                bias,
                 goodpixels=goodPixels,
                 plot=False,
                 quiet=True,
@@ -293,17 +199,9 @@ def run_ppxf(
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
 
-        # Calculate the true S/N from the residual the long version
-        #noise_est_final = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
-        #noise_orig = biweight_location(log_bin_error[goodPixels])
-        #noise_final = log_bin_error * (noise_est_final / noise_orig)
-        #noise_final_std = robust_sigma(noise_final)
-        #noise_final[np.where(noise_final <= noise_est_final - noise_final_std)] = noise_est_final
-        #snr_postfit = np.nanmedian(pp.galaxy[goodPixels]/noise_final[goodPixels])
-        
-        # Calculate the true S/N from the residual the short version
+        # Calculate the true S/N from the residual
         noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
-        snr_postfit = np.nanmedian(pp.galaxy[goodPixels]/noise_est)
+        snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
 
         # Make the unconvolved optimal stellar template
         normalized_weights = pp.weights / np.sum(pp.weights)
@@ -347,11 +245,6 @@ def run_ppxf(
 
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
-
-        # add normalisation factor back in main results
-        pp.bestfit *= median_log_bin_data
-        if pp.reddening is not None:
-            pp.reddening *= median_log_bin_data
 
         return(
             pp.sol[:],
@@ -450,7 +343,6 @@ def save_ppxf(
 
     # Add True SNR calculated from residual
     cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
-
 
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "KIN_DATA"
@@ -604,7 +496,6 @@ def save_ppxf(
     )
     logging.info("Wrote: " + outfits)
 
-
 def extractStellarKinematics(config):
     """
     Perform the measurement of stellar kinematics, using the pPXF routine. This
@@ -612,38 +503,29 @@ def extractStellarKinematics(config):
     saves the outputs following the GIST conventions.
     """
     # Read data from file
-    hdu = fits.open(
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_BinSpectra.fits"
-    )
-    bin_data = np.array(hdu[1].data.SPEC.T)
-    bin_err = np.array(hdu[1].data.ESPEC.T)
-    logLam = np.array(hdu[2].data.LOGLAM)
-    idx_lam = np.where(
+    infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"
+    printStatus.running("Reading: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5")
+    
+    # Open the HDF5 file
+    with h5py.File(infile, 'r') as f:
+        
+        # Read the data from the file
+        logLam = f['LOGLAM'][:]
+        idx_lam = np.where(
         np.logical_and(
             np.exp(logLam) > config["KIN"]["LMIN"],
             np.exp(logLam) < config["KIN"]["LMAX"],
         )
-    )[0]
-    bin_data = bin_data[idx_lam, :]
-    bin_err = bin_err[idx_lam, :]
+        )[0]
+
+        bin_data = f['SPEC'][:][idx_lam, :]
+        bin_err = f['ESPEC'][:][idx_lam, :]
+        velscale = f.attrs['VELSCALE']
+    
     logLam = logLam[idx_lam]
     npix = bin_data.shape[0]
     nbins = bin_data.shape[1]
     ubins = np.arange(0, nbins)
-    velscale = hdu[0].header["VELSCALE"]
-
-    # Define bias value (even if moments == 2, because keyword needs to be passed on)
-    if config["KIN"]["BIAS"] == 'Auto': # 'Auto' setting: bias=None
-        bias = None
-    elif config["KIN"]["BIAS"] != 'Auto':
-        bias = config["KIN"]["BIAS"]
-
-    # Test if bias is either a None or a float
-    if (bias != None) & (bias != 'muse') & (bias != 'muse_snr_prefit') & \
-        (isinstance(bias, int) == False) & (isinstance(bias, float) == False):
-        printStatus.warning("Wrong Bias keyword, setting to None")
-        bias = None
 
     # Read LSF information
 
@@ -746,7 +628,6 @@ def extractStellarKinematics(config):
         comb_espec,
         velscale,
         start[0, :],
-        bias,
         goodPixels_ppxf,
         config["KIN"]["MOM"],
         config["KIN"]["ADEG"],
@@ -770,31 +651,33 @@ def extractStellarKinematics(config):
     if config["GENERAL"]["PARALLEL"] == True:
         printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
+        
+        # Prepare the folder where the memmap will be dumped
+        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
 
-        # Create Queues
-        inQueue = Queue()
-        outQueue = Queue()
+        # dump the arrays and load as memmap
+        templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
+        dump(templates, templates_filename_memmap)
+        templates = load(templates_filename_memmap, mmap_mode='r')
+        
+        bin_data_filename_memmap = memmap_folder + "/bin_data_memmap.tmp"
+        dump(bin_data, bin_data_filename_memmap)
+        bin_data = load(bin_data_filename_memmap, mmap_mode='r')
+        
+        noise_filename_memmap = memmap_folder + "/noise_memmap.tmp"
+        dump(noise, noise_filename_memmap)
+        noise = load(noise_filename_memmap, mmap_mode='r')
 
-        # Create worker processes
-        ps = [
-            Process(target=workerPPXF, args=(inQueue, outQueue))
-            for _ in range(config["GENERAL"]["NCPU"])
-        ]
-
-        # Start worker processes
-        for p in ps:
-            p.start()
-
-        # Fill the queue
-        for i in range(nbins):
-            inQueue.put(
-                (
+        # Define a function to encapsulate the work done in the loop
+        def worker(chunk, templates):
+            results = []
+            for i in chunk:
+                result = run_ppxf(
                     templates,
                     bin_data[:, i],
                     noise[:, i],
                     velscale,
                     start[i, :],
-                    bias,
                     goodPixels_ppxf,
                     config["KIN"]["MOM"],
                     config["KIN"]["ADEG"],
@@ -809,42 +692,29 @@ def extractStellarKinematics(config):
                     i,
                     optimal_template_comb,
                 )
-            )
+                results.append(result)
+            return results
 
-        # now get the results with indices
-        ppxf_tmp = [outQueue.get() for _ in range(nbins)]
+        # Use joblib to parallelize the work
+        max_nbytes = "1M" # max array size before memory mapping is triggered
+        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c"}
+        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
 
-        # send stop signal to stop iteration
-        for _ in range(config["GENERAL"]["NCPU"]):
-            inQueue.put("STOP")
+        # Flatten the results
+        ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
 
-        # stop processes
-        for p in ps:
-            p.join()
-
-        # Get output
-        index = np.zeros(nbins)
+        # Unpack results
         for i in range(0, nbins):
-            index[i] = ppxf_tmp[i][0]
-            ppxf_result[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][1]
-            ppxf_reddening[i] = ppxf_tmp[i][2]
-            ppxf_bestfit[i, :] = ppxf_tmp[i][3]
-            optimal_template[i, :] = ppxf_tmp[i][4]
-            mc_results[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][5]
-            formal_error[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][6]
-            spectral_mask[i, :] = ppxf_tmp[i][7]
-            snr_postfit[i] = ppxf_tmp[i][8]
-
-        # Sort output
-        argidx = np.argsort(index)
-        ppxf_result = ppxf_result[argidx, :]
-        ppxf_reddening = ppxf_reddening[argidx]
-        ppxf_bestfit = ppxf_bestfit[argidx, :]
-        optimal_template = optimal_template[argidx, :]
-        mc_results = mc_results[argidx, :]
-        formal_error = formal_error[argidx, :]
-        spectral_mask = spectral_mask[argidx, :]
-        snr_postfit = snr_postfit[argidx]
+            ppxf_result[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][0]
+            ppxf_reddening[i] = ppxf_tmp[i][1]
+            ppxf_bestfit[i, :] = ppxf_tmp[i][2]
+            optimal_template[i, :] = ppxf_tmp[i][3]
+            mc_results[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][4]
+            formal_error[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][5]
+            spectral_mask[i, :] = ppxf_tmp[i][6]
+            snr_postfit[i] = ppxf_tmp[i][7]
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
@@ -868,7 +738,6 @@ def extractStellarKinematics(config):
                 noise[:, i],
                 velscale,
                 start[i, :],
-                bias,
                 goodPixels_ppxf,
                 config["KIN"]["MOM"],
                 config["KIN"]["ADEG"],

@@ -30,10 +30,9 @@ import matplotlib
 
 matplotlib.use("pdf")
 
-from printStatus import printStatus
-
 from gistPipeline._version import __version__
 from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.continuumCube import _continuumCube
 from gistPipeline.emissionLines import _emissionLines
 from gistPipeline.initialise import _initialise
 from gistPipeline.lineStrengths import _lineStrengths
@@ -43,12 +42,12 @@ from gistPipeline.spatialBinning import _spatialBinning
 from gistPipeline.spatialMasking import _spatialMasking
 from gistPipeline.starFormationHistories import _starFormationHistories
 from gistPipeline.stellarKinematics import _stellarKinematics
-from gistPipeline.continuumCube import _continuumCube
 from gistPipeline.userModules import _userModules
+from printStatus import printStatus
 
 
 def skipGalaxy(config):
-    _auxiliary.addGISTHeaderComment(config)
+    # _auxiliary.addGISTHeaderComment(config)
     printStatus.module("The GIST pipeline")
     printStatus.failed("Galaxy is skipped!")
     logging.critical("Galaxy is skipped!")
@@ -169,7 +168,7 @@ def runGIST(dirPath, galindex):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # Branding
-    _auxiliary.addGISTHeaderComment(config)
+    # _auxiliary.addGISTHeaderComment(config)
 
     # Goodbye
     printStatus.module("nGIST pipeline")
