@@ -80,15 +80,15 @@ def run_ppxf(
 
         # normalise galaxy spectra and noise
         median_log_bin_data = np.nanmedian(log_bin_data)
-        log_bin_error = log_bin_error / 1
-        log_bin_data = log_bin_data / 1
+        log_bin_error = log_bin_error / median_log_bin_data
+        log_bin_data = log_bin_data / median_log_bin_data
 
         #calculate the snr before the fit (may be used for bias)
         snr_prefit = np.nanmedian(log_bin_data/log_bin_error)
 
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
-            print("Running pPXF for the first time")
+            printStatus.running("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -178,7 +178,7 @@ def run_ppxf(
                 noise_new = log_bin_error * (noise_est / noise_orig)
                 noise_new_std = robust_sigma(noise_new)
 
-            # A temporary fix for the noise issue where a single high S/N spaxel
+            # A fix for the noise issue where a single high S/N spaxel
             # causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est - noise_new_std)] = noise_est
 
@@ -220,9 +220,17 @@ def run_ppxf(
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
 
-        # Calculate the true S/N from the residual
+        # Calculate the true S/N from the residual the long version
+        #noise_est_final = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
+        #noise_orig = biweight_location(log_bin_error[goodPixels])
+        #noise_final = log_bin_error * (noise_est_final / noise_orig)
+        #noise_final_std = robust_sigma(noise_final)
+        #noise_final[np.where(noise_final <= noise_est_final - noise_final_std)] = noise_est_final
+        #snr_postfit = np.nanmedian(pp.galaxy[goodPixels]/noise_final[goodPixels])
+        
+        # Calculate the true S/N from the residual the short version
         noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
-        snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
+        snr_postfit = np.nanmedian(pp.galaxy[goodPixels]/noise_est)
 
         # Make the unconvolved optimal stellar template
         normalized_weights = pp.weights / np.sum(pp.weights)
