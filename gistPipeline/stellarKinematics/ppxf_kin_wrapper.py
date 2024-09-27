@@ -53,6 +53,7 @@ def run_ppxf(
     log_bin_error,
     velscale,
     start,
+    bias,
     goodPixels,
     nmoments,
     adeg,
@@ -76,6 +77,15 @@ def run_ppxf(
     printStatus.progressBar(i, nbins, barLength=50)
 
     try:
+
+        # normalise galaxy spectra and noise
+        median_log_bin_data = np.nanmedian(log_bin_data)
+        log_bin_error = log_bin_error / 1
+        log_bin_data = log_bin_data / 1
+
+        #calculate the snr before the fit (may be used for bias)
+        snr_prefit = np.nanmedian(log_bin_data/log_bin_error)
+
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
             print("Running pPXF for the first time")
@@ -86,7 +96,7 @@ def run_ppxf(
                 velscale,
                 start,
                 goodpixels=goodPixels,
-                plot=True,
+                plot=False,
                 quiet=True,
                 moments=nmoments,
                 degree=adeg,
@@ -174,12 +184,23 @@ def run_ppxf(
 
             ################ 3 ##################
             # Third Call PPXF - use all templates, get best-fit
+
+            if bias == 'muse_snr_prefit':
+                bias = 0.01584469*snr_prefit**0.54639427 - 0.01687899
+            elif bias == 'muse':
+                # recalculate the snr
+                snr_step2 = np.nanmedian(log_bin_data[goodPixels]/noise_new[goodPixels])
+                bias = 0.01584469*snr_step2**0.54639427 - 0.01687899
+            else:
+                bias = bias
+
             pp = ppxf(
                 templates,
                 log_bin_data,
                 noise_new,
                 velscale,
                 start,
+                bias=bias,
                 goodpixels=goodPixels,
                 plot=False,
                 quiet=True,
@@ -245,6 +266,11 @@ def run_ppxf(
 
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
+
+        # add normalisation factor back in main results
+        pp.bestfit = pp.bestfit * median_log_bin_data
+        if pp.reddening is not None:
+            pp.reddening = pp.reddening * median_log_bin_data
 
         return(
             pp.sol[:],
@@ -527,6 +553,19 @@ def extractStellarKinematics(config):
     nbins = bin_data.shape[1]
     ubins = np.arange(0, nbins)
 
+    # Define bias value (even if moments == 2, because keyword needs to be passed on)
+    if config["KIN"]["BIAS"] == 'Auto': # 'Auto' setting: bias=None
+        bias = None
+    elif config["KIN"]["BIAS"] != 'Auto':
+        bias = config["KIN"]["BIAS"]
+
+    # Test if bias is either a None or a float
+    if (bias != None) & (bias != 'muse') & (bias != 'muse_snr_prefit') & \
+        (isinstance(bias, int) == False) & (isinstance(bias, float) == False):
+        printStatus.warning("Wrong Bias keyword, setting to None")
+        bias = None
+
+
     # Read LSF information
 
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "KIN")  # added input of module
@@ -628,6 +667,7 @@ def extractStellarKinematics(config):
         comb_espec,
         velscale,
         start[0, :],
+        bias,
         goodPixels_ppxf,
         config["KIN"]["MOM"],
         config["KIN"]["ADEG"],
@@ -678,6 +718,7 @@ def extractStellarKinematics(config):
                     noise[:, i],
                     velscale,
                     start[i, :],
+                    bias,
                     goodPixels_ppxf,
                     config["KIN"]["MOM"],
                     config["KIN"]["ADEG"],
@@ -716,13 +757,17 @@ def extractStellarKinematics(config):
             spectral_mask[i, :] = ppxf_tmp[i][6]
             snr_postfit[i] = ppxf_tmp[i][7]
 
+        # Read in ppxf_tmp from file
+        import pickle
+        with open('ppxf_tmp_optimize.pkl', 'wb') as f:
+            pickle.dump(ppxf_tmp, f)
+        
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
         for i in range(0, nbins):
-            # for i in range(1, 2):
             (
                 ppxf_result[i, : config["KIN"]["MOM"]],
                 ppxf_reddening[i],
@@ -738,6 +783,7 @@ def extractStellarKinematics(config):
                 noise[:, i],
                 velscale,
                 start[i, :],
+                bias,
                 goodPixels_ppxf,
                 config["KIN"]["MOM"],
                 config["KIN"]["ADEG"],
