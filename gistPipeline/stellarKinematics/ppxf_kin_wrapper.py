@@ -764,11 +764,6 @@ def extractStellarKinematics(config):
             formal_error[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][5]
             spectral_mask[i, :] = ppxf_tmp[i][6]
             snr_postfit[i] = ppxf_tmp[i][7]
-
-        # Read in ppxf_tmp from file
-        import pickle
-        with open('ppxf_tmp_optimize.pkl', 'wb') as f:
-            pickle.dump(ppxf_tmp, f)
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
 
