@@ -35,16 +35,16 @@ def age_metal_alpha(passedFiles):
         elif "p" in metal:
             metal = float(metal[1:])
         else:
-            raise ValueError("             This is not a standard MILES filename")
+            raise ValueError("This is not a standard MILES filename")
 
         # Alpha
         if s.find("baseFe") == -1:
             EMILES = False
-            logging.info("EMILES=False")
+            # logging.info("EMILES=False")
 
         elif s.find("baseFe") != -1:
             EMILES = True
-            logging.info("EMILES=True")
+            # logging.info("EMILES=True")
 
 
         if EMILES == False:
