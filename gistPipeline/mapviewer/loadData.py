@@ -105,11 +105,28 @@ def loadData(self):
     _, idxConvertShortToLong = np.unique(np.abs(self.table.BIN_ID), return_inverse=True)
 
     # Read spectra
-    self.Spectra = fits.open(self.dirprefix + "_BinSpectra.fits")[1].data.SPEC
-    self.Lambda = fits.open(self.dirprefix + "_BinSpectra.fits")[2].data.LOGLAM
+    hdf5_file = self.dirprefix + "_BinSpectra.h5"
+    fits_file = self.dirprefix + "_BinSpectra.fits"
+
+    if os.path.isfile(hdf5_file):
+        with h5py.File(hdf5_file, 'r') as f:
+            self.Spectra = f['SPEC'][:]
+            self.Lambda = f['LOGLAM'][:]
+    else:
+        self.Spectra = fits.open(fits_file)[1].data.SPEC
+        self.Lambda = fits.open(fits_file)[2].data.LOGLAM
+
     nbins = self.Spectra.shape[0]
+
     if self.gasLevel == "SPAXEL":
-        self.AllSpectra = fits.open(self.dirprefix + "_AllSpectra.fits")[1].data.SPEC
+        hdf5_file = self.dirprefix + "_AllSpectra.h5"
+        fits_file = self.dirprefix + "_AllSpectra.fits"
+
+        if os.path.isfile(hdf5_file):
+            with h5py.File(hdf5_file, 'r') as f:
+                self.AllSpectra = f['SPEC'][:]
+        else:
+            self.AllSpectra = fits.open(fits_file)[1].data.SPEC
 
     # Read mask
     if self.MASK == True:
