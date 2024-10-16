@@ -47,5 +47,7 @@ jobs:
           # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Checking the pipline runs NGC 0000
         run: gistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_ubuntu
+      - name: Print logfile
+        run: cat /home/runner/work/ngist/ngist/*/*LOGFILE*
       - name: Checking pipeline results
         run: python ./.github/workflows/tests/check_outputs.py
