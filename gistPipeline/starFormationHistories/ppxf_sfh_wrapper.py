@@ -709,10 +709,11 @@ def extractStarFormationHistories(config):
             idx_lam = np.where(np.logical_and(np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX']))[0]
 
             # Read the SPEC and ESPEC data from the file, only for the selected indices
-            galaxy = hdul[1].data['SPEC'][:, idx_lam].T
             bin_data = hdul[1].data['SPEC'].T[idx_lam, :]
             bin_err = hdul[1].data['ESPEC'].T[idx_lam, :]
             logLam = logLam[idx_lam]
+            nbins = bin_data.shape[1]
+            npix = bin_data.shape[0]
     else:
         logging.info(f"Using regular spectra without any emission-correction at {bin_spectra_file}")
         printStatus.done("Using regular spectra without any emission-correction")
@@ -724,14 +725,13 @@ def extractStarFormationHistories(config):
             idx_lam = np.where(np.logical_and(np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX']))[0]
 
             # Read the SPEC and ESPEC data from the file, only for the selected indices
-            galaxy = f['SPEC'][idx_lam, :].T
             bin_data = f['SPEC'][idx_lam, :]
             bin_err = f['ESPEC'][idx_lam, :]
             logLam = logLam[idx_lam]
 
     # Define additional variables
-    nbins = galaxy.shape[0]
-    npix = galaxy.shape[1]
+    nbins = bin_data.shape[1]
+    npix = bin_data.shape[0]
     ubins = np.arange(nbins)
     noise = np.full(npix, config['SFH']['NOISE'])
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
