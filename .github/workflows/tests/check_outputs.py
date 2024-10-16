@@ -3,7 +3,7 @@ import os
 # home_dir = os.path.expanduser('~')
 
 # print(home_dir)
-output_dir = f"./.github/workflows/tests/gistTutorial/results/./NGC0000Example"
+output_dir = f"./.github/workflows/tests/gistTutorial/results/NGC0000Example"
 
 with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
