@@ -8,7 +8,7 @@ from astropy.io import ascii, fits
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.lineStrengths import lsindex_spec as lsindex
 from gistPipeline.lineStrengths import ssppop_fitting as ssppop
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, dump, load
 from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 
@@ -17,7 +17,7 @@ cvel = 299792.458
 
 """
 PURPOSE:
-  This module executes the measurement of line strength indices
+  This module executes the measurement of line strength indices in the pipeline.
   Basically, it acts as an interface between pipeline and the line strength
   measurement routines of Kuntschner et al. 2006
   (ui.adsabs.harvard.edu/?#abs/2006MNRAS.369..497K) and their conversion to
@@ -96,7 +96,7 @@ def run_ls(
             data[o] = indices[idx]
             error[o] = errors[idx]
 
-        if MCMC is True:
+        if MCMC == True:
             # Run the conversion of LS indices to SSP properties
             vals = np.zeros(len(labels) * 3 + 2)
             chains = np.zeros(
@@ -122,13 +122,13 @@ def run_ls(
 
             return (indices, errors, vals, percentiles)
 
-        elif MCMC is False:
+        elif MCMC == False:
             return (indices, errors)
 
-    except: # We should not be using a bare accept!
-        if MCMC is True:
+    except:
+        if MCMC == True:
             return (np.nan, np.nan, np.nan, np.nan)
-        elif MCMC is False:
+        elif MCMC == False:
             return (np.nan, np.nan)
 
 
@@ -169,7 +169,7 @@ def save_ls(
 
     # Extension 1: Table HDU with results
     cols = []
-    if MCMC is True:
+    if MCMC == True:
         nparam = len(labels)
         for i in range(nparam):
             cols.append(
@@ -180,9 +180,9 @@ def save_ls(
 
     ndim = len(names)
     for i in range(ndim):
-        if np.any(np.isnan(ls_indices[:, i])) is False:
+        if np.any(np.isnan(ls_indices[:, i])) == False:
             cols.append(fits.Column(name=names[i], format="D", array=ls_indices[:, i]))
-        if np.any(np.isnan(ls_errors[:, i])) is False:
+        if np.any(np.isnan(ls_errors[:, i])) == False:
             cols.append(
                 fits.Column(name="ERR_" + names[i], format="D", array=ls_errors[:, i])
             )
@@ -191,7 +191,7 @@ def save_ls(
     lsHDU.name = "LS_DATA"
 
     # Extension 2: Table HDU with percentiles
-    if MCMC is True:
+    if MCMC == True:
         cols = []
         nparam = len(labels)
         for i in range(nparam):
@@ -206,9 +206,9 @@ def save_ls(
         percentilesHDU.anem = "PERCENTILES"
 
     # Create HDUList
-    if MCMC is False:
+    if MCMC == False:
         HDUList = fits.HDUList([priHDU, lsHDU])
-    elif MCMC is True:
+    elif MCMC == True:
         HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU])
 
     # Write HDU list to file
@@ -291,10 +291,10 @@ def log_unbinning(lamRange, spec, oversample=1, flux=True):
         a = (newBorders[j] - borders[k[j]]) / dLam
         b = (borders[k[j + 1]] - newBorders[j + 1]) / dLam
 
-        specNew[j] = np.sum(spec[k[j]:k[j + 1]]) - a * spec[k[j]] - b * spec[k[j + 1]]
+        specNew[j] = np.sum(spec[k[j] : k[j + 1]]) - a * spec[k[j]] - b * spec[k[j + 1]]
 
     # Rescale flux
-    if flux is True:
+    if flux == True:
         specNew = (
             specNew
             / (newBorders[1:] - newBorders[:-1])
@@ -338,14 +338,14 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
             + "_ls-cleaned_linear.fits"
         )
-        is False) or (config["GENERAL"]["OW_OUTPUT"] is True):
+        == False) or (config["GENERAL"]["OW_OUTPUT"] == True):
         # Read spectra
         if (
             os.path.isfile(
                 os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
                 + "_gas-cleaned_BIN.fits"
             )
-            is True
+            == True
         ):
             logging.info(
                 "Using emission-subtracted spectra at "
@@ -374,13 +374,14 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                 binned_spec_data = f["SPEC"][:].T
                 binned_loglam_data = f["LOGLAM"][:]
         
+        
         with h5py.File(
                 os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
                 + "_BinSpectra.hdf5",
                 "r",
             ) as errorf:
-            binned_espec_data = errorf["ESPEC"][:].T
-            binned_eloglam_data = errorf["LOGLAM"][:].T
+                binned_espec_data = errorf["ESPEC"][:].T
+                binned_eloglam_data = errorf["LOGLAM"][:].T
                 
         idx_lamMin = np.where(binned_loglam_data[0] == binned_eloglam_data)[0]
         idx_lamMax = np.where(binned_loglam_data[-1] == binned_eloglam_data)[
@@ -434,7 +435,6 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         espec = np.array(hdu[1].data.ESPEC)
         wave = np.array(hdu[2].data.LAM)
         nbins = spec.shape[0]
-        npix = spec.shape[1]
 
     # Read PPXF results
     ppxf_data = fits.open(
@@ -478,7 +478,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             sigma = (FWHM_dif / wave) * cvel / 2.355 / velscale
 
             # Flag spectrum if the total intrinsic dispersion is larger than the LIS measurement resolution
-            idx = np.where(np.isnan(sigma) is True)[0]
+            idx = np.where(np.isnan(sigma) == True)[0]
             if len(idx) > 0:
                 sigma[idx] = 0.0
                 totalFWHM_flag[i] = 1
@@ -495,25 +495,25 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     index_names = tab["names"][idx].tolist()
 
     # Loading model predictions
-    if MCMC is True:
+    if MCMC == True:
         modelfile = os.path.join(
             config["GENERAL"]["TEMPLATE_DIR"], config["LS"]["SPP_FILE"]
         )
         model_indices, params, tri, labels = ssppop.load_models(modelfile, index_names)
         logging.info("Loading LS model file at " + modelfile)
-    elif MCMC is False:
+    elif MCMC == False:
         model_indices, params, tri, labels = "dummy", "dummy", "dummy", "dummy"
 
     # Arrays to store results
     ls_indices = np.zeros((nbins, len(names)))
     ls_errors = np.zeros((nbins, len(names)))
-    if MCMC is True:
+    if MCMC == True:
         vals = np.zeros((nbins, len(labels) * 3 + 2))
         percentile = np.zeros((nbins, 101, len(labels)))
 
     # Run LS Measurements
     start_time = time.time()
-    if config["GENERAL"]["PARALLEL"] is True:
+    if config["GENERAL"]["PARALLEL"] == True:
         printStatus.running("Running lineStrengths in parallel mode")
         logging.info("Running lineStrengths in parallel mode")
 
@@ -565,18 +565,18 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         
         for i in range(0, nbins): 
             ls_indices[i, :], ls_errors[i, :], *extra = ppxf_tmp[i]
-            if MCMC is True:
+            if MCMC == True:
                 vals[i, :], percentile[i, :, :] = extra
             
         printStatus.updateDone(
             "Running lineStrengths in parallel mode", progressbar=True
         )
 
-    if config["GENERAL"]["PARALLEL"] is False:
+    if config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running lineStrengths in serial mode")
         logging.info("Running lineStrengths in serial mode")
 
-        if MCMC is True:
+        if MCMC == True:
             for i in range(nbins):
                 (
                     ls_indices[i, :],
@@ -600,7 +600,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                     i,
                     MCMC,
                 )
-        elif MCMC is False:
+        elif MCMC == False:
             for i in range(nbins):
                 ls_indices[i, :], ls_errors[i, :] = run_ls(
                     wave,
@@ -632,7 +632,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     )
 
     # Check for exceptions which occurred during the analysis
-    idx_error = np.where(np.all(np.isnan(ls_indices[:, :]), axis=1) is True)[0]
+    idx_error = np.where(np.all(np.isnan(ls_indices[:, :]), axis=1) == True)[0]
     if len(idx_error) != 0:
         printStatus.warning(
             "There was a problem in the analysis of the spectra with the following BINID's: "
@@ -648,7 +648,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     print("")
 
     # Save Results
-    if MCMC is True:
+    if MCMC == True:
         save_ls(
             names,
             ls_indices,
@@ -662,7 +662,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             vals=vals,
             percentile=percentile,
         )
-    elif MCMC is False:
+    elif MCMC == False:
         save_ls(
             names,
             ls_indices,
