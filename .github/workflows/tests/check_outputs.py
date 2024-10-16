@@ -1,8 +1,9 @@
 import os
-home_dir = os.path.expanduser('~')
 
-print(home_dir)
-output_dir = f"{home_dir}/work/ngist/ngist/NGC0000Example"
+# home_dir = os.path.expanduser('~')
+
+# print(home_dir)
+output_dir = f"./.github/workflows/tests/gistTutorial/results/./NGC0000Example"
 
 with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
@@ -20,8 +21,8 @@ assert os.path.isdir(output_dir), "Output dir not created"
 #Check the pipeline creates the correct files
 output_files = ["CONFIG","LOGFILE",
 				# "NGC0000Example_AllSpectra.fits", # no longer outputted
-				"NGC0000Example_BinSpectra_linear.fits",
-				"NGC0000Example_BinSpectra.fits",
+				"NGC0000Example_BinSpectra_linear.hdf5",
+				"NGC0000Example_BinSpectra.hdf5",
 				"NGC0000Example_gas_BIN.fits",
 				"NGC0000Example_gas-bestfit_BIN.fits",
 				"NGC0000Example_gas-cleaned_BIN.fits",
