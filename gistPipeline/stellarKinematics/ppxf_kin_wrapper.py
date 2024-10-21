@@ -1,4 +1,3 @@
-import code
 import logging
 import os
 import time
@@ -12,6 +11,7 @@ from gistPipeline.prepareTemplates import _prepareTemplates
 from joblib import Parallel, delayed, dump, load
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
+from tqdm import tqdm
 
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
@@ -24,7 +24,6 @@ PURPOSE:
   Cappellari & Emsellem 2004 (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
-
 
 def robust_sigma(y, zero=False):
     """
@@ -74,7 +73,7 @@ def run_ppxf(
     ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
     stellar kinematics.
     """
-    printStatus.progressBar(i, nbins, barLength=50)
+    # printStatus.progressBar(i, nbins, barLength=50)
 
     try:
 
@@ -746,11 +745,11 @@ def extractStellarKinematics(config):
 
         # Use joblib to parallelize the work
         max_nbytes = "1M" # max array size before memory mapping is triggered
-        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunk_size = max(1, nbins // ((config["GENERAL"]["NCPU"]) * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c"}
-        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
-
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
+        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
+                        total=len(chunks), desc="Processing Chunks"))
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
 
@@ -765,7 +764,7 @@ def extractStellarKinematics(config):
             spectral_mask[i, :] = ppxf_tmp[i][6]
             snr_postfit[i] = ppxf_tmp[i][7]
         
-        printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
+        printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
@@ -801,7 +800,7 @@ def extractStellarKinematics(config):
                 i,
                 optimal_template_comb,
             )
-        printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
+        printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
 
     print(
         "             Running PPXF on %s spectra took %.2fs using %i cores"
