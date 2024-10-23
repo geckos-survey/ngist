@@ -5,13 +5,14 @@ import time
 import h5py
 import numpy as np
 from astropy.io import ascii, fits
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.lineStrengths import lsindex_spec as lsindex
-from gistPipeline.lineStrengths import ssppop_fitting as ssppop
-from joblib import Parallel, delayed, dump, load
+from joblib import Parallel, delayed
 from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 from tqdm import tqdm
+
+from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.lineStrengths import lsindex_spec as lsindex
+from gistPipeline.lineStrengths import ssppop_fitting as ssppop
 
 cvel = 299792.458
 
@@ -569,7 +570,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             ls_indices[i, :], ls_errors[i, :], *extra = ppxf_tmp[i]
             if MCMC == True:
                 vals[i, :], percentile[i, :, :] = extra
-            
+
         printStatus.updateDone(
             "Running lineStrengths in parallel mode", progressbar=False
         )

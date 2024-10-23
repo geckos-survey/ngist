@@ -6,12 +6,13 @@ import h5py
 import numpy as np
 from astropy.io import fits
 from astropy.stats import biweight_location
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.prepareTemplates import _prepareTemplates
 from joblib import Parallel, delayed, dump, load
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
+
+from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.prepareTemplates import _prepareTemplates
 
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
@@ -765,6 +766,11 @@ def extractStellarKinematics(config):
             snr_postfit[i] = ppxf_tmp[i][7]
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
+
+        # Remove the memory-mapped files
+        os.remove(templates_filename_memmap)
+        os.remove(bin_data_filename_memmap)
+        os.remove(noise_filename_memmap)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
