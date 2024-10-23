@@ -6,14 +6,15 @@ import h5py
 import numpy as np
 from astropy import table
 from astropy.io import fits
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.prepareTemplates import (_prepareTemplates,
-                                           prepare_gas_templates)
 from joblib import Parallel, delayed, dump, load
 # Then use system installed version instead
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
+
+from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.prepareTemplates import (_prepareTemplates,
+                                           prepare_gas_templates)
 
 # Physical constants
 C = 299792.458  # speed of light in km/s
@@ -909,7 +910,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
         parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
         ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
-                        total=len(chunks), desc="Processing Chunks"))
+                        total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
 
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
