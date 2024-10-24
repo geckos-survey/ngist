@@ -1,4 +1,3 @@
-import glob
 import logging
 import os
 import time
@@ -9,12 +8,14 @@ import numpy as np
 import ppxf as ppxf_package
 from astropy.io import fits
 from astropy.stats import biweight_location
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.prepareTemplates import _prepareTemplates
 from joblib import Parallel, delayed, dump, load
 from packaging import version
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
+from tqdm import tqdm
+
+from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.prepareTemplates import _prepareTemplates
 
 # Physical constants
 C = 299792.458  # speed of light in km/s
@@ -90,7 +91,7 @@ def run_ppxf_firsttime(
         start,
         goodpixels=goodPixels,
         plot=False,
-        quiet=False,
+        quiet=True,
         moments=nmoments,
         degree=-1,
         vsyst=offset,
@@ -143,7 +144,7 @@ def run_ppxf(
     ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
     non-parametric star-formation histories.
     """
-    printStatus.progressBar(i, nbins, barLength=50)
+    # printStatus.progressBar(i, nbins, barLength=50)
 
     try:
 
@@ -710,10 +711,11 @@ def extractStarFormationHistories(config):
             idx_lam = np.where(np.logical_and(np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX']))[0]
 
             # Read the SPEC and ESPEC data from the file, only for the selected indices
-            galaxy = hdul[1].data['SPEC'][:, idx_lam].T
             bin_data = hdul[1].data['SPEC'].T[idx_lam, :]
             bin_err = hdul[1].data['ESPEC'].T[idx_lam, :]
             logLam = logLam[idx_lam]
+            nbins = bin_data.shape[1]
+            npix = bin_data.shape[0]
     else:
         logging.info(f"Using regular spectra without any emission-correction at {bin_spectra_file}")
         printStatus.done("Using regular spectra without any emission-correction")
@@ -725,14 +727,13 @@ def extractStarFormationHistories(config):
             idx_lam = np.where(np.logical_and(np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX']))[0]
 
             # Read the SPEC and ESPEC data from the file, only for the selected indices
-            galaxy = f['SPEC'][idx_lam, :].T
             bin_data = f['SPEC'][idx_lam, :]
             bin_err = f['ESPEC'][idx_lam, :]
             logLam = logLam[idx_lam]
 
     # Define additional variables
-    nbins = galaxy.shape[0]
-    npix = galaxy.shape[1]
+    nbins = bin_data.shape[1]
+    npix = bin_data.shape[0]
     ubins = np.arange(nbins)
     noise = np.full(npix, config['SFH']['NOISE'])
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
@@ -891,10 +892,11 @@ def extractStarFormationHistories(config):
 
         # Use joblib to parallelize the work
         max_nbytes = "1M" # max array size before memory mapping is triggered
-        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c"}
-        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
+        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
+                        total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
 
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
@@ -916,7 +918,13 @@ def extractStarFormationHistories(config):
             snr_postfit[i] = ppxf_tmp[i][7]
             EBV[i] = ppxf_tmp[i][8]
 
-        printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
+        # Remove the memory-mapped files
+        os.remove(templates_filename_memmap)
+        os.remove(bin_data_filename_memmap)
+        os.remove(noise_filename_memmap)
+        
+        printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
+        
 
     if config['GENERAL']['PARALLEL'] == False:
         printStatus.running("Running PPXF in serial mode")
@@ -965,7 +973,7 @@ def extractStarFormationHistories(config):
             mean_results_MC_iter[i,:,:] = mc_results_i["mean_results_MC_iter"]
             mean_results_MC_mean[i,:] = mc_results_i["mean_results_MC_mean"]
             mean_results_MC_err[i,:] = mc_results_i["mean_results_MC_err"]
-        printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
+        printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
 
     print(
         "             Running PPXF on %s spectra took %.2fs using %i cores"

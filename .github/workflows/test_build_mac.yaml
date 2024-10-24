@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install numpy astropy PyQt6 scipy matplotlib pytest multiprocess latex spectral_cube extinction
+          pip install numpy astropy PyQt6 scipy matplotlib pytest spectral_cube extinction h5py joblib tqdm
           # force reinstall of numpy due to v2.0.0 not working properly with other packages
           pip install --force-reinstall -v "numpy==1.26.4"          
 
@@ -33,7 +33,7 @@ jobs:
           # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Install ngist
         run: |
-          python setup.py install
+          pip install .
       # - name : Lint with flake8
         # run: |
           # stop the build if there are Python syntax errors or undefined names

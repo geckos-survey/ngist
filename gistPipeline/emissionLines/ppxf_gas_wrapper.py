@@ -1,4 +1,3 @@
-import glob
 import logging
 import os
 import time
@@ -7,13 +6,15 @@ import h5py
 import numpy as np
 from astropy import table
 from astropy.io import fits
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.prepareTemplates import (_prepareTemplates,
-                                           prepare_gas_templates)
 from joblib import Parallel, delayed, dump, load
 # Then use system installed version instead
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
+from tqdm import tqdm
+
+from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.prepareTemplates import (_prepareTemplates,
+                                           prepare_gas_templates)
 
 # Physical constants
 C = 299792.458  # speed of light in km/s
@@ -53,7 +54,7 @@ def run_ppxf(
     ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
     non-parametric star-formation histories.
     """
-    printStatus.progressBar(i, np.max(ubins) + 1, barLength=50)
+    # printStatus.progressBar(i, np.max(ubins) + 1, barLength=50)
 
     try:
         pp = ppxf(
@@ -905,10 +906,11 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
 
         # Use joblib to parallelize the work
         max_nbytes = "1M" # max array size before memory mapping is triggered
-        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"]))
+        chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c"}
-        ppxf_tmp = Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks)
+        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
+        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
+                        total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
 
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
@@ -924,7 +926,12 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
             stkin[i, :] = ppxf_tmp[i][8]
             stkin_err[i, :] = ppxf_tmp[i][9]
 
-        printStatus.updateDone("Running PPXF in parallel mode", progressbar=True)
+        printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
+
+        # Remove the memory-mapped files
+        os.remove(templates_filename_memmap)
+        os.remove(spectra_filename_memmap)
+        os.remove(error_filename_memmap)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
@@ -965,7 +972,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                 ubins,
             )
 
-        printStatus.updateDone("Running PPXF in serial mode", progressbar=True)
+        printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
 
     print(
         "             Running PPXF on %s spectra took %.2fs"
