@@ -44,6 +44,8 @@ def plotMap(self, module, maptype):
     # emissionLines
     if module == "GAS":
         val = self.gasResults[maptype][idxMap]
+        if "FLUX" in maptype:
+            val = np.log10(val)        
 
         try:
             idx_AoNThreshold = np.where(
@@ -141,7 +143,9 @@ def plotMap(self, module, maptype):
     cbar.solids.set_edgecolor("face")
 
     # Define special labels
-    if maptype == "FLUX":
+    # if maptype == "FLUX":
+    #     cbar.set_label("log( Flux )")
+    if "FLUX" in maptype:
         cbar.set_label("log( Flux )")
     elif maptype == "V":
         cbar.set_label("v [km/s]")
