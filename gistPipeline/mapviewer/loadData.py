@@ -125,6 +125,7 @@ def loadData(self):
         fits_file = self.dirprefix + "_AllSpectra.fits"
 
         if os.path.isfile(hdf5_file):
+            print('Loading All Spectra for GAS SPX mode. This could take some time')
             with h5py.File(hdf5_file, 'r') as f:
                 self.AllSpectra = f['SPEC'][:].T
         else:
