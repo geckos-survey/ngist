@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from astropy.io import fits
+import h5py
 
 
 def loadData(self):
@@ -105,12 +106,13 @@ def loadData(self):
     _, idxConvertShortToLong = np.unique(np.abs(self.table.BIN_ID), return_inverse=True)
 
     # Read spectra
-    hdf5_file = self.dirprefix + "_BinSpectra.h5"
+    hdf5_file = self.dirprefix + "_BinSpectra.hdf5"
     fits_file = self.dirprefix + "_BinSpectra.fits"
 
     if os.path.isfile(hdf5_file):
         with h5py.File(hdf5_file, 'r') as f:
             self.Spectra = f['SPEC'][:]
+            self.Spectra = np.transpose(self.Spectra) # get into the same format as the fits file
             self.Lambda = f['LOGLAM'][:]
     else:
         self.Spectra = fits.open(fits_file)[1].data.SPEC
@@ -119,12 +121,15 @@ def loadData(self):
     nbins = self.Spectra.shape[0]
 
     if self.gasLevel == "SPAXEL":
-        hdf5_file = self.dirprefix + "_AllSpectra.h5"
+        hdf5_file = self.dirprefix + "_AllSpectra.hdf5"
         fits_file = self.dirprefix + "_AllSpectra.fits"
 
         if os.path.isfile(hdf5_file):
+            print('Loading All Spectra for GAS SPX mode. This could take some time')
             with h5py.File(hdf5_file, 'r') as f:
                 self.AllSpectra = f['SPEC'][:]
+                self.AllSpectra = np.transpose(self.AllSpectra) # get into the same format as the fits file
+
         else:
             self.AllSpectra = fits.open(fits_file)[1].data.SPEC
 
