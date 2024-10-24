@@ -2,8 +2,9 @@ import importlib.util
 import logging
 import os
 
-from gistPipeline.writeFITS import _writeFITS
 from printStatus import printStatus
+
+from gistPipeline.writeFITS import _writeFITS
 
 
 def emissionLines_Module(config):
@@ -116,14 +117,14 @@ def emissionLines_Module(config):
         return "SKIP"
 
      # Remove AllSpectra file which is now no longer needed and takes up a lot of space
-    if config["GAS"]["LEVEL"] == "SPAXEL":
-        printStatus.warning(
-            "Removing the AllSpectra.hdf5 file to save space"
-        )
-        os.remove(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_AllSpectra.hdf5"
-            )        
+    # if config["GAS"]["LEVEL"] == "SPAXEL":
+    #     printStatus.warning(
+    #         "Removing the AllSpectra.hdf5 file to save space"
+    #     )
+    #     os.remove(
+    #         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+    #         + "_AllSpectra.hdf5"
+    #         )        
 
 
     # Return
