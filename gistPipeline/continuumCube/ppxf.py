@@ -350,79 +350,7 @@ def save_ppxf(
     bin_data,
 ):
     """Saves all results to disk."""
-    # ========================
-    # # SAVE RESULTS
-    # outfits_ppxf = (
-    #     os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-    #     + "_kin.fits"
-    # )
-    # printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin.fits")
-    #
-    # # Primary HDU
-    # priHDU = fits.PrimaryHDU()
-    #
-    # # Table HDU with PPXF output data
-    # cols = []
-    # cols.append(fits.Column(name="V", format="D", array=ppxf_result[:, 0]))
-    # cols.append(fits.Column(name="SIGMA", format="D", array=ppxf_result[:, 1]))
-    # if np.any(ppxf_result[:, 2]) != 0:
-    #     cols.append(fits.Column(name="H3", format="D", array=ppxf_result[:, 2]))
-    # if np.any(ppxf_result[:, 3]) != 0:
-    #     cols.append(fits.Column(name="H4", format="D", array=ppxf_result[:, 3]))
-    # if np.any(ppxf_result[:, 4]) != 0:
-    #     cols.append(fits.Column(name="H5", format="D", array=ppxf_result[:, 4]))
-    # if np.any(ppxf_result[:, 5]) != 0:
-    #     cols.append(fits.Column(name="H6", format="D", array=ppxf_result[:, 5]))
-    #
-    # if np.any(mc_results[:, 0]) != 0:
-    #     cols.append(fits.Column(name="ERR_V", format="D", array=mc_results[:, 0]))
-    # if np.any(mc_results[:, 1]) != 0:
-    #     cols.append(fits.Column(name="ERR_SIGMA", format="D", array=mc_results[:, 1]))
-    # if np.any(mc_results[:, 2]) != 0:
-    #     cols.append(fits.Column(name="ERR_H3", format="D", array=mc_results[:, 2]))
-    # if np.any(mc_results[:, 3]) != 0:
-    #     cols.append(fits.Column(name="ERR_H4", format="D", array=mc_results[:, 3]))
-    # if np.any(mc_results[:, 4]) != 0:
-    #     cols.append(fits.Column(name="ERR_H5", format="D", array=mc_results[:, 4]))
-    # if np.any(mc_results[:, 5]) != 0:
-    #     cols.append(fits.Column(name="ERR_H6", format="D", array=mc_results[:, 5]))
-    #
-    # cols.append(fits.Column(name="FORM_ERR_V", format="D", array=formal_error[:, 0]))
-    # cols.append(
-    #     fits.Column(name="FORM_ERR_SIGMA", format="D", array=formal_error[:, 1])
-    # )
-    # if np.any(formal_error[:, 2]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H3", format="D", array=formal_error[:, 2])
-    #     )
-    # if np.any(formal_error[:, 3]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H4", format="D", array=formal_error[:, 3])
-    #     )
-    # if np.any(formal_error[:, 4]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H5", format="D", array=formal_error[:, 4])
-    #     )
-    # if np.any(formal_error[:, 5]) != 0:
-    #     cols.append(
-    #         fits.Column(name="FORM_ERR_H6", format="D", array=formal_error[:, 5])
-    #     )
-    #
-    # if np.any(np.isnan(ppxf_reddening)) != True:
-    #     cols.append(fits.Column(name="REDDENING", format="D", array=ppxf_reddening[:]))
-    #
-    # dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # dataHDU.name = "KIN_DATA"
-    #
-    # # Create HDU list and write to file
-    # priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    # dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    # HDUList = fits.HDUList([priHDU, dataHDU])
-    # HDUList.writeto(outfits_ppxf, overwrite=True)
-    #
-    # printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin.fits")
-    # logging.info("Wrote: " + outfits_ppxf)
-
+ 
     # ========================
     # SAVE BESTFIT
     outfits_ppxf = (
@@ -459,11 +387,11 @@ def save_ppxf(
     specHDU.name = "SPEC"
 
     # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
-    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["KIN"])
-    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["KIN"])
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["CONT"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["CONT"])
+    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["CONT"])
+    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["CONT"])
+    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["CONT"])
 
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
@@ -473,95 +401,7 @@ def save_ppxf(
     )
     logging.info("Wrote: " + outfits_ppxf)
 
-    # # ============================
-    # # SAVE OPTIMAL TEMPLATE RESULT
-    # outfits = (
-    #     os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-    #     + "_kin-optimalTemplates.fits"
-    # )
-    # printStatus.running(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-optimalTemplates.fits"
-    # )
-    #
-    # # Primary HDU
-    # priHDU = fits.PrimaryHDU()
-    #
-    # # Extension 1: Table HDU with optimal templates
-    # cols = []
-    # cols.append(
-    #     fits.Column(
-    #         name="OPTIMAL_TEMPLATES",
-    #         format=str(optimal_template.shape[1]) + "D",
-    #         array=optimal_template,
-    #     )
-    # )
-    # dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # dataHDU.name = "OPTIMAL_TEMPLATES"
-    #
-    # # Extension 2: Table HDU with logLam_templates
-    # cols = []
-    # cols.append(fits.Column(name="LOGLAM_TEMPLATE", format="D", array=logLam_template))
-    # logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # logLamHDU.name = "LOGLAM_TEMPLATE"
-    #
-    # # Extension 2: Table HDU with logLam_templates
-    # cols = []
-    # cols.append(
-    #     fits.Column(
-    #         name="OPTIMAL_TEMPLATE_ALL", format="D", array=optimal_template_comb
-    #     )
-    # )
-    # combHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # combHDU.name = "OPTIMAL_TEMPLATE_ALL"
-    #
-    # # Create HDU list and write to file
-    # priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    # dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    # logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
-    # combHDU = _auxiliary.saveConfigToHeader(combHDU, config["KIN"])
-    # HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, combHDU])
-    # HDUList.writeto(outfits, overwrite=True)
-    #
-    # printStatus.updateDone(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-optimalTemplates.fits"
-    # )
-    # logging.info("Wrote: " + outfits)
-    #
-    # # ============================
-    # # SAVE SPECTRAL MASK RESULT
-    # outfits = (
-    #     os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-    #     + "_kin-SpectralMask.fits"
-    # )
-    # printStatus.running(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-SpectralMask.fits"
-    # )
-    #
-    # # Primary HDU
-    # priHDU = fits.PrimaryHDU()
-    #
-    # # Extension 1: Table HDU with optimal templates
-    # cols = []
-    # cols.append(
-    #     fits.Column(
-    #         name="SPECTRAL_MASK",
-    #         format=str(spectral_mask.shape[1]) + "D",
-    #         array=spectral_mask,
-    #     )
-    # )
-    # dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    # dataHDU.name = "SPECTRAL_MASK"
-    #
-    # # Create HDU list and write to file
-    # priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    # dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    # HDUList = fits.HDUList([priHDU, dataHDU])
-    # HDUList.writeto(outfits, overwrite=True)
-    #
-    # printStatus.updateDone(
-    #     "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-SpectralMask.fits"
-    # )
-    # logging.info("Wrote: " + outfits)
+
 
 
 def createContinuumCube(config):
@@ -580,8 +420,8 @@ def createContinuumCube(config):
     logLam = np.array(hdu[2].data.LOGLAM)
     idx_lam = np.where(
         np.logical_and(
-            np.exp(logLam) > config["KIN"]["LMIN"],
-            np.exp(logLam) < config["KIN"]["LMAX"],
+            np.exp(logLam) > config["CONT"]["LMIN"],
+            np.exp(logLam) < config["CONT"]["LMAX"],
         )
     )[0]
     bin_data = bin_data[idx_lam, :]
