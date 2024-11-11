@@ -778,8 +778,8 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                 )[1].data.BIN_ID
             )
             ppxf_data_spaxels = np.zeros((len(ubins), len(ppxf_data[0])))
-            nbins = np.max(binNum_long) + 1
-            for i in range(int(nbins)):
+            nVoronoiBins = np.max(binNum_long) + 1
+            for i in range(int(nVoronoiBins)):
                 windx = binNum_long == i
                 ppxf_data_spaxels[windx, :] = ppxf_data[i]
             ppxf_data = ppxf_data_spaxels
@@ -788,7 +788,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         start, fixed = [], []
         for i in range(
             0, np.max(ubins) + 1
-        ):  # what is nbins here? AMELIA up to here. Check this works for the spaxel case
+        ):  #
             # start[i,:] = np.array( ppxf_data[i][:config['KIN']['MOM']] ) # old one (needs to be an array?)
             s = [
                 ppxf_data[i][: config["KIN"]["MOM"]],

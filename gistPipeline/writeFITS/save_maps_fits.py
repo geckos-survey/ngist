@@ -12,6 +12,7 @@ from astropy.wcs import WCS
 from scipy.interpolate import CubicSpline
 from astropy import units as u
 from astropy.wcs import WCS
+from printStatus import printStatus
 
 from gistPipeline.readData.MUSE_WFM import readCube
 from gistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
@@ -428,7 +429,7 @@ def saveContLineCube(config):
     linLam = inputCube["wave"]
 
     idx_lam = np.where(
-        np.logical_and(linLam > config["KIN"]["LMIN"], linLam < config["KIN"]["LMAX"])
+        np.logical_and(linLam > config["CONT"]["LMIN"], linLam < config["CONT"]["LMAX"])
     )[0]
     spectra_all = spectra_all[idx_lam, :]
     linLam = linLam[idx_lam]
@@ -440,7 +441,8 @@ def saveContLineCube(config):
             config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
         )
     )[1].data.BESTFIT
-    print('Found it! opening -kin-bestfit-cont.fits')
+    printStatus.running("Opening: -kin-bestfit-cont.fits")
+    
     # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
     logLam = fits.open(
         os.path.join(
@@ -498,19 +500,18 @@ def saveContLineCube(config):
     cubehdr["NAXIS3"] = len(linLam)
     cubehdr["CRVAL3"] = linLam[0] * (1 + config["GENERAL"]["REDSHIFT"]) #
     cubehdr["CRPIX3"] = 1
-    cubehdr["CTYPE3"] = "AWAV"
-    cubehdr["CUNIT3"] = "angstrom"
+    #cubehdr["CTYPE3"] = "AWAV"
+    #cubehdr["CUNIT3"] = "angstrom"
 
     # set the WCS keywords to CDELT standard format
-    cdi_j_wcs = WCS(cubehdr)
-    newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
-    newcubehdr.update(
-        diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
-    )  # replace with CDELT standard keys
+    #cdi_j_wcs = WCS(cubehdr)
+    #newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
+    #newcubehdr.update(
+    #    diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
+    #)  # replace with CDELT standard keys
 
-    # set the correct CDELT *after* CD3_3 has been removed, adjust to observed wavelength frame
     # as cube is de-redshifted during read in by MUSE_WFM.py
-    newcubehdr["CDELT3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0] * 1e-10 # A -> m
+    cubehdr["CD3_3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0]
 
     # save line and continuum cubes
     # float32 preferred over float64 to save size and allow for conversion to hdf5
@@ -523,6 +524,6 @@ def saveContLineCube(config):
         )
 
         cubehdul = [fits.PrimaryHDU(data=np.float32(cube.reshape((len(linLam), NY, NX))),
-                         header=newcubehdr)]
+                         header=cubehdr)]
 
         write_fits_cube(hdulist=cubehdul, filename=outfits, overwrite=True)

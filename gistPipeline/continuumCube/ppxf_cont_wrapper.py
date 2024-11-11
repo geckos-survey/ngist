@@ -85,7 +85,7 @@ def run_ppxf(
         
         # Call PPXF for first time to get optimal template
         if len(optimal_template_in) == 1:
-            print("Running pPXF for the first time")
+            printStatus.running("Running pPXF for the first time")
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -320,11 +320,11 @@ def save_ppxf(
     specHDU.name = "SPEC"
 
     # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
-    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["KIN"])
-    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["KIN"])
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["CONT"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["CONT"])
+    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["CONT"])
+    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["CONT"])
+    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["CONT"])
 
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
@@ -353,8 +353,8 @@ def createContinuumCube(config):
         logLam = f['LOGLAM'][:]
         idx_lam = np.where(
         np.logical_and(
-            np.exp(logLam) > config["KIN"]["LMIN"],
-            np.exp(logLam) < config["KIN"]["LMAX"],
+            np.exp(logLam) > config["CONT"]["LMIN"],
+            np.exp(logLam) < config["CONT"]["LMAX"],
         )
         )[0]
 
