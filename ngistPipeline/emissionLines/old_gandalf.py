@@ -8,9 +8,9 @@ from astropy.io import fits
 from astropy.table import Table
 from printStatus import printStatus
 
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.emissionLines.pyGandalf import gandalf_util as gandalf
-from gistPipeline.prepareTemplates import _prepareTemplates
+from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.emissionLines.pyGandalf import gandalf_util as gandalf
+from ngistPipeline.prepareTemplates import _prepareTemplates
 
 # PHYSICAL CONSTANTS
 C = np.float64(299792.458)  # km/s

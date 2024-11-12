@@ -21,7 +21,7 @@ from ppxf.ppxf import robust_sigma
 from scipy import fftpack, ndimage
 from scipy.interpolate import interp1d
 
-from gistPipeline.emissionLines.pyGandalf.cap_mpfit import mpfit
+from ngistPipeline.emissionLines.pyGandalf.cap_mpfit import mpfit
 
 # ------------------------------------------------------------------------------
 # WARNING:
@@ -32,9 +32,9 @@ from gistPipeline.emissionLines.pyGandalf.cap_mpfit import mpfit
 #   Sorry!
 #
 # try:
-#    from gistPipeline.emissionLines.pyGandalf._bvls import bvls
+#    from ngistPipeline.emissionLines.pyGandalf._bvls import bvls
 # except:
-#    from gistPipeline.emissionLines.pyGandalf.bvls_n import BVLS as bvls
+#    from ngistPipeline.emissionLines.pyGandalf.bvls_n import BVLS as bvls
 # ------------------------------------------------------------------------------
 
 

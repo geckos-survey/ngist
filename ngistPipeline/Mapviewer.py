@@ -8,12 +8,12 @@ from PyQt5 import QtWidgets as pyqt
 
 warnings.filterwarnings("ignore")
 
-from gistPipeline._version import __version__
-from gistPipeline.mapviewer import createFigure as _createFigure
-from gistPipeline.mapviewer import createWindow as _createWindow
-from gistPipeline.mapviewer import helperFunctions as _helperFunctions
-from gistPipeline.mapviewer import loadData as _loadData
-from gistPipeline.mapviewer import plotData as _plotData
+from ngistPipeline._version import __version__
+from ngistPipeline.mapviewer import createFigure as _createFigure
+from ngistPipeline.mapviewer import createWindow as _createWindow
+from ngistPipeline.mapviewer import helperFunctions as _helperFunctions
+from ngistPipeline.mapviewer import loadData as _loadData
+from ngistPipeline.mapviewer import plotData as _plotData
 
 
 class Mapviewer(pyqt.QMainWindow):

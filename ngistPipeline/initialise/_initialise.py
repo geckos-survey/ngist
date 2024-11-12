@@ -6,7 +6,7 @@ import time
 import yaml
 from printStatus import printStatus
 
-from gistPipeline._version import __version__
+from ngistPipeline._version import __version__
 
 """
 PURPOSE:

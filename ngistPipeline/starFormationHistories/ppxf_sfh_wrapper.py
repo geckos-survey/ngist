@@ -14,8 +14,8 @@ from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
 
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.prepareTemplates import _prepareTemplates
+from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.prepareTemplates import _prepareTemplates
 
 # Physical constants
 C = 299792.458  # speed of light in km/s

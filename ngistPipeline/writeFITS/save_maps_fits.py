@@ -14,8 +14,8 @@ from astropy import units as u
 from astropy.wcs import WCS
 from printStatus import printStatus
 
-from gistPipeline.readData.MUSE_WFM import readCube
-from gistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
+from ngistPipeline.readData.MUSE_WFM import readCube
+from ngistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
                                           strip_wcs_from_header)
 
 warnings.filterwarnings("ignore")
