@@ -32,19 +32,19 @@ matplotlib.use("pdf")
 
 from printStatus import printStatus
 
-from gistPipeline._version import __version__
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.continuumCube import _continuumCube
-from gistPipeline.emissionLines import _emissionLines
-from gistPipeline.initialise import _initialise
-from gistPipeline.lineStrengths import _lineStrengths
-from gistPipeline.prepareSpectra import _prepareSpectra
-from gistPipeline.readData import _readData
-from gistPipeline.spatialBinning import _spatialBinning
-from gistPipeline.spatialMasking import _spatialMasking
-from gistPipeline.starFormationHistories import _starFormationHistories
-from gistPipeline.stellarKinematics import _stellarKinematics
-from gistPipeline.userModules import _userModules
+from ngistPipeline._version import __version__
+from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.continuumCube import _continuumCube
+from ngistPipeline.emissionLines import _emissionLines
+from ngistPipeline.initialise import _initialise
+from ngistPipeline.lineStrengths import _lineStrengths
+from ngistPipeline.prepareSpectra import _prepareSpectra
+from ngistPipeline.readData import _readData
+from ngistPipeline.spatialBinning import _spatialBinning
+from ngistPipeline.spatialMasking import _spatialMasking
+from ngistPipeline.starFormationHistories import _starFormationHistories
+from ngistPipeline.stellarKinematics import _stellarKinematics
+from ngistPipeline.userModules import _userModules
 
 
 def skipGalaxy(config):

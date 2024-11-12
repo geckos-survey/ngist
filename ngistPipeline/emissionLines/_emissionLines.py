@@ -4,7 +4,7 @@ import os
 
 from printStatus import printStatus
 
-from gistPipeline.writeFITS import _writeFITS
+from ngistPipeline.writeFITS import _writeFITS
 
 
 def emissionLines_Module(config):

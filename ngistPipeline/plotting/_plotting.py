@@ -3,7 +3,7 @@ import os
 
 from printStatus import printStatus
 
-from gistPipeline.plotting import (gistPlot_gas, gistPlot_kin,
+from ngistPipeline.plotting import (gistPlot_gas, gistPlot_kin,
                                    gistPlot_lambdar, gistPlot_ls, gistPlot_sfh,
                                    save_maps_fits)
 

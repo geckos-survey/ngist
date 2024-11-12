@@ -10,8 +10,8 @@ from multiprocess import Process, Queue
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.prepareTemplates import _prepareTemplates
+from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.prepareTemplates import _prepareTemplates
 
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s

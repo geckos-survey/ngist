@@ -5,7 +5,7 @@ import yaml
 from PyQt5 import QtCore, QtGui
 from PyQt5 import QtWidgets as pyqt
 
-from gistPipeline._version import __version__
+from ngistPipeline._version import __version__
 
 
 def onpick(self, event):

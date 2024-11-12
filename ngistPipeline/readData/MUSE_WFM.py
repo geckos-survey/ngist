@@ -5,7 +5,7 @@ import extinction
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
-from gistPipeline.readData import der_snr as der_snr
+from ngistPipeline.readData import der_snr as der_snr
 from printStatus import printStatus
 
 

@@ -6,7 +6,7 @@ import numpy as np
 from astropy.io import fits
 from scipy.interpolate import interp1d
 
-from gistPipeline._version import __version__
+from ngistPipeline._version import __version__
 
 """
 This file contains a selection of functions that are needed at multiple locations in the framework. This includes

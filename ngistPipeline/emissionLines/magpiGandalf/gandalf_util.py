@@ -20,7 +20,7 @@ from ppxf.ppxf import robust_sigma
 from scipy import fftpack, linalg, ndimage, optimize
 from scipy.interpolate import interp1d
 
-from gistPipeline.emissionLines.magpiGandalf.cap_mpfit import mpfit
+from ngistPipeline.emissionLines.magpiGandalf.cap_mpfit import mpfit
 
 # ---------------------------------------------------------------------------- #
 # This version has been modified from the original to compute uncertainties on the

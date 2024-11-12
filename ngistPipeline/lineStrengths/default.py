@@ -10,9 +10,9 @@ from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 from tqdm import tqdm
 
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.lineStrengths import lsindex_spec as lsindex
-from gistPipeline.lineStrengths import ssppop_fitting as ssppop
+from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.lineStrengths import lsindex_spec as lsindex
+from ngistPipeline.lineStrengths import ssppop_fitting as ssppop
 
 cvel = 299792.458
 

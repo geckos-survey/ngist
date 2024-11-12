@@ -5,7 +5,7 @@ import os
 import yaml
 from printStatus import printStatus
 
-from gistPipeline.writeFITS import _writeFITS
+from ngistPipeline.writeFITS import _writeFITS
 
 
 def stellarKinematics_Module(config):
