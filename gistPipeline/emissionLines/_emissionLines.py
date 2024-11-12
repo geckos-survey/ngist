@@ -85,10 +85,10 @@ def emissionLines_Module(config):
             os.path.dirname(os.path.realpath(__file__))
             + "/"
             + config["GAS"]["METHOD"]
-            + ".py",
+            + "_gas_wrapper.py",
         )
         logging.info(
-            "Using the emissionLines routine '" + config["GAS"]["METHOD"] + ".py'"
+            "Using the emissionLines routine '" + config["GAS"]["METHOD"] + "_gas_wrapper.py'"
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -111,20 +111,20 @@ def emissionLines_Module(config):
         _writeFITS.generateFITS(config, "GAS") #Then move on to saving results as usual
     except Exception as e:
         logging.critical(e, exc_info=True)
-        message = "emissionLine routine '" + config["GAS"]["METHOD"] + ".py' failed."
+        message = "emissionLine routine '" + config["GAS"]["METHOD"] + "_gas_wrapper.py' failed."
         printStatus.failed(message + " See LOGFILE for further information.")
         logging.critical(message)
         return "SKIP"
 
      # Remove AllSpectra file which is now no longer needed and takes up a lot of space
-    if config["GAS"]["LEVEL"] == "SPAXEL":
-        printStatus.warning(
-            "Removing the AllSpectra.fits file to save space"
-        )
-        os.remove(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_AllSpectra.fits"
-            )        
+    # if config["GAS"]["LEVEL"] == "SPAXEL":
+    #     printStatus.warning(
+    #         "Removing the AllSpectra.hdf5 file to save space"
+    #     )
+    #     os.remove(
+    #         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+    #         + "_AllSpectra.hdf5"
+    #         )        
 
 
     # Return

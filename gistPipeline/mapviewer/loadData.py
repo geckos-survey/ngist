@@ -1,5 +1,6 @@
 import os
 
+import h5py
 import numpy as np
 from astropy.io import fits
 
@@ -105,18 +106,38 @@ def loadData(self):
     _, idxConvertShortToLong = np.unique(np.abs(self.table.BIN_ID), return_inverse=True)
 
     # Read spectra
-    self.Spectra = fits.open(self.dirprefix + "_BinSpectra.fits")[1].data.SPEC
-    self.Lambda = fits.open(self.dirprefix + "_BinSpectra.fits")[2].data.LOGLAM
+    hdf5_file = self.dirprefix + "_BinSpectra.hdf5"
+    fits_file = self.dirprefix + "_BinSpectra.fits"
+
+    if os.path.isfile(hdf5_file):
+        with h5py.File(hdf5_file, 'r') as f:
+            self.Spectra = f['SPEC'][:].T
+            self.Lambda = f['LOGLAM'][:]
+    else:
+        print(hdf5_file + " does not exist. Trying " + fits_file)
+        self.Spectra = fits.open(fits_file)[1].data.SPEC
+        self.Lambda = fits.open(fits_file)[2].data.LOGLAM
+
     nbins = self.Spectra.shape[0]
+
     if self.gasLevel == "SPAXEL":
-        self.AllSpectra = fits.open(self.dirprefix + "_AllSpectra.fits")[1].data.SPEC
+        hdf5_file = self.dirprefix + "_AllSpectra.hdf5"
+        fits_file = self.dirprefix + "_AllSpectra.fits"
+
+        if os.path.isfile(hdf5_file):
+            print('Loading All Spectra for GAS SPX mode. This could take some time')
+            with h5py.File(hdf5_file, 'r') as f:
+                self.AllSpectra = f['SPEC'][:].T
+        else:
+            print(hdf5_file + " does not exist. Trying " + fits_file)
+            self.AllSpectra = fits.open(fits_file)[1].data.SPEC
 
     # Read mask
     if self.MASK == True:
         self.Mask = fits.open(self.dirprefix + "_mask.fits")[1].data
 
     # Read stellar kinematics
-    if self.KIN == True:
+    if self.KIN:
         self.kinResults = fits.open(self.dirprefix + "_kin.fits")[1].data[
             idxConvertShortToLong
         ]
@@ -140,7 +161,7 @@ def loadData(self):
         self.kinGoodpix = None
 
     # Read emissionLines results
-    if self.GAS == True:
+    if self.GAS:
         if os.path.isfile(self.dirprefix + "_gas-cleaned_BIN.fits") == True:
             self.EmissionSubtractedSpectraBIN = np.array(
                 fits.open(self.dirprefix + "_gas-cleaned_BIN.fits")[1].data.SPEC
@@ -177,7 +198,7 @@ def loadData(self):
         self.gasGoodpix = None
 
     # Read starFormatioHistories results
-    if self.SFH == True:
+    if self.SFH:
         self.sfhResults = fits.open(self.dirprefix + "_sfh.fits")[1].data[
             idxConvertShortToLong
         ]
