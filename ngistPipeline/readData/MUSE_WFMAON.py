@@ -2,7 +2,9 @@ import logging
 import os
 
 import numpy as np
+import extinction
 from astropy.io import fits
+from astropy.wcs import WCS
 from printStatus import printStatus
 
 from ngistPipeline.readData import der_snr as der_snr
@@ -26,6 +28,14 @@ def set_debug(cube, xext, yext):
 
     return cube
 
+# ======================================
+# Helper routine from PHANGS DAP
+# ======================================
+def reshape_extintion_curve(extinction_curve, cube):
+    extra_dims = cube.ndim - extinction_curve.ndim
+    new_shape = extinction_curve.shape + (1,) * extra_dims
+    reshaped_extinction_curve = extinction_curve.reshape(new_shape)
+    return reshaped_extinction_curve
 
 # ======================================
 # Routine to load MUSE-cubes
@@ -40,16 +50,19 @@ def readCube(config):
     # Reading the cube
     hdu = fits.open(config["GENERAL"]["INPUT"])
     hdr = hdu[1].header
+    hdr0 = hdu[0].header
     data = hdu[1].data
     s = np.shape(data)
     spec = np.reshape(data, [s[0], s[1] * s[2]])
 
+    wcshdr = WCS(hdr).to_header()
+
     # Read the error spectra if available. Otherwise estimate the errors with the der_snr algorithm
-    if len(hdu) == 3:
+    if len(hdu) >= 3:
         logging.info("Reading the error spectra from the cube")
         stat = hdu[2].data
         espec = np.reshape(stat, [s[0], s[1] * s[2]])
-    elif len(hdu) == 2:
+    elif len(hdu) <= 2:
         logging.info(
             "No error extension found. Estimating the error spectra with the der_snr algorithm"
         )
@@ -59,6 +72,19 @@ def readCube(config):
 
     # Getting the wavelength info
     wave = hdr["CRVAL3"] + (np.arange(s[0])) * hdr["CD3_3"]
+
+    # Correct spectra for Galactic extinction (taken from PHANGS DAP)
+    if config['READ_DATA']['EBmV'] is not None:
+        Rv = 3.1
+        Av = Rv * config['READ_DATA']['EBmV']
+        ones = np.ones_like(wave)
+        extinction_curve = extinction.apply(extinction.ccm89(wave, Av, Rv), ones)
+        reshaped_extinction_curve = reshape_extintion_curve(extinction_curve, spec) #spec may need to be 'data'
+        spec = spec / reshaped_extinction_curve # spec may need to be data
+        espec = espec / reshaped_extinction_curve
+    else:
+        spec = spec #Don't do anything to the spectra if no dust value given
+        espec = espec    
 
     # Getting the spatial coordinates
     origin = [
@@ -112,18 +138,20 @@ def readCube(config):
                 wave >= config["READ_DATA"]["LMIN_SNR"],
                 wave <= config["READ_DATA"]["LMAX_SNR"],
                 np.logical_or(
-                    wave < 5820 / (1 + config["GENERAL"]["REDSHIFT"]),
-                    wave > 5970 / (1 + config["GENERAL"]["REDSHIFT"]),
+                    wave < 5750 / (1 + config["GENERAL"]["REDSHIFT"]), # was 5820 or similar
+                    wave > 6000 / (1 + config["GENERAL"]["REDSHIFT"]), # was 5970
                 ),
             ]
         )
     )[0]
     signal = np.nanmedian(spec[idx_snr, :], axis=0)
-    if len(hdu) == 3:
-        noise = np.abs(np.nanmedian(np.sqrt(espec[idx_snr, :]), axis=0))
-    elif len(hdu) == 2:
+    if len(hdu) >= 3:
+        #noise = np.abs(np.nanmedian(np.sqrt(espec[idx_snr, :]), axis=0)) old
+        noise = np.sqrt(np.nanmedian(espec[idx_snr, :], axis=0))
+    elif len(hdu) <= 2:
         noise = espec[0, :]  # DER_SNR returns constant error spectra
-    snr = signal / noise
+    snr = np.nanmedian(spec[idx_snr, :] / np.sqrt(espec[idx_snr, :]), axis=0)
+    #snr = signal / noise old
     logging.info(
         "Computing the signal-to-noise ratio in the wavelength range from "
         + str(config["READ_DATA"]["LMIN_SNR"])
@@ -135,8 +163,8 @@ def readCube(config):
     # Replacing the np.nan in the laser region by the median of the spectrum
     idx_laser = np.where(
         np.logical_and(
-            wave > 5820 / (1 + config["GENERAL"]["REDSHIFT"]),
-            wave < 5970 / (1 + config["GENERAL"]["REDSHIFT"]),
+            wave > 5720,#  / (1 + config["GENERAL"]["REDSHIFT"]), # was 5820 then 5780
+            wave < 5970,# / (1 + config["GENERAL"]["REDSHIFT"]), # was 5970 then 5970
         )
     )[0]
     spec[idx_laser, :] = signal
@@ -156,6 +184,8 @@ def readCube(config):
         "signal": signal,
         "noise": noise,
         "pixelsize": pixelsize,
+        "wcshdr": wcshdr,
+        "hdr0": hdr0,
     }
 
     # Constrain cube to one central row if switch DEBUG is set
