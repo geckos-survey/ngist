@@ -138,8 +138,8 @@ def readCube(config):
                 wave >= config["READ_DATA"]["LMIN_SNR"],
                 wave <= config["READ_DATA"]["LMAX_SNR"],
                 np.logical_or(
-                    wave < 5750 / (1 + config["GENERAL"]["REDSHIFT"]), # was 5820 or similar
-                    wave > 6000 / (1 + config["GENERAL"]["REDSHIFT"]), # was 5970
+                    wave < 5770 / (1 + config["GENERAL"]["REDSHIFT"]), # was 5820 or similar
+                    wave > 6050 / (1 + config["GENERAL"]["REDSHIFT"]), # was 5970
                 ),
             ]
         )
@@ -163,8 +163,8 @@ def readCube(config):
     # Replacing the np.nan in the laser region by the median of the spectrum
     idx_laser = np.where(
         np.logical_and(
-            wave > 5720,#  / (1 + config["GENERAL"]["REDSHIFT"]), # was 5820 then 5780
-            wave < 5970,# / (1 + config["GENERAL"]["REDSHIFT"]), # was 5970 then 5970
+            wave > 5770,#  / (1 + config["GENERAL"]["REDSHIFT"]), # was 5820 then 5780
+            wave < 6050,# / (1 + config["GENERAL"]["REDSHIFT"]), # was 5970 then 5970
         )
     )[0]
     spec[idx_laser, :] = signal
