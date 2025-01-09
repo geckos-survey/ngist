@@ -4,6 +4,10 @@ This is the nGIST pipeline, an actively-developed and updated version of the GIS
 Useful for all galaxy IFS data, but specially developed and extensively tested with MUSE,
 nGIST provides numerous updates and improvements over the GIST pipeline. 
 
+Lead Developers
+-------------
+Amelia Fraser-McKelvie & Jesse van de Sande
+
 Documentation
 -------------
 For a detailed documentation of the nGIST pipeline, including instructions on installation and configuration, 
