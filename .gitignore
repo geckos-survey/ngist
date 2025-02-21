@@ -13,3 +13,4 @@ build/
 *.egg
 **/*.ipynb_checkpoints/
 gistPipeline/writeFITS/.ipynb_checkpoints/_writeFITS-checkpoint.py
+dev/
