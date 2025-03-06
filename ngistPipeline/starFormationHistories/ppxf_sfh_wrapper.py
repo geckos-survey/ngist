@@ -692,6 +692,7 @@ def extractStarFormationHistories(config):
         'SFH',
         sortInGrid=True,
     )
+    templates = templates.reshape( (templates.shape[0], ntemplates) )
 
     # Define file paths
     gas_cleaned_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits'
