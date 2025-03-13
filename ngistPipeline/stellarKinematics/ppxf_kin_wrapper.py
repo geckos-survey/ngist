@@ -189,8 +189,9 @@ def run_ppxf(
             if adaptive_mask == True:
                 """
                 TODO: 
-                Call ppxf_step3 = ppxf(...)
-                Use ppxf_step3 to update goodpixels
+                using the gas module to parameterise the gas emission lines
+                Subtract gas emission lines from the spectra
+                Re-fit the spectra
                 """
                 pass
 
