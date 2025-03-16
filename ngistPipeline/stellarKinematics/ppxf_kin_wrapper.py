@@ -60,7 +60,6 @@ def run_ppxf(
     mdeg,
     reddening,
     doclean,
-    adaptive_mask,
     logLam,
     offset,
     velscale_ratio,
@@ -183,20 +182,8 @@ def run_ppxf(
             # causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est - noise_new_std)] = noise_est
 
-            ################ 4 ##################
-            # Third Call PPXF - use best-fitting template, adaptively mask emission lines
-            # only do this if adaptive mask is set
-            if adaptive_mask == True:
-                """
-                TODO: 
-                using the gas module to parameterise the gas emission lines
-                Subtract gas emission lines from the spectra
-                Re-fit the spectra
-                """
-                pass
-
             ################ 3 ##################
-            # Fourth Call PPXF - use all templates, get best-fit
+            # Third Call PPXF - use all templates, get best-fit
 
             if bias == 'muse_snr_prefit':
                 bias = 0.01584469*snr_prefit**0.54639427 - 0.01687899
@@ -695,7 +682,6 @@ def extractStellarKinematics(config):
         config["KIN"]["MDEG"],
         config["KIN"]["REDDENING"],
         config["KIN"]["DOCLEAN"],
-        config["KIN"]["ADAPTIVE_MASK"],
         logLam,
         offset,
         velscale_ratio,
@@ -747,7 +733,6 @@ def extractStellarKinematics(config):
                     config["KIN"]["MDEG"],
                     config["KIN"]["REDDENING"],
                     config["KIN"]["DOCLEAN"],
-                    config["KIN"]["ADAPTIVE_MASK"],
                     logLam,
                     offset,
                     velscale_ratio,
@@ -813,7 +798,6 @@ def extractStellarKinematics(config):
                 config["KIN"]["MDEG"],
                 config["KIN"]["REDDENING"],
                 config["KIN"]["DOCLEAN"],
-                config["KIN"]["ADAPTIVE_MASK"],
                 logLam,
                 offset,
                 velscale_ratio,
