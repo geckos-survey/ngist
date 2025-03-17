@@ -11,7 +11,7 @@ from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
 
-from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.auxiliary import _auxiliary, _adaptive_spectral_masking
 from ngistPipeline.prepareTemplates import _prepareTemplates
 
 # PHYSICAL CONSTANTS
@@ -643,6 +643,15 @@ def extractStellarKinematics(config):
     goodPixels_ppxf = _auxiliary.spectralMasking(
         config, config["KIN"]["SPEC_MASK"], logLam
     )
+
+    specMask, skyLines = _adaptive_spectral_masking.loadSpecMask(
+        config, config["KIN"]["SPEC_MASK"]
+    )
+
+    for emLine in specMask:
+        print(emLine)
+    for skyLine in skyLines:
+        print(skyLine)
 
     # Array to store results of ppxf
     ppxf_result = np.zeros((nbins, 6))
