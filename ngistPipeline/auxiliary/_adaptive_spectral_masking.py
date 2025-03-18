@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from astropy.table import Table
 
 def loadSpecMask(config, file):
     """
@@ -49,11 +50,37 @@ def loadSpecMask(config, file):
 
     return specMask, skyLines
 
-def loadGasKinematics(file):
+def loadGasKinematics(config):
     """
-    Loads in gas kinematics from GAS module if output, otherwise returns None
+    Loads in gas kinematics per bin from GAS module output if it exists, otherwise returns None
     """
-    pass
+    gas_kin_path = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
+    if not os.path.exists(gas_kin_path):
+        return None
+
+    gas_kin = Table.read(gas_kin_path)
+
+    emldb = Table.read(
+        config["GENERAL"]["CONFIG_DIR"] + "/" + config["GAS"]["EMI_FILE"],
+        format="ascii",
+    )
+    w = emldb["action"] == "f"
+    linesfitted = emldb[w]
+
+    # Create columns to extract
+    columns = ["BIN_ID", "V_STARS2"]
+    LMAX, LMIN = config["GAS"]["LMAX"], config["GAS"]["LMIN"]
+    for lineName, lineWavelength in zip(linesfitted["name"], linesfitted["lambda"]):
+        if LMIN <= lineWavelength <= LMAX:
+            # convert lineWavelength to take the first 4 characters
+            lineWavelength = str(int(float(lineWavelength)))
+            for measurement in ["VEL", "SIGMA"]:
+                columns.append(f"{lineName}{lineWavelength}_{measurement}")
+
+    print(gas_kin[columns])
+
+    return  gas_kin[columns]
+
 
 def createAdaptiveSpectralMask(specMap, skyLines, gasKinematics, logLam, binId):
     """

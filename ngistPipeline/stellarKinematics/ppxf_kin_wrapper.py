@@ -644,14 +644,12 @@ def extractStellarKinematics(config):
         config, config["KIN"]["SPEC_MASK"], logLam
     )
 
-    specMask, skyLines = _adaptive_spectral_masking.loadSpecMask(
-        config, config["KIN"]["SPEC_MASK"]
-    )
+    if config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"]:
+        specMask, skyLines = _adaptive_spectral_masking.loadSpecMask(
+            config, config["KIN"]["SPEC_MASK"]
+        )
+        gas_kin = _adaptive_spectral_masking.loadGasKinematics(config)
 
-    for emLine in specMask:
-        print(emLine)
-    for skyLine in skyLines:
-        print(skyLine)
 
     # Array to store results of ppxf
     ppxf_result = np.zeros((nbins, 6))
