@@ -3,6 +3,9 @@ import os
 import numpy as np
 from astropy.table import Table
 
+# PHYSICAL CONSTANTS
+C = 299792.458  # km/s
+
 def loadSpecMask(config, file):
     """
     Returns mapping between emission line and properties,
@@ -15,7 +18,7 @@ def loadSpecMask(config, file):
     skyLines:
     Value: { wavelength: l, width: w }
     """
-    specMask = {}
+    emLines = {}
     skyLines = []
 
     maskWavelength = np.genfromtxt(
@@ -34,31 +37,29 @@ def loadSpecMask(config, file):
         if "sky" in comment.lower():
             skyLines.append({ "wavelength": wavelength, "width": width })
         else:
-            comment = comment.split()
+            # Comments should be in the format [line label as defined in emissionLines.config],adaptive
+            comment = comment.split(",")
             # Remove brackets for forbidden lines
             lineName = comment[0].strip("[]")
             # limits wavelength to first 4 characters
             lineWavelength = str(int(float(wavelength)))
             # Checks if adaptive masking is turned on this line
-            if len(comment) == 2 and "adaptive" == comment[1].lower():
-                adaptive = True
-            else:
-                adaptive = False
-            specMask[
+            adaptive = len(comment) == 2 and "adaptive" in comment[1].lower()
+            emLines[
                 f"{lineName}{lineWavelength}"
             ] = { "wavelength": wavelength, "width": width, "adaptive": adaptive }
 
-    return specMask, skyLines
+    return emLines, skyLines
 
 def loadGasKinematics(config):
     """
     Loads in gas kinematics per bin from GAS module output if it exists, otherwise returns None
     """
-    gas_kin_path = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
-    if not os.path.exists(gas_kin_path):
+    gasKinPath = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
+    if not os.path.exists(gasKinPath):
         return None
 
-    gas_kin = Table.read(gas_kin_path)
+    gas_kin = Table.read(gasKinPath)
 
     emldb = Table.read(
         config["GENERAL"]["CONFIG_DIR"] + "/" + config["GAS"]["EMI_FILE"],
@@ -80,19 +81,73 @@ def loadGasKinematics(config):
     return  gas_kin[columns]
 
 
-def createAdaptiveSpectralMask(specMap, skyLines, gasKinematics, logLam, binId):
+def createAdaptiveSpectralMask(emLines, skyLines, gasKin, logLam, binId, config):
     """
     Creates an adaptive masking depending on gasKinematics measured in the gas module
     """
 
     # Create a copy such that we don't modify specMap outside the function
-    specMap = dict(specMap)
+    emLines = emLines.copy()
     goodPixels = np.arange(len(logLam))
-    # Loads the gas kinematics from bin with id binId
-    pass
-    # For each gas kinematics line, first check if the mask exists and modify if it exists
-    # For now, only adaptive mask ones included in specMask
-    pass
+    binInfo = gasKin[gasKin["BIN_ID"] == binId]
+
+    # if gas kinematics is defined, update emLines
+    if gasKin:
+        for lineLabel, lineInfo in emLines.items():
+            wavelength, width, adaptive = lineInfo["wavelength"], lineInfo["width"], lineInfo["adaptive"]
+            if adaptive:
+                newWidth = 4 * binInfo[f"{lineLabel}_SIGMA"] / C * wavelength
+                emLines[lineLabel]["width"] = newWidth
+
     # create goodPixels
-    pass
+    for lineInfo in emLines.values():
+        wavelength, width = lineInfo["wavelength"], lineInfo["width"]
+        minimumPixel = int(
+            np.round(
+                (np.log(wavelength - width / 2.0) - logLam[0])
+                / (logLam[1] - logLam[0])
+            )
+        )
+        maximumPixel = int(
+            np.round(
+                (np.log(wavelength + width / 2.0) - logLam[0])
+                / (logLam[1] - logLam[0])
+            )
+        )
+
+        # Handle border of wavelength range
+        minimumPixel = min(0, minimumPixel)
+        minimumPixel = max(len(logLam) - 1, minimumPixel)
+        maximumPixel = min(0, maximumPixel)
+        maximumPixel = max(len(logLam) - 1, maximumPixel)
+
+        # Mark masked spectral pixels
+        goodPixels[minimumPixel : maximumPixel + 1] = -1
+
+    for skyLine in skyLines:
+        wavelength, width = skyLine["wavelength"] / (1 + config["GENERAL"]["REDSHIFT"]), skyLine["width"]
+        minimumPixel = int(
+            np.round(
+                (np.log(wavelength - width / 2.0) - logLam[0])
+                / (logLam[1] - logLam[0])
+            )
+        )
+        maximumPixel = int(
+            np.round(
+                (np.log(wavelength + width / 2.0) - logLam[0])
+                / (logLam[1] - logLam[0])
+            )
+        )
+
+        # Handle border of wavelength range
+        minimumPixel = min(0, minimumPixel)
+        minimumPixel = max(len(logLam) - 1, minimumPixel)
+        maximumPixel = min(0, maximumPixel)
+        maximumPixel = max(len(logLam) - 1, maximumPixel)
+
+        # Mark masked spectral pixels
+        goodPixels[minimumPixel : maximumPixel + 1] = -1
+
+    goodPixels = goodPixels[np.where(goodPixels != -1)[0]]
+
     return goodPixels

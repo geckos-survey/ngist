@@ -645,11 +645,10 @@ def extractStellarKinematics(config):
     )
 
     if config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"]:
-        specMask, skyLines = _adaptive_spectral_masking.loadSpecMask(
+        emLines, skyLines = _adaptive_spectral_masking.loadSpecMask(
             config, config["KIN"]["SPEC_MASK"]
         )
-        gas_kin = _adaptive_spectral_masking.loadGasKinematics(config)
-
+        gasKin = _adaptive_spectral_masking.loadGasKinematics(config)
 
     # Array to store results of ppxf
     ppxf_result = np.zeros((nbins, 6))
@@ -727,6 +726,17 @@ def extractStellarKinematics(config):
         def worker(chunk, templates):
             results = []
             for i in chunk:
+                goodpixels = goodPixels_ppxf
+                if config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"]:
+                    goodpixels = _adaptive_spectral_masking.createAdaptiveSpectralMask(
+                        emLines,
+                        skyLines,
+                        gasKin,
+                        logLam,
+                        i,
+                        config
+                    )
+
                 result = run_ppxf(
                     templates,
                     bin_data[:, i],
@@ -734,7 +744,7 @@ def extractStellarKinematics(config):
                     velscale,
                     start[i, :],
                     bias,
-                    goodPixels_ppxf,
+                    goodpixels,
                     config["KIN"]["MOM"],
                     config["KIN"]["ADEG"],
                     config["KIN"]["MDEG"],
