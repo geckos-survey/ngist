@@ -77,8 +77,6 @@ def loadGasKinematics(config):
             for measurement in ["VEL", "SIGMA"]:
                 columns.append(f"{lineName}{lineWavelength}_{measurement}")
 
-    print(gas_kin[columns])
-
     return  gas_kin[columns]
 
 
