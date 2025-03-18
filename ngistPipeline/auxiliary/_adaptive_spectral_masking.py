@@ -59,7 +59,7 @@ def loadGasKinematics(config):
     if not os.path.exists(gasKinPath):
         return None
 
-    gas_kin = Table.read(gasKinPath)
+    gasKin = Table.read(gasKinPath)
 
     emldb = Table.read(
         config["GENERAL"]["CONFIG_DIR"] + "/" + config["GAS"]["EMI_FILE"],
@@ -78,7 +78,7 @@ def loadGasKinematics(config):
             for measurement in ["VEL", "SIGMA"]:
                 columns.append(f"{lineName}{lineWavelength}_{measurement}")
 
-    return  gas_kin[columns]
+    return  gasKin[columns]
 
 
 def createAdaptiveSpectralMask(emLines, skyLines, gasKin, logLam, binId, config):
@@ -96,7 +96,7 @@ def createAdaptiveSpectralMask(emLines, skyLines, gasKin, logLam, binId, config)
         for lineLabel, lineInfo in emLines.items():
             wavelength, width, adaptive = lineInfo["wavelength"], lineInfo["width"], lineInfo["adaptive"]
             if adaptive:
-                newWidth = 4 * binInfo[f"{lineLabel}_SIGMA"] / C * wavelength
+                newWidth = 4 * binInfo[f"{lineLabel}_SIGMA"].item() / C * wavelength
                 emLines[lineLabel]["width"] = newWidth
 
     # create goodPixels
