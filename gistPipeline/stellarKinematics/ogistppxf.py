@@ -14,6 +14,7 @@ from gistPipeline.auxiliary import _auxiliary
 from ppxf.ppxf import ppxf
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 
 # PHYSICAL CONSTANTS
@@ -53,7 +54,7 @@ def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=
     bestfit_shown = bestfit_shown[goodpixels[0] : goodpixels[-1] + 1]
     mx = 1.99
     mn = -0.49
-    plt.plot(x, galaxy, 'black', linewidth=1.5)
+    plt.plot(x, galaxy, 'black', linewidth=0.5)
     plt.plot(x[goodpixels], resid[goodpixels], 'd',
                 color='LimeGreen', mec='LimeGreen', ms=1)
     
@@ -62,9 +63,9 @@ def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=
         for wj in w:
             a, b = goodpixels[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightpink')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=1.1,alpha=0.5)
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5,alpha=0.5)
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=1.5)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=0.5)
 
         #repeat square lines with  pp_step1
             w = np.flatnonzero(np.diff(goodpixelsPre) > 1)
@@ -72,20 +73,23 @@ def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=
             a, b = goodpixelsPre[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightgray')
         for k in goodpixelsPre[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=1.5)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
     else:
         w = np.flatnonzero(np.diff(goodpixels) > 1)
         for wj in w:
             a, b = goodpixels[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightgray')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=1.1, alpha=0.5)
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5, alpha=0.5)
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=1.5)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
     
     plt.plot(x[goodpixels], goodpixels*0, '.k', ms=1)
-    plt.plot(x, stars_bestfit, 'red', linewidth=1.0)
+    plt.plot(x, stars_bestfit, 'red', linewidth=0.5)
     ax2.set(xlabel='wavelength [Ang]', ylabel='Flux [normalised]')
     ax2.set(ylim=(mn,mx))
+    ax2.tick_params(direction='in', which='both') 
+    ax2.minorticks_on()
+    ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
 
     #plot output
 
@@ -105,13 +109,13 @@ def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=
     #    (f", S/N CubeVar = {snrCubevar:.1f}, S/N Residual = {snrResid:.1f}")   
 
     if nmom == 2:
-        plotText = (f"GIST - Bin {i:.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
+        plotText = (f"GIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
         (f", S/N Residual = {snrResid:.1f}")
     if nmom == 4:
-        plotText = (f"GIST - Bin {i:.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
+        plotText = (f"GIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
         (f", S/N Residual = {snrResid:.1f}")        
     if nmom == 6:            
-        plotText = (f"GIST - Bin {i:.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
+        plotText = (f"GIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
         (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
         (f", S/N Residual = {snrResid:.1f}")   
             

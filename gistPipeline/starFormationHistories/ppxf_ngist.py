@@ -32,7 +32,7 @@ PURPOSE:
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
 
-def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], norm=True):
+def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], norm=True,mean_results=''):
     #foutine to plot first and final pPXF fit
     fig = plt.figure(i, figsize=(13, 3.0))
 
@@ -55,7 +55,7 @@ def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=
     
     sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
     bestfit_shown = bestfit_shown[goodpixels[0] : goodpixels[-1] + 1]
-    mx = 1.99
+    mx = 2.49
     mn = -0.49
     plt.plot(x, galaxy, 'black', linewidth=0.5)
     plt.plot(x[goodpixels], resid[goodpixels], 'd',
@@ -93,6 +93,29 @@ def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=
     ax2.tick_params(direction='in', which='both') 
     ax2.minorticks_on()
     ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
+
+    #plot output
+
+    nmom = np.max(pp.moments)
+
+    if nmom == 2:
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
+        (f", S/N Residual = {snrResid:.1f}")
+    if nmom == 4:
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
+        (f", S/N Residual = {snrResid:.1f}")        
+    if nmom == 6:            
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
+        (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
+        (f", S/N Residual = {snrResid:.1f}")   
+    
+    if len(mean_results) > 0:
+        plotText += (f", Age [] = {mean_results[0][0]:.2f}, [M/H] = {mean_results[0][1]:.2f}")+\
+        (", [alpha/Fe] = ")+(f"{mean_results[0][2]:.2f}")
+
+    plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes, backgroundcolor='white')
+    plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
+    plt.close()
 
 
 def robust_sigma(y, zero=False):
@@ -142,14 +165,14 @@ def workerPPXF(inQueue, outQueue):
         nbins,
         i,
         optimal_template_in,
-        config,
-        doplot,        
         EBV_init,
         logLam,
         nsims,
         logAge_grid,
         metal_grid,
-        alpha_grid
+        alpha_grid,
+        config,
+        doplot,
     ) in iter(inQueue.get,'STOP'):
         (
             sol,
@@ -180,14 +203,14 @@ def workerPPXF(inQueue, outQueue):
             nbins,
             i,
             optimal_template_in,
-            config,
-            doplot,
             EBV_init,
             logLam,
             nsims,
             logAge_grid,
             metal_grid,
-            alpha_grid
+            alpha_grid,
+            config,
+            doplot,
         )
 
         outQueue.put(
@@ -224,8 +247,6 @@ def run_ppxf_firsttime(
     ncomb,
     nbins,
     optimal_template_in,
-    config,
-    doplot,
 ):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
@@ -234,11 +255,11 @@ def run_ppxf_firsttime(
     non-parametric star-formation histories.
     """
     # Call PPXF for first time to get optimal template
-    print("Running pPXF for the first time")
+    printStatus.running("Running pPXF for the first time")
     # normalise galaxy spectra and noise
-    median_log_bin_data = np.nanmedian(log_bin_data)
-    log_bin_error /= median_log_bin_data
-    log_bin_data /= median_log_bin_data
+    #median_log_bin_data = np.nanmedian(log_bin_data)
+    #log_bin_error /= median_log_bin_data
+    #log_bin_data /= median_log_bin_data
 
     pp = ppxf(
         templates,
@@ -248,13 +269,13 @@ def run_ppxf_firsttime(
         start,
         goodpixels=goodPixels,
         plot=False,
-        quiet=False,
+        quiet=True,
         moments=nmoments,
         degree=-1,
         vsyst=offset,
         mdegree=mdeg,
         regul = 1./regul_err,
-        fixed=fixed,
+        #fixed=fixed,
         velscale_ratio=velscale_ratio,
     )
 
@@ -287,14 +308,14 @@ def run_ppxf(
     nbins,
     i,
     optimal_template_in,
-    config,
-    doplot,    
     EBV_init,
     logLam,
     nsims,
     logAge_grid,
     metal_grid,
-    alpha_grid
+    alpha_grid,
+    config,
+    doplot,
 ):
 
     """
@@ -305,7 +326,9 @@ def run_ppxf(
     """
     printStatus.progressBar(i, nbins, barLength=50)
 
-    try:
+    do_try = True
+    if do_try == True:
+    #try:
 
         if len(optimal_template_in) > 1:
 
@@ -313,10 +336,9 @@ def run_ppxf(
             median_log_bin_data = np.nanmedian(log_bin_data)
             log_bin_error /= median_log_bin_data
             log_bin_data /= median_log_bin_data
-
-            #calculate the snr before the fit (may be used for bias)
+            
             snr_prefit = np.nanmedian(log_bin_data/log_bin_error)
-
+        
             # Here add in the extra, 0th step to estimate the dust and print out the E(B-V) map
             # Call PPXF, using an extinction law, no polynomials.
             pp_step0 = ppxf(templates, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), goodpixels=goodPixels,
@@ -352,7 +374,7 @@ def run_ppxf(
             fake_noise=np.full_like(log_bin_data, 1.0)
 
             pp_step1 = ppxf(
-                optimal_template_in,
+                templates,
                 log_bin_data,
                 fake_noise,
                 velscale,
@@ -381,11 +403,21 @@ def run_ppxf(
             # A temporary fix for the noise issue where a single high S/N spaxel causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est-noise_new_std)] = noise_est
 
+            weights_step1 = pp_step1.weights.reshape(templates.shape[1:])/pp_step1.weights.sum() # Take from 1D list to nD array (nAges, nMet, nAlpha)
+            w_row_step1   = np.array([np.reshape(weights_step1, ncomb)])
+
+            # Make the unconvolved optimal stellar template from step 1 for step 2
+            reshaped_templates = templates.reshape((templates.shape[0], ncomb))
+            normalized_weights = pp_step1.weights / np.sum( pp_step1.weights )
+            optimal_template_step1 = np.zeros( reshaped_templates.shape[0] )
+            for j in range(0, reshaped_templates.shape[1]):
+                optimal_template_step1 = optimal_template_step1 + reshaped_templates[:,j]*normalized_weights[j]
+
             ################ 2 ##################
             # Second Call PPXF - use best-fitting template, determine outliers
             if doclean == True:
                 pp_step2 = ppxf(
-                    optimal_template_in,
+                    optimal_template_step1,
                     log_bin_data,
                     noise_new,
                     velscale,
@@ -458,28 +490,36 @@ def run_ppxf(
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)
         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum() # Take from 1D list to nD array (nAges, nMet, nAlpha)
-        w_row   = np.reshape(weights, ncomb)
+        w_row   = np.array([np.reshape(weights, ncomb)])
 
         #plotting output
         if doplot == True:
 
             # check if figure  folder exists, otherwise
-            outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],'figFit')
+            outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],'nGIST_figFit_SFH')
             if os.path.exists(outfigDir) == False:
                 printStatus.running('Creating directory for pPXF figures:' + outfigDir)
                 os.mkdir(outfigDir)
             
             outfigFile_step1 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
-                                + "_sfh_bin_"+str(i)+"_step1.pdf"))
+                                + "_sfh_bin_"+str(i)+"_ngist_step1.pdf"))
             outfigFile_step3 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
-                                + "_sfh_bin_"+str(i)+"_step3.pdf"))
+                                + "_sfh_bin_"+str(i)+"_ngist_step3.pdf"))
 
+            # Calculate mean age, metallicity and alpha
+            mean_results_step1 = mean_agemetalalpha(w_row_step1, 10**logAge_grid, metal_grid, alpha_grid, 1)
+            #calculate mean age, metallicity, and alpha step 1
+            mean_results_step3 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
+
+            if fixed[0] == True:
+                pp.sol[0:4] = start
             #produce plots
-            tmp1 = plot_ppxf(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,snrResid=snr_Resid1)
-            tmp3 = plot_ppxf(pp,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,snrResid=snr_postfit,
-                             goodpixelsPre=pp_step1.goodpixels)
+            tmp1 = plot_ppxf(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,snrResid=snr_Resid1,\
+                             mean_results=mean_results_step1)
+            tmp3 = plot_ppxf(pp,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,snrResid=snr_postfit,\
+                             goodpixelsPre=pp_step1.goodpixels,mean_results=mean_results_step3)
 
 
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
@@ -552,38 +592,6 @@ def run_ppxf(
             snr_postfit,
             EBV,
         )
-
-    except:
-        return( np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
-
-
-
-# ## *****************************************************************************
-# #        noise_i = noise_i * np.sqrt(  / len(goodPixels) )
-# #        regul_err =
-#
-#         pp = ppxf(templates, galaxy_i, noise_i, velscale, start, goodpixels=goodPixels, plot=False, quiet=True,\
-#               moments=nmom, degree=-1, vsyst=dv, mdegree=mdeg, regul=1./regul_err, fixed=fixed, velscale_ratio=velscale_ratio)
-#
-# #        if i == 0:
-# #            print()
-# #            print( i, pp.chi2 )
-# #            print( len( goodPixels ) )
-# #            print( np.sqrt(2 * len(goodPixels)) )
-# #            print()
-#
-#         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum()
-#         w_row   = np.reshape(weights, ncomb)
-#
-#         # Correct the formal errors assuming that the fit is good
-#         formal_error = pp.error * np.sqrt(pp.chi2)
-#
-#         return(pp.sol, w_row, pp.bestfit, formal_error)
-#
-#     except:
-#         return(np.nan, np.nan, np.nan, np.nan)
-
-
 
 def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
     """
@@ -931,6 +939,7 @@ def extractStarFormationHistories(config):
     bin_data = np.array( hdu[1].data.SPEC.T )
     bin_data = bin_data[idx_lam,:]
     bin_err = bin_err[idx_lam,:]
+    
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0])*C
     #noise = np.full(npix, config['SFH']['NOISE'])
@@ -1075,7 +1084,9 @@ def extractStarFormationHistories(config):
                     config['SFH']['MC_PPXF'],
                     logAge_grid,
                     metal_grid,
-                    alpha_grid
+                    alpha_grid,
+                    config,
+                    True,
                 )
             )
 
@@ -1139,9 +1150,10 @@ def extractStarFormationHistories(config):
     if config['GENERAL']['PARALLEL'] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
-        #for i in range(nbins):
+        #for i in range(0, nbins):
+        #runbin = [1,882,1873,1949]  
         runbin = [441, 457, 471, 476, 501, 521, 522, 545, 551,1325,1417,1458,1479,1494,1499]
-        for i in runbin:                      
+        for i in runbin:                        
             (
                 ppxf_result[i,:config['SFH']['MOM']],
                 w_row[i,:],
@@ -1177,7 +1189,9 @@ def extractStarFormationHistories(config):
                 config['SFH']['MC_PPXF'],
                 logAge_grid,
                 metal_grid,
-                alpha_grid
+                alpha_grid,
+                config,
+                True,
             )
             w_row_MC_iter[i,:,:] = mc_results_i["w_row_MC_iter"]
             w_row_MC_mean[i,:] = mc_results_i["w_row_MC_mean"]

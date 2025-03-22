@@ -425,10 +425,10 @@ def saveContLineCube(config):
 
     inputCube = readCube(config)
     spectra_all = inputCube["spec"]
-    linLam = inputCube["wave"] #rest-frame
+    linLam = inputCube["wave"]
 
     idx_lam = np.where(
-        np.logical_and(linLam > config["CONT"]["LMIN"], linLam < config["CONT"]["LMAX"])
+        np.logical_and(linLam > config["KIN"]["LMIN"], linLam < config["KIN"]["LMAX"])
     )[0]
     spectra_all = spectra_all[idx_lam, :]
     linLam = linLam[idx_lam]
@@ -498,18 +498,20 @@ def saveContLineCube(config):
     cubehdr["NAXIS3"] = len(linLam)
     cubehdr["CRVAL3"] = linLam[0] * (1 + config["GENERAL"]["REDSHIFT"]) #
     cubehdr["CRPIX3"] = 1
+    cubehdr["CTYPE3"] = "AWAV"
+    cubehdr["CUNIT3"] = "angstrom"
 
     # set the WCS keywords to CDELT standard format
-    #cdi_j_wcs = WCS(cubehdr)
-    #newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
-    #newcubehdr.update(
-    #    diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
-    #)  # replace with CDELT standard keys
+    cdi_j_wcs = WCS(cubehdr)
+    newcubehdr = strip_wcs_from_header(cubehdr)  # remove all WCS keys from header
+    newcubehdr.update(
+        diagonal_wcs_to_cdelt(cdi_j_wcs).to_header()
+    )  # replace with CDELT standard keys
 
     # set the correct CDELT *after* CD3_3 has been removed, adjust to observed wavelength frame
     # as cube is de-redshifted during read in by MUSE_WFM.py
+    newcubehdr["CDELT3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0] * 1e-10 # A -> m
 
-    cubehdr["CD3_3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0] #* 1e-10 # A -> m
     # save line and continuum cubes
     # float32 preferred over float64 to save size and allow for conversion to hdf5
     fn_suffix = ["CONT", "LINE", "ORIG"]
@@ -521,6 +523,6 @@ def saveContLineCube(config):
         )
 
         cubehdul = [fits.PrimaryHDU(data=np.float32(cube.reshape((len(linLam), NY, NX))),
-                         header=cubehdr)]
+                         header=newcubehdr)]
 
         write_fits_cube(hdulist=cubehdul, filename=outfits, overwrite=True)

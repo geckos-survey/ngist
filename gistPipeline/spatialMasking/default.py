@@ -74,7 +74,7 @@ def maskDefunctSpaxels(cube):
     return masked
 
 
-def applySNRThreshold(snr, signal, min_snr, threshold_method="actual"):
+def applySNRThreshold(snr, signal, min_snr, threshold_method="isophote"):
     """
     Mask those spaxels that are above the isophote level with a mean
     signal-to-noise ratio of MIN_SNR.

@@ -12,7 +12,6 @@ from printStatus import printStatus
 
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.prepareTemplates import _prepareTemplates
-#from tqdm.notebook import tqdm
 
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
@@ -75,7 +74,6 @@ def workerPPXF(inQueue, outQueue):
         i,
         ntemplates,
         optimal_template_in,
-        config,
     ) in iter(inQueue.get, "STOP"):
         (
             sol,
@@ -109,7 +107,6 @@ def workerPPXF(inQueue, outQueue):
             i,
             ntemplates,
             optimal_template_in,
-            config,
         )
 
         outQueue.put(
@@ -150,7 +147,6 @@ def run_twocomp_ppxf(
     i,
     ntemplates,
     optimal_template_in,
-    config,
 ):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
@@ -306,9 +302,20 @@ def run_twocomp_ppxf(
             templates_step3[:,:ntemplates_step3] = templates_use
             templates_step3[:,ntemplates_step3:] = templates_use            
             
+            # kinematic constraints sigma0 >  sigma1
+            #A_ineq = [[0, 1, 0, -1]]  # -sigma0 + sigma1 <= 0
+            #b_ineq = [0]
+            #constr_kinem = {"A_ineq": A_ineq, "b_ineq": b_ineq}
+
             # kinematic constraints vel0 <  vel1
-            A_ineq = [[-1, 0, 1, 0]]  # -vel0 + vel1 <= 0
-            b_ineq = [0]
+            #A_ineq = [[-1, 0, 1, 0]]  # -vel0 + vel1 <= 0
+            #b_ineq = [0]
+            #constr_kinem = {"A_ineq": A_ineq, "b_ineq": b_ineq}
+
+            # kinematic constraints vel0 <  vel1 & sigma0 > sigma 1
+            A_ineq = [[-1, 0, 1, 0],  # -vel0 + vel1 <= 0
+                      [0, 1, 0, -1]]  #  sigma0 > sigma 1
+            b_ineq = [0, 0]
             constr_kinem = {"A_ineq": A_ineq, "b_ineq": b_ineq}
 
             input_component = np.arange(np.int32(templates_step3.shape[1]))
@@ -379,12 +386,6 @@ def run_twocomp_ppxf(
                 weights[ntemplates[0]:][wnonzero_weights_step2] = pp.weights[ntemplates_step3:]             
             else:
                 weights = pp.weights
-
-        # run full grid search
-        gridsearch = True
-        if gridsearch == True:
-            test=1
-
 
         # update goodpixels again
         goodPixels = pp.goodpixels
@@ -1162,8 +1163,8 @@ def extractStellarKinematics(config):
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
-        #for i in range(0, nbins):
-        for i in range(1, 2):
+        for i in range(0, nbins):
+            # for i in range(1, 2):
             (
                 tmp_result,
                 ppxf_reddening[i],

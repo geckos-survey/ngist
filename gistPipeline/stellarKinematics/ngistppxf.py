@@ -104,17 +104,17 @@ def plot_ppxf(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=
     #    (f", S/N CubeVar = {snrCubevar:.1f}, S/N Residual = {snrResid:.1f}")   
 
     if nmom == 2:
-        plotText = (f"nGIST - Bin {i:.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
         (f", S/N Residual = {snrResid:.1f}")
     if nmom == 4:
-        plotText = (f"nGIST - Bin {i:.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
         (f", S/N Residual = {snrResid:.1f}")        
     if nmom == 6:            
-        plotText = (f"nGIST - Bin {i:.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
         (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
         (f", S/N Residual = {snrResid:.1f}")   
             
-    plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes, backgroundcolor='white')
+    plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes)
     plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
     plt.close()
 
@@ -766,8 +766,8 @@ def extractStellarKinematics(config):
 
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0]) * C
-    noise  = np.ones((npix,nbins))
-    #noise = bin_err  # is actual noise, not variance
+    #noise  = np.ones((npix,nbins))
+    noise = bin_err  # is actual noise, not variance
     nsims = config["KIN"]["MC_PPXF"]
 
     # Initial guesses
@@ -909,7 +909,7 @@ def extractStellarKinematics(config):
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
         #for i in range(0, nbins):
-        runbin = [1,1873,1949]
+        runbin = [1,882,1873,1949]
         for i in runbin:            
             (
                 ppxf_result[i, : config["KIN"]["MOM"]],
