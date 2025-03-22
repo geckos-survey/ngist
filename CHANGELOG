@@ -6,7 +6,11 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
-V7.3.0	     2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipeline 
+
+V7.3.1	    Added plotting routines to kin_wrapper and sfh_wrapper to output the results
+			inside the module, as cleaned lines are not yet shown within mapviewer.
+
+V7.3.0	    2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipeline 
 			2) Optimized Voronoi Binning: Improved speed and reduced 
 			RAM usage by using scipy's spatial.cKDTree for nearest-neighbor 
 			searches. 3) Switched Parallelization to Joblib: Enhanced performance 
@@ -25,7 +29,7 @@ V7.3.0	     2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipelin
     			module: Reverted back to default MUSE header keywords in generated 
     			cubes. Fixed bug that called KIN module config setting instead of CONT.
 
-V7.2.1	     2024-07-28 ADDED: Ability to create BPT maps in the GAS module if all required
+V7.2.1	    2024-07-28 ADDED: Ability to create BPT maps in the GAS module if all required
 			emission lines are present. Note: there is currently no AoN 
 			threshold applied to these lines.
 

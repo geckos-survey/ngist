@@ -10,9 +10,12 @@ from joblib import Parallel, delayed, dump, load
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import _prepareTemplates
+import warnings
+warnings.filterwarnings("ignore")
 
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
@@ -25,6 +28,84 @@ PURPOSE:
   Cappellari & Emsellem 2004 (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
+
+def plot_ppxf_kin(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], norm=True):
+    
+    #routine to plot first and final pPXF fit
+    fig = plt.figure(i, figsize=(13, 3.0))
+
+    ax2 = plt.subplot(111)
+
+    if norm == True:
+        median_norm = np.nanmedian(pp.galaxy[pp.goodpixels])
+    else:
+        median_norm = 1
+
+    stars_bestfit = pp.bestfit / median_norm
+    bestfit_shown = pp.bestfit / median_norm
+    galaxy = pp.galaxy / median_norm
+    resid = galaxy - stars_bestfit
+    goodpixels = pp.goodpixels
+    
+    ll, rr = np.min(x), np.max(x)
+    
+    sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
+    bestfit_shown = bestfit_shown[goodpixels[0] : goodpixels[-1] + 1]
+    mx = 1.99
+    mn = -0.49
+    plt.plot(x, galaxy, 'black', linewidth=0.5)
+    plt.plot(x[goodpixels], resid[goodpixels], 'd',
+                color='LimeGreen', mec='LimeGreen', ms=1)
+    
+    if len(goodpixelsPre) > 0:
+        w = np.flatnonzero(np.diff(goodpixels) > 1)
+        for wj in w:
+            a, b = goodpixels[wj : wj + 2]
+            plt.axvspan(x[a], x[b], facecolor='lightpink')
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5,alpha=0.5)
+        for k in goodpixels[[0, -1]]:
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=0.5)
+
+        #repeat square lines with  pp_step1
+            w = np.flatnonzero(np.diff(goodpixelsPre) > 1)
+        for wj in w:
+            a, b = goodpixelsPre[wj : wj + 2]
+            plt.axvspan(x[a], x[b], facecolor='lightgray')
+        for k in goodpixelsPre[[0, -1]]:
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
+    else:
+        w = np.flatnonzero(np.diff(goodpixels) > 1)
+        for wj in w:
+            a, b = goodpixels[wj : wj + 2]
+            plt.axvspan(x[a], x[b], facecolor='lightgray')
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5, alpha=0.5)
+        for k in goodpixels[[0, -1]]:
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
+    
+    plt.plot(x[goodpixels], goodpixels*0, '.k', ms=1)
+    plt.plot(x, stars_bestfit, 'red', linewidth=0.5)
+    ax2.set(xlabel='wavelength [Ang]', ylabel='Flux [normalised]')
+    ax2.set(ylim=(mn,mx))
+    ax2.tick_params(direction='in', which='both') 
+    ax2.minorticks_on()
+    ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
+
+    nmom = np.max(pp.moments)
+
+    if nmom == 2:
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
+        (f", S/N Residual = {snrResid:.1f}")
+    if nmom == 4:
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
+        (f", S/N Residual = {snrResid:.1f}")        
+    if nmom == 6:            
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
+        (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
+        (f", S/N Residual = {snrResid:.1f}")   
+            
+    plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes, backgroundcolor='white')
+    plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
+    plt.close()
 
 def robust_sigma(y, zero=False):
     """
@@ -67,6 +148,8 @@ def run_ppxf(
     nbins,
     i,
     optimal_template_in,
+    config,
+    doplot,    
 ):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
@@ -135,6 +218,8 @@ def run_ppxf(
                 pp_step1.galaxy[goodPixels] - pp_step1.bestfit[goodPixels]
             )
 
+            # calculate SNR postfit step 1
+            snr_Resid1 = np.nanmedian(pp_step1.galaxy[goodPixels]/noise_est)
             # Calculate the new noise, and the sigma of the distribution.
             noise_new = log_bin_error * (noise_est / noise_orig)
             noise_new_std = robust_sigma(noise_new)
@@ -219,14 +304,6 @@ def run_ppxf(
         # make spectral mask
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
-
-        # Calculate the true S/N from the residual the long version
-        #noise_est_final = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
-        #noise_orig = biweight_location(log_bin_error[goodPixels])
-        #noise_final = log_bin_error * (noise_est_final / noise_orig)
-        #noise_final_std = robust_sigma(noise_final)
-        #noise_final[np.where(noise_final <= noise_est_final - noise_final_std)] = noise_est_final
-        #snr_postfit = np.nanmedian(pp.galaxy[goodPixels]/noise_final[goodPixels])
         
         # Calculate the true S/N from the residual the short version
         noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
@@ -242,6 +319,30 @@ def run_ppxf(
 
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)
+
+        #plotting output
+        if doplot == True:
+
+            # check if figure  folder exists, otherwise
+            outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],'FigFit_KIN')
+            if os.path.exists(outfigDir) == False:
+                printStatus.running('Creating directory for pPXF figures:' + outfigDir)
+                os.mkdir(outfigDir)
+            
+            outfigFile_step1 = (
+                os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
+                                + "_kin_bin_"+str(i)+"_step1.pdf"))
+            outfigFile_step3 = (
+                os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
+                                + "_kin_bin_"+str(i)+"_step3.pdf"))
+
+            #produce plots
+            tmp_plot1 = plot_ppxf_kin(pp_step1,np.exp(logLam),i,outfigFile_step1,\
+                                  snrCubevar=snr_prefit,snrResid=snr_Resid1)
+            tmp_plot3 = plot_ppxf_kin(pp,np.exp(logLam),i,outfigFile_step3,\
+                                  snrCubevar=snr_prefit,snrResid=snr_postfit,
+                             goodpixelsPre=pp_step1.goodpixels)
+
 
         # Do MC-Simulations
         sol_MC = np.zeros((nsims, nmoments))
@@ -689,6 +790,8 @@ def extractStellarKinematics(config):
         nbins,
         0,
         optimal_template_init,
+        config,
+        False,
     )
     # now define the optimal template that we'll use throughout
     optimal_template_comb = optimal_template_out
@@ -740,6 +843,8 @@ def extractStellarKinematics(config):
                     nbins,
                     i,
                     optimal_template_comb,
+                    config,
+                    True,
                 )
                 results.append(result)
             return results
@@ -805,6 +910,8 @@ def extractStellarKinematics(config):
                 nbins,
                 i,
                 optimal_template_comb,
+                config,
+                True,                
             )
         printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
 
