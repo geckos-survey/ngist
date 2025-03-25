@@ -38,7 +38,7 @@ def loadSpecMask(config, file):
             skyLines.append({ "wavelength": wavelength, "width": width })
         else:
             # Comments should be in the format [line label as defined in emissionLines.config],adaptive
-            comment = comment.split(",")
+            comment = comment.split("-")
             # Remove brackets for forbidden lines
             lineName = comment[0].strip("[]")
             # limits wavelength to first 4 characters
