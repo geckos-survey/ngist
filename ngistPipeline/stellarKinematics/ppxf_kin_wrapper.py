@@ -12,7 +12,7 @@ from printStatus import printStatus
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.auxiliary import _auxiliary, _adaptive_spectral_masking
 from ngistPipeline.prepareTemplates import _prepareTemplates
 import warnings
 warnings.filterwarnings("ignore")
@@ -149,7 +149,10 @@ def run_ppxf(
     i,
     optimal_template_in,
     config,
-    doplot,    
+    doplot,
+    gas_kin=None,
+    emission_lines=None,
+    base_goodpixels=None
 ):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
@@ -230,6 +233,19 @@ def run_ppxf(
             ################ 2 ##################
             # Second Call PPXF - use best-fitting template, determine outliers
             # only do this if doclean is set
+
+            # Adaptively shift and adjust width of spectral lines masked base on gas kinematics
+            # only do this if adaptive spectral masking is set
+            if config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"]:
+                pass
+                goodPixels = _adaptive_spectral_masking.createAdaptiveSpectralMask(
+                    emission_lines,
+                    base_goodpixels,
+                    gas_kin,
+                    logLam,
+                    i,
+                )
+
             if doclean == True:
                 pp_step2 = ppxf(
                     optimal_template_in,
@@ -337,11 +353,11 @@ def run_ppxf(
                                 + "_kin_bin_"+str(i)+"_step3.pdf"))
 
             #produce plots
-            tmp_plot1 = plot_ppxf_kin(pp_step1,np.exp(logLam),i,outfigFile_step1,\
+            plot_ppxf_kin(pp_step1,np.exp(logLam),i,outfigFile_step1,\
                                   snrCubevar=snr_prefit,snrResid=snr_Resid1)
-            tmp_plot3 = plot_ppxf_kin(pp,np.exp(logLam),i,outfigFile_step3,\
+            plot_ppxf_kin(pp,np.exp(logLam),i,outfigFile_step3,\
                                   snrCubevar=snr_prefit,snrResid=snr_postfit,
-                             goodpixelsPre=pp_step1.goodpixels)
+                             )
 
 
         # Do MC-Simulations
@@ -392,7 +408,9 @@ def run_ppxf(
             snr_postfit,
         )
 
-    except:
+    except Exception as e:
+        print(f"run_ppxf has failed for bin {i} because of {e}")
+        logging.info(f"run_ppxf has failed for bin {i} because of {e}")
         return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
@@ -745,6 +763,13 @@ def extractStellarKinematics(config):
         config, config["KIN"]["SPEC_MASK"], logLam
     )
 
+    # Define adaptive spectral masking helpers
+    gas_kin, emission_lines, base_goodpixels = None, None, None
+    if config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"]:
+        gas_kin = _adaptive_spectral_masking.loadGasKinematics(config)
+        emission_lines, base_goodpixels = _adaptive_spectral_masking.loadSpecMask(config, config["KIN"]["SPEC_MASK"], logLam)
+
+
     # Array to store results of ppxf
     ppxf_result = np.zeros((nbins, 6))
     ppxf_reddening = np.zeros(nbins)
@@ -845,6 +870,9 @@ def extractStellarKinematics(config):
                     optimal_template_comb,
                     config,
                     True,
+                    gas_kin,
+                    emission_lines,
+                    base_goodpixels
                 )
                 results.append(result)
             return results
@@ -911,7 +939,10 @@ def extractStellarKinematics(config):
                 i,
                 optimal_template_comb,
                 config,
-                True,                
+                True,
+                gas_kin,
+                emission_lines,
+                base_goodpixels
             )
         printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
 
