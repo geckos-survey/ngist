@@ -7,6 +7,12 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V7.4.0	    2025-04-11 CHANGED Major: 1) updated KIN and SFH routines to be able to pass
+			a single, an set of, or all templates as an "optimal template". 2) Added options
+			to KIN and SFH modules to: A) use a pre specmask used in step 0 and 1, B) choose 
+			between constant or variance noise, and C) prefit and correct the spectra for
+			reddening. Requires update to MasterConfig File.
+			
 V7.3.1	    Added plotting routines to kin_wrapper and sfh_wrapper to output the results
 			inside the module, as cleaned lines are not yet shown within mapviewer.
 

@@ -2,7 +2,6 @@ import logging
 import os
 import time
 
-# import extinction
 import h5py
 import numpy as np
 import ppxf as ppxf_package
@@ -15,8 +14,11 @@ from printStatus import printStatus
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import extinction
+
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import _prepareTemplates
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -32,7 +34,8 @@ PURPOSE:
   (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
-def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], norm=True,mean_results=''):
+def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], 
+                  norm=True,mean_results=''):
     #routine to plot first and final pPXF fit
     fig = plt.figure(i, figsize=(13, 3.0))
 
@@ -40,14 +43,14 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
     ax2 = plt.subplot(111)
 
 
-    if norm == True:
-        median_norm = np.nanmedian(pp.galaxy[pp.goodpixels])
-    else:
-        median_norm = 1
+    #if norm == True:
+    #    median_norm = np.nanmedian(pp.galaxy[pp.goodpixels])
+    #else:
+    #    median_norm = 1
 
-    stars_bestfit = pp.bestfit / median_norm
-    bestfit_shown = pp.bestfit / median_norm
-    galaxy = pp.galaxy / median_norm
+    stars_bestfit = pp.bestfit #/ median_norm
+    bestfit_shown = pp.bestfit #/ median_norm
+    galaxy = pp.galaxy #/ median_norm
     resid = galaxy - stars_bestfit
     goodpixels = pp.goodpixels
     
@@ -111,6 +114,8 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
         plotText += (f", Age [] = {mean_results[0][0]:.2f}, [M/H] = {mean_results[0][1]:.2f}")+\
         (", [alpha/Fe] = ")+(f"{mean_results[0][2]:.2f}")
 
+    #plt.plot(x,pp.mpoly,color='orchid',linewidth=1.0)
+
     plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes, backgroundcolor='white')
     plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
     plt.close()
@@ -156,12 +161,9 @@ def run_ppxf_firsttime(
     optimal_template_in,
 ):
     """
-    Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
-    (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
-    ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C), in order to determine the
-    non-parametric star-formation histories.
+    Call PPXF for first time to get optimal template
     """
-    # Call PPXF for first time to get optimal template
+
     printStatus.running("Running pPXF for the first time")
     # normalise galaxy spectra and noise
     median_log_bin_data = np.nanmedian(log_bin_data)
@@ -184,14 +186,24 @@ def run_ppxf_firsttime(
         velscale_ratio=velscale_ratio,
     )
 
+
     # Templates shape is currently [Wavelength, nAge, nMet, nAlpha]. Reshape to [Wavelength, ncomb] to create optimal template
     reshaped_templates = templates.reshape((templates.shape[0], ncomb))
     normalized_weights = pp.weights / np.sum( pp.weights )
+    
     optimal_template   = np.zeros( reshaped_templates.shape[0] )
+    nonzero_weights = np.shape(np.where(normalized_weights > 0)[0])[0]
+    optimal_template_set = np.zeros( [reshaped_templates.shape[0], nonzero_weights])
+    printStatus.running('Number of Templates with non-zero weights ' +str(nonzero_weights))
+    
+    count_nonzero = 0
     for j in range(0, reshaped_templates.shape[1]):
         optimal_template = optimal_template + reshaped_templates[:,j]*normalized_weights[j]
+        if normalized_weights[j] > 0:
+            optimal_template_set[:,count_nonzero] = reshaped_templates[:,j]
+            count_nonzero += 1
 
-    return optimal_template
+    return optimal_template, optimal_template_set
 
 def run_ppxf(
     templates,
@@ -199,6 +211,7 @@ def run_ppxf(
     log_bin_error,
     velscale,
     start,
+    goodPixels_step0,
     goodPixels,
     nmoments,
     offset,
@@ -245,15 +258,36 @@ def run_ppxf(
 
             # Here add in the extra, 0th step to estimate the dust and print out the E(B-V) map
             # Call PPXF, using an extinction law, no polynomials.
-            pp_step0 = ppxf(templates, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), goodpixels=goodPixels,
-                      degree=-1, mdegree=-1, vsyst=offset, velscale_ratio=velscale_ratio,
-                      moments=nmoments, start=start, plot=False, reddening=EBV_init,
-                      regul=0, quiet=True, fixed=fixed)
+            pp_step0 = ppxf(optimal_template_in, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), 
+                            goodpixels=goodPixels_step0,degree=-1, mdegree=-1, vsyst=offset, 
+                            velscale_ratio=velscale_ratio,moments=nmoments, start=start, plot=False, 
+                            reddening=EBV_init,regul=0, quiet=True, fixed=fixed)
 
+            
+            # check which optimal template method is preferred. If default rederive optimal set from step 0
+            if config['SFH']['OPT_TEMP'] == 'default':
+
+                # first reshape templates so that we can apply the weights
+                reshaped_templates = templates.reshape((templates.shape[0], ncomb))
+                
+                # find non zero weights from step 0
+                normalized_weights_step0 = pp_step0.weights / np.sum( pp_step0.weights )
+                wNonzero_weights_step0 = np.where(normalized_weights_step0 > 0)[0] # where Nonzero
+                nNonzero_weights_step0 = np.shape(wNonzero_weights_step0)[0] # number of Nonzero templates
+
+                # prepare optimal template set
+                optimal_template_set_step0 = np.zeros( [reshaped_templates.shape[0], nNonzero_weights_step0])
+                # combine non-zero templates into set to pass on step 1 and step 2
+                for j in range(0, nNonzero_weights_step0):
+                        print(wNonzero_weights_step0[j])
+                        optimal_template_set_step0[:,j] = reshaped_templates[:,wNonzero_weights_step0[j]]
+
+                # replace optimal template with set from step zero
+                optimal_template_in = optimal_template_set_step0
+                
             # Take care about the version of ppxf used.
             # For ppxf versions > 8.2.1, pp.reddening = Av,
             # For ppxf versions < 8.2.1, pp.reddening = E(B-V)
-
             Rv = 4.05
             if version.parse(ppxf_package.__version__) >= version.parse('8.2.1'):
                 Av = pp_step0.reddening
@@ -262,17 +296,17 @@ def run_ppxf(
                 EBV = pp_step0.reddening
                 Av =  EBV * Rv
 
-                # The following is for if we decide  we want to extinction-correct the spectra in the future.
-                # Uses a config['SFH']['DUST_CORR'] = True keyword added to the MasterConfig.yaml file
-                # log_bin_data1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)/np.median(log_bin_data)
-                # log_bin_data = (log_bin_data1/np.median(log_bin_data1))*np.median(log_bin_data)
-                # log_bin_error1 = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)/np.median(log_bin_error)
-                # log_bin_error = (log_bin_error1/np.median(log_bin_error1))*np.median(log_bin_error)
-                # ext_curve = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), np.ones_like(log_bin_data))
-            # # If dust_corr key is False
-            # else:
-            #     EBV = 0
-
+            # apply the dust correction if keyword is set:
+            if config['SFH']['DUST_CORR'] == True:
+                
+                log_bin_data_save = log_bin_data
+                
+                log_bin_data_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)
+                median_log_bin_data_tmp = np.median(log_bin_data_tmp) # save number for later
+                log_bin_data = (log_bin_data_tmp/median_log_bin_data_tmp)
+                log_bin_error_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)
+                log_bin_error = (log_bin_error_tmp/np.median(log_bin_error_tmp))
+                
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
             fake_noise=np.full_like(log_bin_data, 1.0)
@@ -283,7 +317,7 @@ def run_ppxf(
                 fake_noise,
                 velscale,
                 start,
-                goodpixels=goodPixels,
+                goodpixels=goodPixels_step0,
                 plot=False,
                 quiet=True,
                 moments=nmoments,
@@ -295,11 +329,11 @@ def run_ppxf(
             )
             # Find a proper estimate of the noise
             #goodpixels is one shorter than log_bin_error
-            noise_orig = np.mean(log_bin_error[goodPixels])
-            noise_est = robust_sigma(pp_step1.galaxy[goodPixels]-pp_step1.bestfit[goodPixels])
+            noise_orig = np.mean(log_bin_error[goodPixels_step0])
+            noise_est = robust_sigma(pp_step1.galaxy[goodPixels_step0]-pp_step1.bestfit[goodPixels_step0])
 
             # Calculate SNR postfit
-            snr_Resid1 = np.nanmedian(pp_step1.galaxy[goodPixels]/noise_est)
+            snr_Resid1 = np.nanmedian(pp_step1.galaxy[goodPixels_step0]/noise_est)
             # Calculate the new noise, and the sigma of the distribution.
             noise_new = log_bin_error*(noise_est/noise_orig)
             noise_new_std = robust_sigma(noise_new)
@@ -307,6 +341,7 @@ def run_ppxf(
             # A temporary fix for the noise issue where a single high S/N spaxel causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est-noise_new_std)] = noise_est
 
+            
 
             ################ 2 ##################
             # Second Call PPXF - use best-fitting template, determine outliers
@@ -330,6 +365,7 @@ def run_ppxf(
                 )
 
                 # update goodpixels
+                goodPixels_preclip = goodPixels
                 goodPixels = pp_step2.goodpixels
 
                 # repeat noise scaling # Find a proper estimate of the noise
@@ -385,7 +421,6 @@ def run_ppxf(
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)
         weights = pp.weights.reshape(templates.shape[1:])/pp.weights.sum() # Take from 1D list to nD array (nAges, nMet, nAlpha)
-        #w_row   = np.reshape(weights, ncomb)
         w_row   = np.array([np.reshape(weights, ncomb)])
 
         #plotting output
@@ -407,12 +442,15 @@ def run_ppxf(
             #calculate mean age, metallicity, and alpha step 1
             mean_results_step3 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
 
+            #for plotting output
             if fixed[0] == True:
                 pp.sol[0:4] = start
+            
             #produce plots
-            tmp_plot1 = plot_ppxf_sfh(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,snrResid=snr_Resid1)
+            tmp_plot1 = plot_ppxf_sfh(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,
+                                      snrResid=snr_Resid1)
             tmp_plot3 = plot_ppxf_sfh(pp,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,snrResid=snr_postfit,\
-                             goodpixelsPre=pp_step1.goodpixels,mean_results=mean_results_step3)
+                             goodpixelsPre=goodPixels_preclip,mean_results=mean_results_step3)
 
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
         if nsims > 0:
@@ -468,8 +506,15 @@ def run_ppxf(
                 "mean_results_MC_mean":  np.nan,
                 "mean_results_MC_err":  np.nan
             }
+
+        # apply the dust vector to bestfit if keyword set:
+        if config['SFH']['DUST_CORR'] == True:
+            pp.bestfit = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), pp.bestfit) * \
+                         median_log_bin_data_tmp
+        
         # add normalisation factor back in main results
         pp.bestfit = pp.bestfit * median_log_bin_data
+
         return(
             pp.sol[:],
             w_row,
@@ -751,7 +796,6 @@ def extractStarFormationHistories(config):
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "SFH")
 
     # Prepare template library
-    
     # Open the HDF5 file
     with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5", 'r') as f:
         # Read the VELSCALE attribute from the file
@@ -823,17 +867,19 @@ def extractStarFormationHistories(config):
     nbins = bin_data.shape[1]
     npix = bin_data.shape[0]
     ubins = np.arange(nbins)
-    noise = np.full(npix, config['SFH']['NOISE'])
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
-
-    # Apply the selection to the logLam array
 
 
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0])*C
-    noise = bin_err  # is actual noise, not variance
-    nsims = config['SFH']['MC_PPXF']
+    
+    #check what type of noise should be passed on:
+    if config['SFH']['NOISE'] == 'variance': # use noise from cube 
+        noise = bin_err  # already converted to noise, i.e. sqrt(variance)
+    elif config['SFH']['NOISE'] == 'constant': # use constant noise
+        noise  = np.ones((npix,nbins))
 
+    nsims = config['SFH']['MC_PPXF']
 
     # Implementation of switch FIXED
     # Do fix kinematics to those obtained previously
@@ -862,11 +908,20 @@ def extractStarFormationHistories(config):
         )
         # Set fixed option to False and use initial guess from Config-file
         fixed = None
-        start = np.zeros((nbins, 2))
+        start = np.zeros((nbins, config["SFH"]["MOM"]))
         for i in range(nbins):
             start[i, :] = np.array([0.0, config["KIN"]["SIGMA"]])
 
     # Define goodpixels
+
+    #check if a premask for step zero has been defined
+    if 'SPEC_PREMASK' in config['SFH']:
+        #yes, load this premask file
+        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_PREMASK'], logLam)
+    else:
+        #no, load this normal file
+        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_MASK'], logLam)
+    
     goodPixels_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_MASK'], logLam)
 
     # Define output arrays
@@ -890,39 +945,48 @@ def extractStarFormationHistories(config):
     mean_results_MC_err  = np.zeros((nbins,3))
 
     # ====================
-    # Run PPXF once on combined mean spectrum to get a single optimal template
-    comb_spec = np.nanmean(bin_data[:,:],axis=1)
-    comb_espec = np.nanmean(bin_err[:,:],axis=1)
-    optimal_template_init = [0]
+    # If OPT_TEMP keyword set to 'galaxy_single' or 'galaxy_set' then
+    # run PPXF once on combined mean spectrum to get a single or optimal template set
 
-    optimal_template_out = run_ppxf_firsttime(
-        templates,
-        comb_spec ,
-        comb_espec,
-        velscale,
-        start[0,:],
-        goodPixels_sfh,
-        config['SFH']['MOM'],
-        offset,-1,
-        config['SFH']['MDEG'],
-        config['SFH']['REGUL_ERR'],
-        config["SFH"]["DOCLEAN"],
-        velscale_ratio,
-        npix,
-        ncomb,
-        nbins,
-        optimal_template_init,
-    )
+    if (config["SFH"]["OPT_TEMP"] == "galaxy_single") or (config["SFH"]["OPT_TEMP"] == "galaxy_set"):
+        comb_spec = np.nanmean(bin_data[:,:],axis=1)
+        comb_espec = np.nanmean(bin_err[:,:],axis=1)
+        optimal_template_init = [0]
 
-    # now define the optimal template that we'll use throughout
-    optimal_template_comb = optimal_template_out
+        optimal_template_out, optimal_template_set = run_ppxf_firsttime(
+            templates,
+            comb_spec ,
+            comb_espec,
+            velscale,
+            start[0,:],
+            goodPixels_step0_sfh,
+            config['SFH']['MOM'],
+            offset,-1,
+            config['SFH']['MDEG'],
+            config['SFH']['REGUL_ERR'],
+            config["SFH"]["DOCLEAN"],
+            velscale_ratio,
+            npix,
+            ncomb,
+            nbins,
+            optimal_template_init,
+        )
 
+        # now define the optimal template that we'll use throughout
+        if config["SFH"]["OPT_TEMP"] == 'galaxy_single':
+            optimal_template_comb = optimal_template_out # single template
+        if config["SFH"]["OPT_TEMP"] == 'galaxy_set':
+            optimal_template_comb = optimal_template_set # selected set  from total galaxy fit
+    else:
+        optimal_template_comb = templates # all templates
+ 
     # ====================
     EBV_init = 0.1 # PHANGS value initial guess
 
     # ====================
     # Run PPXF
     start_time = time.time()
+
     if config["GENERAL"]["PARALLEL"] == True:
         printStatus.running("Running pPXF in parallel mode")
         logging.info("Running pPXF in parallel mode")
@@ -953,6 +1017,7 @@ def extractStarFormationHistories(config):
                     noise[:,i],
                     velscale,
                     start[i,:],
+                    goodPixels_step0_sfh,
                     goodPixels_sfh,
                     config['SFH']['MOM'],
                     offset,
@@ -1018,7 +1083,9 @@ def extractStarFormationHistories(config):
     if config['GENERAL']['PARALLEL'] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
-        for i in range(nbins):
+        #for i in range(0, nbins):
+        runbin = [87,97,111,113,117,141]
+        for i in runbin:
             (
                 ppxf_result[i,:config['SFH']['MOM']],
                 w_row[i,:],
@@ -1035,6 +1102,7 @@ def extractStarFormationHistories(config):
                 noise[:,i],
                 velscale,
                 start[i,:],
+                goodPixels_step0_sfh,
                 goodPixels_sfh,
                 config['SFH']['MOM'],
                 offset,
