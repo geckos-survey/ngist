@@ -61,6 +61,9 @@ KIN :
   OPT_TEMP : 'default'
   DUST_CORR : True
   NOISE : 'constant'
+  OPT_TEMP : 'default'
+  DUST_CORR : True
+  NOISE : 'constant'
 
 
 # Emission line fitting module

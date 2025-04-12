@@ -259,7 +259,6 @@ def run_ppxf(
                 optimal_template_set_step0 = np.zeros( [templates.shape[0], nNonzero_weights_step0])
                 # combine non-zero templates into set to pass on step 1 and step 2
                 for j in range(0, nNonzero_weights_step0):
-                        print(wNonzero_weights_step0[j])
                         optimal_template_set_step0[:,j] = templates[:,wNonzero_weights_step0[j]]
 
                 # replace optimal template with set from step zero
