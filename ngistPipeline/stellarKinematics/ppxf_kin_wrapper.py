@@ -237,7 +237,6 @@ def run_ppxf(
             # Adaptively shift and adjust width of spectral lines masked base on gas kinematics
             # only do this if adaptive spectral masking is set
             if config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"]:
-                pass
                 goodPixels = _adaptive_spectral_masking.createAdaptiveSpectralMask(
                     emission_lines,
                     base_goodpixels,
@@ -357,6 +356,7 @@ def run_ppxf(
                                   snrCubevar=snr_prefit,snrResid=snr_Resid1)
             plot_ppxf_kin(pp,np.exp(logLam),i,outfigFile_step3,\
                                   snrCubevar=snr_prefit,snrResid=snr_postfit,
+                                  goodpixelsPre=pp_step1.goodpixels
                              )
 
 
