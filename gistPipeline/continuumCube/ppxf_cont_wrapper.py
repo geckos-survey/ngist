@@ -263,10 +263,49 @@ def run_ppxf(
             formal_error,
             spectral_mask,
         )
-
+    # we shouldn't use a bare except clause
     except:
         return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
+def save_ppxf_hdf5(
+    config,
+    ppxf_result,
+    ppxf_reddening,
+    mc_results,
+    formal_error,
+    ppxf_bestfit,
+    logLam,
+    goodPixels,
+    optimal_template,
+    logLam_template,
+    npix,
+    spectral_mask,
+    optimal_template_comb,
+    bin_data,
+):
+    """Saves all results to disk."""
+    # SAVE BESTFIT
+    outfits_ppxf = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_kin-bestfit-cont.hdf5"
+    )
+    print("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5")
+
+    with h5py.File(outfits_ppxf, "w") as f:
+        # Save PPXF bestfit
+        f.create_dataset("BESTFIT", data=ppxf_bestfit)
+
+        # Save PPXF logLam
+        f.create_dataset("LOGLAM", data=logLam)
+
+        # Save PPXF goodpixels
+        f.create_dataset("GOODPIX", data=goodPixels)
+
+        # Save SPEC data
+        f.create_dataset("SPEC", data=bin_data.T)
+
+    print("Writing complete: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5")
+    logging.info("Wrote: " + outfits_ppxf)
 
 def save_ppxf(
     config,
@@ -616,8 +655,8 @@ def createContinuumCube(config):
         logging.info("There were no problems in the analysis.")
     print("")
 
-    # Save stellar kinematics to file
-    save_ppxf(
+    # Save ppxf results to file
+    save_ppxf_hdf5(
         config,
         ppxf_result,
         ppxf_reddening,

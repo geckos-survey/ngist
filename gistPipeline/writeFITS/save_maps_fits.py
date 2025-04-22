@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 
+import datetime
 import logging
 import optparse
 import os
 import warnings
 
-import datetime
+import h5py
 import numpy as np
+from astropy import units as u
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.interpolate import CubicSpline
-from astropy import units as u
-from astropy.wcs import WCS
 
 from gistPipeline.readData.MUSE_WFM import readCube
 from gistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
@@ -434,20 +434,16 @@ def saveContLineCube(config):
     linLam = linLam[idx_lam]
 
     # get PPXF best fit continuum from kinematics module
-    ppxf_bestfit = fits.open(
+    with h5py.File(
         os.path.join(
             config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-    )[1].data.BESTFIT
-    print('Found it! opening -kin-bestfit-cont.fits')
-    # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
-    logLam = fits.open(
-        os.path.join(
-            config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-    )[2].data.LOGLAM
+            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5",
+        ), "r"
+    ) as f:
+        ppxf_bestfit = f["BESTFIT"][:]
+        print('Found it! opening -kin-bestfit-cont.hdf5')
+
+        logLam = f["LOGLAM"][:]
 
     # table HDU
     tablehdu = fits.open(
