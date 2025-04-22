@@ -117,14 +117,14 @@ def emissionLines_Module(config):
         return "SKIP"
 
      # Remove AllSpectra file which is now no longer needed and takes up a lot of space
-    if config["GAS"]["LEVEL"] == "SPAXEL":
-        printStatus.warning(
-            "Removing the AllSpectra.fits file to save space"
-        )
-        os.remove(
-            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_AllSpectra.fits"
-            )        
+    # if config["GAS"]["LEVEL"] == "SPAXEL":
+    #     printStatus.warning(
+    #         "Removing the AllSpectra.hdf5 file to save space"
+    #     )
+    #     os.remove(
+    #         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+    #         + "_AllSpectra.hdf5"
+    #         )        
 
 
     # Return

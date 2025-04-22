@@ -3,8 +3,9 @@ import logging
 import os
 
 import yaml
-from gistPipeline.writeFITS import _writeFITS
 from printStatus import printStatus
+
+from gistPipeline.writeFITS import _writeFITS
 
 
 def stellarKinematics_Module(config):
