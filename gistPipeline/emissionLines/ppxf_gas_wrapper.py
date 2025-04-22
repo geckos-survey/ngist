@@ -6,15 +6,14 @@ import h5py
 import numpy as np
 from astropy import table
 from astropy.io import fits
+from gistPipeline.auxiliary import _auxiliary
+from gistPipeline.prepareTemplates import _prepareTemplates, prepare_gas_templates
 from joblib import Parallel, delayed, dump, load
+
 # Then use system installed version instead
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
-
-from gistPipeline.auxiliary import _auxiliary
-from gistPipeline.prepareTemplates import (_prepareTemplates,
-                                           prepare_gas_templates)
 
 # Physical constants
 C = 299792.458  # speed of light in km/s

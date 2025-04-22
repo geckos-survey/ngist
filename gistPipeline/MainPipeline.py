@@ -30,6 +30,8 @@ import matplotlib
 
 matplotlib.use("pdf")
 
+from printStatus import printStatus
+
 from gistPipeline._version import __version__
 from gistPipeline.auxiliary import _auxiliary
 from gistPipeline.continuumCube import _continuumCube
@@ -43,7 +45,6 @@ from gistPipeline.spatialMasking import _spatialMasking
 from gistPipeline.starFormationHistories import _starFormationHistories
 from gistPipeline.stellarKinematics import _stellarKinematics
 from gistPipeline.userModules import _userModules
-from printStatus import printStatus
 
 
 def skipGalaxy(config):
@@ -115,6 +116,8 @@ def runGIST(dirPath, galindex):
     if _ == "SKIP":
         skipGalaxy(config)
         return None
+
+    del cube
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - - - -   A N A L Y S I S   M O D U L E S   - - - - - - - - - - -
