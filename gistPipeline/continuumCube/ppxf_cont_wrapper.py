@@ -591,6 +591,11 @@ def createContinuumCube(config):
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
+        # Remove the memory-mapped files
+        os.remove(templates_filename_memmap)
+        os.remove(bin_data_filename_memmap)
+        os.remove(noise_filename_memmap)
+
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
@@ -624,11 +629,6 @@ def createContinuumCube(config):
                 optimal_template_comb,
             )
         printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
-
-        # Remove the memory-mapped files
-        os.remove(templates_filename_memmap)
-        os.remove(bin_data_filename_memmap)
-        os.remove(noise_filename_memmap)
 
     print(
         "             Running PPXF on %s spectra took %.2fs using %i cores"
