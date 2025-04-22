@@ -27,20 +27,18 @@ jobs:
           # force reinstall of numpy due to v2.0.0 not working properly with other packages
           pip install --force-reinstall -v "numpy==1.26.4"          
 
-          #python setup.py install
-          # python -m pip install --upgrade pip
-          # pip install flake8 pytest
-          # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Install ngist
         run: |
           pip install .
-      # - name : Lint with flake8
-        # run: |
-          # stop the build if there are Python syntax errors or undefined names
-          # flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Checking the pipline runs NGC 0000
+
+      - name: Checking the pipeline runs NGC 0000 in Parallel
+        run: gistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_mac
+      - name: Checking pipeline results
+        run: python ./.github/workflows/tests/check_outputs.py
+      - name: Modify config for serial run
+        run: |
+          sed -i '' 's/PARALLEL: True/PARALLEL: False/' ./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml
+      - name: Checking the pipeline runs NGC 0000 in Serial
         run: gistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_mac
       - name: Checking pipeline results
         run: python ./.github/workflows/tests/check_outputs.py
