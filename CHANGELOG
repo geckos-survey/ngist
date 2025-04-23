@@ -6,6 +6,25 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.3.0	     2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipeline 
+			2) Optimized Voronoi Binning: Improved speed and reduced 
+			RAM usage by using scipy's spatial.cKDTree for nearest-neighbor 
+			searches. 3) Switched Parallelization to Joblib: Enhanced performance 
+			and memory management by switching from multiprocess to joblib for 
+			parallel computing. 4) Transitioned to HDF5 for Pipeline Data Tables: 
+			Improved memory management and support for large data operations by 
+			transitioning from FITS to HDF5 tables.
+
+    			CHANGED Minor: A) Rename Scripts: Renamed scripts that duplicate module 
+    			names, e.g., ppxf.py. B) FITS File Branding: Removed FITS file branding 
+    			from skipped galaxies. C) MapViewer Read HDF5: MapViewer can read the 
+    			HDF5 pipeline files AND FITS files to maintain backward compatibility 
+    			with older results directories. D) General Tidying: General tidy-ups 
+    			and added docstrings. E) GAS Spaxel mode: Fixed previous bug in GAS 
+    			module related to incorrect nbin definition in Spaxel mode. F) CONT 
+    			module: Reverted back to default MUSE header keywords in generated 
+    			cubes. Fixed bug that called KIN module config setting instead of CONT.
+
 V7.2.1	     2024-07-28 ADDED: Ability to create BPT maps in the GAS module if all required
 			emission lines are present. Note: there is currently no AoN 
 			threshold applied to these lines.
@@ -13,7 +32,6 @@ V7.2.1	     2024-07-28 ADDED: Ability to create BPT maps in the GAS module if al
 V7.2.0       2024-07-21 ADDED: Implemented MC realizations to estimate
 			 uncertainties of template weights and mean stellar population properties
 			 for the SFH module using the method in Pessa et al. 2023-AA.
-
 
 V7.1.0	     2024-07-20 ADDED: Added a new option for an SNR-dependent bias setting similar 
 			 to what was adopted for SAMI in van de Sande et al. 2017-ApJ
