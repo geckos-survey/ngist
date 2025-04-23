@@ -34,13 +34,13 @@ jobs:
           pip install .
 
       - name: Checking the pipeline runs NGC 0000 in Parallel
-        run: gistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_mac
+        run: ngistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_mac
       - name: Checking pipeline results
         run: python ./.github/workflows/tests/check_outputs.py
       - name: Modify config for serial run
         run: |
           sed -i '' 's/PARALLEL: True/PARALLEL: False/g' ./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml
       - name: Checking the pipeline runs NGC 0000 in Serial
-        run: gistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_mac
+        run: ngistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_mac
       - name: Checking pipeline results
         run: python ./.github/workflows/tests/check_outputs.py

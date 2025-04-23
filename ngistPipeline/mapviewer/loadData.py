@@ -26,7 +26,7 @@ def loadData(self):
 
     # Check if *_table.fits is available. This file is required!
     if os.path.isfile(self.dirprefix + "_table.fits") == False:
-        print("You did not select a valid GIST output directory.")
+        print("You did not select a valid nGIST output directory.")
         self.dialogRunSelection()
 
     # Determine which data is available

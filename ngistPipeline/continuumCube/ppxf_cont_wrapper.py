@@ -379,7 +379,7 @@ def createContinuumCube(config):
     """
     Perform the measurement of stellar kinematics, using the pPXF routine. This
     function basically read all necessary input data, hands it to pPXF, and
-    saves the outputs following the GIST conventions.
+    saves the outputs following the nGIST conventions.
     """
     # Read data from file
     infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"

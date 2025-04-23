@@ -30,7 +30,7 @@ def write_fits_cube(hdulist, filename, overwrite=False,
     if include_origin_notes:
         now = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y/%m/%d-%H:%M")
-        hdulist[0].header.add_history("Written by gistPipeline on "
+        hdulist[0].header.add_history("Written by nGISTPipeline on "
                                     "{date}".format(date=now))
     try:
         fits.HDUList(hdulist).writeto(filename, overwrite=overwrite)
@@ -412,7 +412,7 @@ def saveContLineCube(config):
     Parameters
     ----------
     config : str, optional
-        gistPipeline config
+        nGISTPipeline config
     """
 
     # read cube header - check extension contains WCS
