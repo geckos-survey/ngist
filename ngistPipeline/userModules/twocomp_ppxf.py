@@ -772,7 +772,7 @@ def extractStellarKinematics(config):
     """
     Perform the measurement of stellar kinematics, using the pPXF routine. This
     function basically read all necessary input data, hands it to pPXF, and
-    saves the outputs following the GIST conventions.
+    saves the outputs following the nGIST conventions.
     """
     # Read data from file
     hdu = fits.open(

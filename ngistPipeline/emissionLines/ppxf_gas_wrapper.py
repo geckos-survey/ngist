@@ -6,15 +6,14 @@ import h5py
 import numpy as np
 from astropy import table
 from astropy.io import fits
+from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.prepareTemplates import _prepareTemplates, prepare_gas_templates
 from joblib import Parallel, delayed, dump, load
+
 # Then use system installed version instead
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
-
-from ngistPipeline.auxiliary import _auxiliary
-from ngistPipeline.prepareTemplates import (_prepareTemplates,
-                                           prepare_gas_templates)
 
 # Physical constants
 C = 299792.458  # speed of light in km/s
@@ -24,7 +23,7 @@ C = 299792.458  # speed of light in km/s
 PURPOSE:
   This module executes the emission-line analysis of the pipeline.
   Uses the pPXF implementation, replacing Gandalf.
-  Module written for gist-geckos based on the gist SFH module
+  Module written for gist-geckos based on the nGIST SFH module
   combined with the PHANGS DAP emission line module.
 """
 

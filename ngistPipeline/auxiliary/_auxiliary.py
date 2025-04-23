@@ -10,7 +10,7 @@ from ngistPipeline._version import __version__
 
 """
 This file contains a selection of functions that are needed at multiple locations in the framework. This includes
-functions to print the status of the GIST to stdout, read the line-spread-function from file, and create spectral masks.
+functions to print the status of the nGIST to stdout, read the line-spread-function from file, and create spectral masks.
 
 When developing user-defined modules, you can take advantage of these functions or simply include your own tools in the
 module.
@@ -122,7 +122,7 @@ def spectralMasking(config, file, logLam):
 
 def addGISTHeaderComment(config):
     """
-    Add a GIST header comment in all fits output files.
+    Add a nGIST header comment in all fits output files.
     """
     filelist = glob.glob(os.path.join(config["GENERAL"]["OUTPUT"], "*.fits"))
 
