@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
+import datetime
 import logging
 import optparse
 import os
 import warnings
 
-import datetime
+import h5py
 import numpy as np
+from astropy import units as u
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.interpolate import CubicSpline
-from astropy import units as u
-from astropy.wcs import WCS
 from printStatus import printStatus
+
 
 from ngistPipeline.readData.MUSE_WFM import readCube
 from ngistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
@@ -29,7 +30,7 @@ def write_fits_cube(hdulist, filename, overwrite=False,
     if include_origin_notes:
         now = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y/%m/%d-%H:%M")
-        hdulist[0].header.add_history("Written by gistPipeline on "
+        hdulist[0].header.add_history("Written by nGISTPipeline on "
                                     "{date}".format(date=now))
     try:
         fits.HDUList(hdulist).writeto(filename, overwrite=overwrite)
@@ -411,7 +412,7 @@ def saveContLineCube(config):
     Parameters
     ----------
     config : str, optional
-        gistPipeline config
+        nGISTPipeline config
     """
 
     # read cube header - check extension contains WCS
@@ -435,21 +436,16 @@ def saveContLineCube(config):
     linLam = linLam[idx_lam]
 
     # get PPXF best fit continuum from kinematics module
-    ppxf_bestfit = fits.open(
+    with h5py.File(
         os.path.join(
             config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-    )[1].data.BESTFIT
-    printStatus.running("Opening: -kin-bestfit-cont.fits")
-    
-    # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
-    logLam = fits.open(
-        os.path.join(
-            config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-    )[2].data.LOGLAM
+            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5",
+        ), "r"
+    ) as f:
+        ppxf_bestfit = f["BESTFIT"][:]
+        print('Found it! opening -kin-bestfit-cont.hdf5')
+
+        logLam = f["LOGLAM"][:]
 
     # table HDU
     tablehdu = fits.open(

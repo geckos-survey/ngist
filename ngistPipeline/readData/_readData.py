@@ -13,7 +13,7 @@ def readData_Module(config):
 
     # Check if module is turned off in MasterConfig
     if config["READ_DATA"]["METHOD"] == False:
-        # message = "The module was turned off. The GIST cannot be executed without running the readData module."
+        # message = "The module was turned off. The nGIST cannot be executed without running the readData module."
         # printStatus.failed(message)
         # return "SKIP"
         message = "Read data module was turned off. Module is skipped but beware this can cause issues with the preparation modules."

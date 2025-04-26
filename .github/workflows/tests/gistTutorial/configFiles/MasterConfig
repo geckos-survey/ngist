@@ -1,6 +1,6 @@
 #
 #       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-#       - - - - MASTER CONFIGURATION FILE FOR THE GIST PIPELINE - - - - 
+#       - - - - MASTER CONFIGURATION FILE FOR THE nGIST PIPELINE - - - - 
 #       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 #
 # GENERAL
@@ -29,13 +29,13 @@
 #
 # SPATIAL_MASKING
 #   METHOD            Name of the routine in spatialMasking/ (without .py) to perform the tasks. Set 'False' to turn off module. 
-#                     Set 'default' to use the standard GIST implementation.
+#                     Set 'default' to use the standard nGIST implementation.
 #   MIN_SNR           Spaxels below the isophote level which has this mean signal-to-noise level are masked. 
 #   MASK              File containing a spatial mask (Set 'False' to not include a file). 
 #
 # SPATIAL_BINNING
 #   METHOD            Name of the routine in spatialBinning/ (without .py) to perform the tasks. Set 'False' to turn off module. 
-#                     Set 'voronoi' to use the standard GIST implementation, exploiting the Voronoi tesselation routine of Cappellari & Copin (2003). 
+#                     Set 'voronoi' to use the standard nGIST implementation, exploiting the Voronoi tesselation routine of Cappellari & Copin (2003). 
 #   TARGET_SNR        Target signal-to-noise ratio for the Voronoi binning
 #   COVARIANCE        Correct for spatial correlations of the noise during the Voronoi binning process according to the
 #                     empirical equation SNR /= 1 + COVAR_VOR * np.log10(NSPAXEL) with NSPAXEL being the number of
@@ -43,19 +43,19 @@
 #
 # PREPARE_SPECTRA   
 #   METHOD            Name of the routine in prepareSpectra/ (without .py) to perform the tasks. Set 'False' to turn off module. 
-#                     Set 'default' to use the standard GIST implementation.
+#                     Set 'default' to use the standard nGIST implementation.
 #   VELSCALE          Spectral sampling of the logarithmically rebinned spectra [in km/s]; e.g. velscale = dLambda*C / mean(wave), 
 #                     with the spectral sampling of the linearly binned spectra dLambda, the speed of light C, and the mean wavelength of the spectrum mean(wave). 
 #
 # PREPARE_TEMPLATES    
 #   METHOD            Name of the routine in prepareTemplates/ (without .py) to perform the tasks. Set 'False' to turn off module.
-#                     Set 'miles' to use the standard GIST implementation for handling Miles/EMiles templates.
+#                     Set 'miles' to use the standard nGIST implementation for handling Miles/EMiles templates.
 #   LIBRARY           Directory containing the spectral templates. The specified path is relative to the templateDir path in defaultDir.
 #   NORM_TEMP         Normalise the spectral template library to obtain light- or mass-weighted results [LIGHT / MASS]
 #
 # KIN
 #   METHOD            Name of the routine in stellarKinematics/ (without .py) to perform the tasks. Set 'False' to turn off module. 
-#                     Set 'ppxf' to use the standard GIST implementation, exploiting the pPXF routine of Cappellari & Emsellem (2004).
+#                     Set 'ppxf' to use the standard nGIST implementation, exploiting the pPXF routine of Cappellari & Emsellem (2004).
 #   SPEC_MASK         File to define wavelength ranges to be masked during the stellar kinematics fit. The specified path is relative to the configDir path in defaultDir. 
 #   LMIN / LMAX       Rest-frame wavelength range used for the stellar kinematics analysis [in Angst.]
 #   SIGMA             Initial guess of the velocity dispersion of the system [in km/s]
@@ -68,7 +68,7 @@
 #
 # GAS
 #   METHOD            Name of the routine in emissionLines/ (without .py) to perform the tasks. Set 'False' to turn off module. 
-#                     Set 'gandalf' to use the standard GIST implementation, exploiting the pyGandALF routine of Sarzi et al. (2006). 
+#                     Set 'gandalf' to use the standard nGIST implementation, exploiting the pyGandALF routine of Sarzi et al. (2006). 
 #   LEVEL             Set 'BIN' to perform the analysis bin-by-bin, 'SPAXEL' for a spaxel-by-spaxel analysis, and 'BOTH' 
 #                     to perform a spaxel-by-spaxel analysis that is informed by a previous bin-by-bin analysis. 
 #   LMIN / LMAX       Rest-frame wavelength range used for the emission-line analysis [in Angst.]
@@ -82,7 +82,7 @@
 #
 # SFH
 #   METHOD            Name of the routine in starFormationHistories/ (without .py) to perform the tasks. Set 'False' to turn off module. 
-#                     Set 'ppxf' to use the standard GIST implementation, exploiting the pPXF routine of Cappellari & Emsellem (2004). 
+#                     Set 'ppxf' to use the standard nGIST implementation, exploiting the pPXF routine of Cappellari & Emsellem (2004). 
 #   LMIN / LMAX       Rest-frame wavelength range used for the star formation histories analysis [in Angst.]
 #   SPEC_MASK         File to define wavelength ranges to be masked during the star formation histories analysis. The specified path is relative to the configDir path in defaultDir. 
 #   MOM               Number of kinematic moments to be extracted. If you use FIXED = True, this should be same number of moments used to 
@@ -96,7 +96,7 @@
 #
 # LS
 #   METHOD            Name of the routine in lineStrengths/ (without .py) to perform the tasks. Set 'False' to turn off module. 
-#                     Set 'default' to use the standard GIST implementation, exploiting the routines of Kuntschner et al. (2006) and Martin-Navarro et al. (2018).
+#                     Set 'default' to use the standard nGIST implementation, exploiting the routines of Kuntschner et al. (2006) and Martin-Navarro et al. (2018).
 #   TYPE              Set 'LS' to only measure line strength indices, or 'SPP' to also match these indices to stellar population properties. 
 #   LS_FILE           File to define the wavelength band of the line strength indices to be measured. The specified path is relative to the configDir path in defaultDir. 
 #   CONV_COR          Spectral resolution [in Angst.] at which the line strength indices are measured.

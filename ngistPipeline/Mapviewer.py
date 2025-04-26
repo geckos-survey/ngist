@@ -121,7 +121,7 @@ def main(args=None):
     application = pyqt.QApplication(sys.argv)
     program = Mapviewer()
     program.showMaximized()
-    program.setWindowTitle("Mapviewer  ---  GIST V" + __version__)
+    program.setWindowTitle("Mapviewer  ---  nGIST V" + __version__)
     sys.exit(application.exec_())
 
 
