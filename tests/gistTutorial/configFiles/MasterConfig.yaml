@@ -57,7 +57,14 @@ KIN :
   MDEG : 0
   REDDENING : null # As opposed to None
   MC_PPXF : 0
-  DOCLEAN : True 
+  DOCLEAN : True
+  OPT_TEMP : 'default'
+  DUST_CORR : True
+  NOISE : 'constant'
+  OPT_TEMP : 'default'
+  DUST_CORR : True
+  NOISE : 'constant'
+
 
 # Emission line fitting module
 GAS :
@@ -83,6 +90,9 @@ SFH :
   NOISE : 1.
   FIXED : True
   DOCLEAN : True
+  OPT_TEMP : 'default'
+  DUST_CORR : True
+  NOISE : 'constant'
 
 # Line strenghts module
 LS :
