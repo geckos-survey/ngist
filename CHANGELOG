@@ -6,24 +6,7 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
-
-V7.5.0	    2025-04-26 CHANGED Major: updated KIN and SFH routines to use new dust 
-			method in pPXF, with the option to fix the dust in step 3. Changed step 2 from  
-			using pPXF CLEAN to new clip_outliers function. ADDED: options to KIN and 
-			SFH modules to: A) Plot spectra and bestfit - optional keyword PLOT - B) in  
-			serial mode, only run list of specific bins - optional keyword DEBUG_BIN.
-
-V7.4.0	    2025-04-11 CHANGED Major: 1) updated KIN and SFH routines to be able to pass
-			a single, a set of, or all templates as an optimal template - keyword OPT_TEMP
-			2) Added options to KIN and SFH modules to: A) use a pre specmask used in step
-			0 and 1, B) choose between constant or variance noise - keyword NOISE, and C) 
-			prefit and correct the spectra for reddening - keyword DUST_CORR. New version
-			Requires update to MasterConfig File.
-			
-V7.3.1	    Added plotting routines to kin_wrapper and sfh_wrapper to output the results
-			inside the module, as cleaned lines are not yet shown within mapviewer.
-
-V7.3.0	    2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipeline 
+V7.3.0	     2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipeline 
 			2) Optimized Voronoi Binning: Improved speed and reduced 
 			RAM usage by using scipy's spatial.cKDTree for nearest-neighbor 
 			searches. 3) Switched Parallelization to Joblib: Enhanced performance 
@@ -32,17 +15,17 @@ V7.3.0	    2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipeline
 			Improved memory management and support for large data operations by 
 			transitioning from FITS to HDF5 tables.
 
-    		CHANGED Minor: A) Rename Scripts: Renamed scripts that duplicate module 
-    		names, e.g., ppxf.py. B) FITS File Branding: Removed FITS file branding 
-    		from skipped galaxies. C) MapViewer Read HDF5: MapViewer can read the 
-    		HDF5 pipeline files AND FITS files to maintain backward compatibility 
-    		with older results directories. D) General Tidying: General tidy-ups 
-    		and added docstrings. E) GAS Spaxel mode: Fixed previous bug in GAS 
-    		module related to incorrect nbin definition in Spaxel mode. F) CONT 
-    		module: Reverted back to default MUSE header keywords in generated 
-    		cubes. Fixed bug that called KIN module config setting instead of CONT.
+    			CHANGED Minor: A) Rename Scripts: Renamed scripts that duplicate module 
+    			names, e.g., ppxf.py. B) FITS File Branding: Removed FITS file branding 
+    			from skipped galaxies. C) MapViewer Read HDF5: MapViewer can read the 
+    			HDF5 pipeline files AND FITS files to maintain backward compatibility 
+    			with older results directories. D) General Tidying: General tidy-ups 
+    			and added docstrings. E) GAS Spaxel mode: Fixed previous bug in GAS 
+    			module related to incorrect nbin definition in Spaxel mode. F) CONT 
+    			module: Reverted back to default MUSE header keywords in generated 
+    			cubes. Fixed bug that called KIN module config setting instead of CONT.
 
-V7.2.1	    2024-07-28 ADDED: Ability to create BPT maps in the GAS module if all required
+V7.2.1	     2024-07-28 ADDED: Ability to create BPT maps in the GAS module if all required
 			emission lines are present. Note: there is currently no AoN 
 			threshold applied to these lines.
 
