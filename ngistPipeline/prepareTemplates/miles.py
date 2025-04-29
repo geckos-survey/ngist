@@ -35,22 +35,35 @@ def age_metal_alpha(passedFiles):
         elif "p" in metal:
             metal = float(metal[1:])
         else:
-            raise ValueError("This is not a standard MILES filename")
+            raise ValueError("             This is not a standard MILES filename")
 
         # Alpha
         if s.find("baseFe") == -1:
             EMILES = False
-            # logging.info("EMILES=False")
-
         elif s.find("baseFe") != -1:
             EMILES = True
-            # logging.info("EMILES=True")
-
 
         if EMILES == False:
             # Usage of MILES: There is a alpha defined
-            e = s.find("E")
-            alpha = float(s[e + 2 : e + 6])
+            # alpha enhanced models
+            if s.find("ACFe") != -1:  # sMILES
+                sMILES = True
+                if (s.find("aFem02") != -1):
+                    alpha = -0.2
+                elif (s.find("aFep00") != -1):
+                    alpha = 0.
+                elif (s.find("aFep02") != -1):
+                    alpha = 0.2
+                elif (s.find("aFep04") != -1):
+                    alpha = 0.4
+                elif (s.find("aFep06") != -1):
+                    alpha = 0.6
+            elif s.find("Ep") != -1:  # MILES with alpha=0 and 0.4
+                sMILES = False
+                e = s.find("E")   # The find() method returns the index of first occurrence of the substring (if found). If not found, it returns -1
+                alpha = float(s[e + 2 : e + 6])
+            else:
+                raise ValueError("            Undefined alpha-enhanced MILES models")
         elif EMILES == True:
             # Usage of EMILES: There is *NO* alpha defined
             alpha = 0.0
@@ -75,7 +88,13 @@ def age_metal_alpha(passedFiles):
         metal_str.append(mm)
     for i in range(len(Alpha)):
         if EMILES == False:
-            alpha_str.append("Ep" + "{:.2f}".format(Alpha[i]))
+            if sMILES == False:
+                alpha_str.append("Ep" + "{:.2f}".format(Alpha[i]))
+            elif sMILES == True:
+                alpha_str = ['aFem02','aFep00','aFep02','aFep04','aFep06']
+            else:
+                raise ValueError("            Undefined alpha string for alpha-enhanced MILES models")
+
         elif EMILES == True:
             alpha_str = ["baseFe"]
 
