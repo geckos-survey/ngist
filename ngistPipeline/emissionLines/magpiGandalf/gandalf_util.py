@@ -31,7 +31,7 @@ from ngistPipeline.emissionLines.magpiGandalf.cap_mpfit import mpfit
 # ---------------------------------------------------------------------------- #
 # Version 7 of pPXF does not contain the _bvls_solve and nnls_flags functions
 # anymore. However, the current implementation of pyGandALF depends on these
-# functions. In order to assure the compatibility of the GIST framework with
+# functions. In order to assure the compatibility of the nGIST framework with
 # the most recent version of pPXF, we include these two functions from pPXF
 # version 6 below. We are grateful to Michele Cappellari for his permission to
 # include these functions.

@@ -24,7 +24,7 @@ PURPOSE:
 def setupLogfile(config):
     """Initialise the LOGFILE."""
     welcomeString = "\n\n# ============================================== #\n#{:^48}#\n#{:^48}#\n# ============================================== #\n".format(
-        "THE GIST PIPELINE", "Version " + __version__
+        "THE nGIST PIPELINE", "Version " + __version__
     )
 
     for handler in logging.root.handlers[:]:
@@ -97,7 +97,7 @@ def addPathsToConfig(
     if os.path.isfile(dirPath.defaultDir) == True:
         for line in open(dirPath.defaultDir, "r"):
 
-        #for line in open('configFiles/defaultDir', "r"): #Amelia uncomment for testing only. Need to be in gistTutorial folder
+        #for line in open('configFiles/defaultDir', "r"): #Amelia uncomment for testing only. Need to be in ngistTutorial folder
             if not line.startswith('#'):
                 line = line.split('=')
                 line = [x.strip() for x in line]

@@ -14,7 +14,7 @@ from printStatus import printStatus
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import extinction
+#import extinction
 
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import _prepareTemplates
@@ -99,14 +99,14 @@ def plot_ppxf_kin(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
 
     if nmom == 2:
         plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
-        (f", S/N Residual = {snrResid:.1f}")
+                    (f", S/N Residual = {snrResid:.1f}")
     if nmom == 4:
         plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
-        (f", S/N Residual = {snrResid:.1f}")        
+                    (f", S/N Residual = {snrResid:.1f}")        
     if nmom == 6:            
         plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
-        (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
-        (f", S/N Residual = {snrResid:.1f}")   
+                    (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
+                    (f", S/N Residual = {snrResid:.1f}")   
             
     plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes, backgroundcolor='white')
     plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
@@ -137,6 +137,8 @@ def robust_sigma(y, zero=False):
     Hoaglin, Mosteller, Tukey ed., 1983, Chapter 12B, pg. 417
 
     """
+    np.seterr(all='ignore') # to avoid getting a lot of warnings in zerodivide
+
     y = np.ravel(y)
     d = y if zero else y - np.median(y)
 
@@ -216,7 +218,6 @@ def run_ppxf(
     nmoments,
     adeg,
     mdeg,
-    reddening,
     doclean,
     logLam,
     offset,
@@ -261,7 +262,7 @@ def run_ppxf(
                             dust = dust, component = component_step0, regul=0,quiet=True)
 
             # check which optimal template method is preferred. If default rederive optimal set from step 0
-            if config['KIN']['OPT_TEMP'] == 'default':
+            if config["KIN"]["OPT_TEMP"] == 'default':
 
                 # find non zero weights from step 0
                 normalized_weights_step0 = pp_step0.weights / np.sum( pp_step0.weights )
@@ -289,7 +290,7 @@ def run_ppxf(
             component_true_step3 = np.array(component_step3) == 0
 
             # apply the dust correction if keyword is set:
-            if config['KIN']['DUST_CORR'] == True:
+            if config["KIN"]["DUST_CORR"] == True:
                 # old approach --> remove extinction from spectra
                 #log_bin_data_save = log_bin_data
                 #log_bin_data_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)
@@ -386,7 +387,6 @@ def run_ppxf(
                 moments=nmoments,
                 degree=adeg,
                 mdegree=mdeg,
-                reddening=reddening,
                 lam=np.exp(logLam),
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
@@ -473,24 +473,22 @@ def run_ppxf(
             mc_results = np.nanstd(sol_MC, axis=0)
 
         # apply the dust vector to bestfit if keyword set:
-        #if config['KIN']['DUST_CORR'] == True:
+        #if config["KIN"]["DUST_CORR"] == True:
         #    pp.bestfit = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), pp.bestfit) * \
         #                 median_log_bin_data_tmp
 
         # add normalisation factor back in main results
         pp.bestfit = pp.bestfit * median_log_bin_data
-        if pp.reddening is not None:
-            pp.reddening = pp.reddening * median_log_bin_data
 
         return(
             pp.sol[:],
-            pp.reddening,
             pp.bestfit,
             optimal_template,
             mc_results,
             formal_error,
             spectral_mask,
             snr_postfit,
+            EBV,
         )
 
     except:
@@ -500,7 +498,6 @@ def run_ppxf(
 def save_ppxf(
     config,
     ppxf_result,
-    ppxf_reddening,
     mc_results,
     formal_error,
     ppxf_bestfit,
@@ -513,6 +510,7 @@ def save_ppxf(
     optimal_template_comb,
     bin_data,
     snr_postfit,
+    EBV,
 ):
     """Saves all results to disk."""
     # ========================
@@ -573,12 +571,11 @@ def save_ppxf(
             fits.Column(name="FORM_ERR_H6", format="D", array=formal_error[:, 5])
         )
 
-    # Add reddening if parameter is used
-    if np.any(np.isnan(ppxf_reddening)) != True:
-        cols.append(fits.Column(name="REDDENING", format="D", array=ppxf_reddening[:]))
-
     # Add True SNR calculated from residual
     cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
+
+    # Add E(B-V) derived from pPXF 0th step with reddening but no polynomials
+    cols.append(fits.Column(name="EBV", format="D", array=EBV[:]))
 
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "KIN_DATA"
@@ -739,7 +736,7 @@ def extractStellarKinematics(config):
     """
     Perform the measurement of stellar kinematics, using the pPXF routine. This
     function basically read all necessary input data, hands it to pPXF, and
-    saves the outputs following the GIST conventions.
+    saves the outputs following the nGIST conventions.
     """
     # Read data from file
     infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"
@@ -749,7 +746,7 @@ def extractStellarKinematics(config):
     with h5py.File(infile, 'r') as f:
         
         # Read the data from the file
-        logLam = f['LOGLAM'][:]
+        logLam = f["LOGLAM"][:]
         idx_lam = np.where(
         np.logical_and(
             np.exp(logLam) > config["KIN"]["LMIN"],
@@ -757,9 +754,9 @@ def extractStellarKinematics(config):
         )
         )[0]
 
-        bin_data = f['SPEC'][:][idx_lam, :]
-        bin_err = f['ESPEC'][:][idx_lam, :]
-        velscale = f.attrs['VELSCALE']
+        bin_data = f["SPEC"][:][idx_lam, :]
+        bin_err = f["ESPEC"][:][idx_lam, :]
+        velscale = f.attrs["VELSCALE"]
     
     logLam = logLam[idx_lam]
     npix = bin_data.shape[0]
@@ -808,10 +805,13 @@ def extractStellarKinematics(config):
     offset = (logLam_template[0] - logLam[0]) * C
 
     #check what type of noise should be passed on:
-    if config['KIN']['NOISE'] == 'variance': # use noise from cube 
+    if config["KIN"]["NOISE"] == "variance": # use noise from cube 
         noise = bin_err  # already converted to noise, i.e. sqrt(variance)
-    elif config['KIN']['NOISE'] == 'constant': # use constant noise
+    elif config["KIN"]["NOISE"] == "constant": # use constant noise
         noise  = np.ones((npix,nbins))
+        # while constant, the noise does need to be scaled to match the bin_err
+        med_bin_err = np.nanmedian(bin_err, axis=0)
+        noise *= med_bin_err
 
     nsims = config["KIN"]["MC_PPXF"]
 
@@ -851,31 +851,30 @@ def extractStellarKinematics(config):
 
     # Define goodpixels
     #check if a premask for step zero has been defined
-    if 'SPEC_PREMASK' in config['KIN']:
+    if 'SPEC_PREMASK' in config["KIN"]:
         #yes, load this premask file
-        goodPixels_step0_kin = _auxiliary.spectralMasking(config, config['KIN']['SPEC_PREMASK'], logLam)
+        goodPixels_step0_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_PREMASK"], logLam)
     else:
         #no, load this normal file
-        goodPixels_step0_kin = _auxiliary.spectralMasking(config, config['KIN']['SPEC_MASK'], logLam)
+        goodPixels_step0_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
     
-    goodPixels_kin = _auxiliary.spectralMasking(config, config['KIN']['SPEC_MASK'], logLam)
+    goodPixels_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
 
     # Check if plot keyword is set:
-    if 'PLOT' in config['KIN']:
+    if 'PLOT' in config["KIN"]:
         doplot = True
     else:
         doplot = False
 
     # Array to store results of ppxf
     ppxf_result = np.zeros((nbins, 6))
-    ppxf_reddening = np.zeros(nbins)
     ppxf_bestfit = np.zeros((nbins, npix))
     optimal_template = np.zeros((nbins, templates.shape[0]))
     mc_results = np.zeros((nbins, 6))
     formal_error = np.zeros((nbins, 6))
     spectral_mask = np.zeros((nbins, bin_data.shape[0]))
     snr_postfit = np.zeros(nbins)
-
+    EBV = np.zeros(nbins)
  
 # ====================
     # If OPT_TEMP keyword set to 'galaxy_single' or 'galaxy_set' then
@@ -892,10 +891,10 @@ def extractStellarKinematics(config):
             velscale,
             start[0,:],
             goodPixels_step0_kin,
-            config['KIN']['MOM'],
+            config["KIN"]["MOM"],
             offset,
-            config['KIN']['ADEG'],
-            config['KIN']['MDEG'],
+            config["KIN"]["ADEG"],
+            config["KIN"]["MDEG"],
             velscale_ratio,
         )
 
@@ -949,7 +948,6 @@ def extractStellarKinematics(config):
                     config["KIN"]["MOM"],
                     config["KIN"]["ADEG"],
                     config["KIN"]["MDEG"],
-                    config["KIN"]["REDDENING"],
                     config["KIN"]["DOCLEAN"],
                     logLam,
                     offset,
@@ -979,13 +977,13 @@ def extractStellarKinematics(config):
         # Unpack results
         for i in range(0, nbins):
             ppxf_result[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][0]
-            ppxf_reddening[i] = ppxf_tmp[i][1]
-            ppxf_bestfit[i, :] = ppxf_tmp[i][2]
-            optimal_template[i, :] = ppxf_tmp[i][3]
-            mc_results[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][4]
-            formal_error[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][5]
-            spectral_mask[i, :] = ppxf_tmp[i][6]
-            snr_postfit[i] = ppxf_tmp[i][7]
+            ppxf_bestfit[i, :] = ppxf_tmp[i][1]
+            optimal_template[i, :] = ppxf_tmp[i][2]
+            mc_results[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][3]
+            formal_error[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][4]
+            spectral_mask[i, :] = ppxf_tmp[i][5]
+            snr_postfit[i] = ppxf_tmp[i][6]
+            EBV[i] = ppxf_tmp[i][7]
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
@@ -999,23 +997,21 @@ def extractStellarKinematics(config):
         logging.info("Running PPXF in serial mode")
         
         # check if we need to run all bins or only a subset
-        if 'DEBUG_BIN' in config['KIN']:
-            runbin = np.array(config['KIN']['DEBUG_BIN'])
-            # replace config keyword with string to save it in header later
-            config['KIN']['DEBUG_BIN'] = str(runbin)
+        if 'DEBUG_BIN' in config["KIN"]:
+            runbin = np.array(config["KIN"]["DEBUG_BIN"])
         else:
             runbin = np.arange(0, nbins)
         
         for i in runbin:
             (
                 ppxf_result[i, : config["KIN"]["MOM"]],
-                ppxf_reddening[i],
                 ppxf_bestfit[i, :],
                 optimal_template[i, :],
                 mc_results[i, : config["KIN"]["MOM"]],
                 formal_error[i, : config["KIN"]["MOM"]],
                 spectral_mask[i, :],
                 snr_postfit[i],
+                EBV[i],
             ) = run_ppxf(
                 templates,
                 bin_data[:, i],
@@ -1028,7 +1024,6 @@ def extractStellarKinematics(config):
                 config["KIN"]["MOM"],
                 config["KIN"]["ADEG"],
                 config["KIN"]["MDEG"],
-                config["KIN"]["REDDENING"],
                 config["KIN"]["DOCLEAN"],
                 logLam,
                 offset,
@@ -1071,11 +1066,14 @@ def extractStellarKinematics(config):
     print("")
 
 
-    # Save stellar kinematics to file
+    # Save to file
+    if 'DEBUG_BIN' in config["KIN"]:
+        # replace config keyword with string to save it in header later
+        config["KIN"]["DEBUG_BIN"] = str(config["KIN"]["DEBUG_BIN"])
+
     save_ppxf(
         config,
         ppxf_result,
-        ppxf_reddening,
         mc_results,
         formal_error,
         ppxf_bestfit,
@@ -1088,6 +1086,7 @@ def extractStellarKinematics(config):
         optimal_template_comb,
         bin_data,
         snr_postfit,
+        EBV,
     )
 
     # Return

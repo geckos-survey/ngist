@@ -1,13 +1,13 @@
 # This file contains default paths to input data, outputs, additional configuration files, and spectral template
 # libraries. All paths specified in MasterConfig are considered to be relative to the paths stated here. This file is
-# only used if its absolute path is provided to the GIST with the command line argument --default-dir. 
+# only used if its absolute path is provided to the nGIST with the command line argument --default-dir. 
 #
 # It is possible to specify that the configuration and output directories are identical. To this end, set e.g.:
 #   outputDir=/User/somePath
 #   configDir=outputDir
 #
 # Please note that configDir and templateDir are not applied automatically to user-defined parameters and/or
-# user-defined modules. inputDir and outputDir are applied to all active GIST modules. 
+# user-defined modules. inputDir and outputDir are applied to all active nGIST modules. 
 #
 inputDir=./inputData
 outputDir=./output

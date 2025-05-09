@@ -5,14 +5,15 @@ import time
 import h5py
 import numpy as np
 from astropy.io import ascii, fits
+from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.lineStrengths import lsindex_spec as lsindex
+from ngistPipeline.lineStrengths import ssppop_fitting as ssppop
 from joblib import Parallel, delayed
 from ppxf.ppxf_util import gaussian_filter1d
 from printStatus import printStatus
 from tqdm import tqdm
 
-from ngistPipeline.auxiliary import _auxiliary
-from ngistPipeline.lineStrengths import lsindex_spec as lsindex
-from ngistPipeline.lineStrengths import ssppop_fitting as ssppop
+
 
 cvel = 299792.458
 
@@ -340,7 +341,8 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
             + "_ls-cleaned_linear.fits"
         )
-        == False) or (config["GENERAL"]["OW_OUTPUT"] == True):
+        == False
+    ) or (config["GENERAL"]["OW_OUTPUT"] == True):
         # Read spectra
         if (
             os.path.isfile(
@@ -375,20 +377,16 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             ) as f:
                 binned_spec_data = f["SPEC"][:].T
                 binned_loglam_data = f["LOGLAM"][:]
-        
-        
         with h5py.File(
-                os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_BinSpectra.hdf5",
-                "r",
-            ) as errorf:
-                binned_espec_data = errorf["ESPEC"][:].T
-                binned_eloglam_data = errorf["LOGLAM"][:].T
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_BinSpectra.hdf5",
+            "r",
+        ) as errorf:
+            binned_espec_data = errorf["ESPEC"][:].T
+            binned_eloglam_data = errorf["LOGLAM"][:].T
                 
         idx_lamMin = np.where(binned_loglam_data[0] == binned_eloglam_data)[0]
-        idx_lamMax = np.where(binned_loglam_data[-1] == binned_eloglam_data)[
-            0
-        ]
+        idx_lamMax = np.where(binned_loglam_data[-1] == binned_eloglam_data)[0]
         idx_lam = np.arange(idx_lamMin, idx_lamMax + 1)
         oldspec = np.array(binned_spec_data)
         oldespec = np.sqrt(np.array(binned_espec_data)[:, idx_lam])
@@ -441,7 +439,8 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     # Read PPXF results
     ppxf_data = fits.open(
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin.fits", mem_map=True
+        + "_kin.fits", 
+        mem_map=True
     )[1].data
     redshift = np.zeros((nbins, 2))  # Dimensionless z
     redshift[:, 0] = np.array(ppxf_data.V[:]) / cvel  # Redshift
@@ -460,9 +459,13 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     if RESOLUTION == "ADAPTED":
         printStatus.running("Broadening the spectra to LIS resolution")
         # Open the HDF5 file
-        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5", 'r') as f:
+        with h5py.File(
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) 
+            + "_BinSpectra.hdf5", 
+            'r',
+        ) as f:
             # Read the VELSCALE attribute from the file
-            velscale = f.attrs['VELSCALE']
+            velscale = f.attrs["VELSCALE"]
         # Iterate over all bins
         for i in range(0, nbins):
             # printStatus.progressBar(i, nbins, barLength=50)
@@ -553,20 +556,41 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             return results
 
         # Prepare the folder where the memmap will be dumped
-        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
+        memmap_folder = (
+            "/scratch" 
+            if os.access("/scratch", os.W_OK) 
+            else config["GENERAL"]["OUTPUT"]
+        )
         
         # Use joblib to parallelize the work
         max_nbytes = None  # max array size before memory mapping is triggered (None = disabled memory mapping, see https://github.com/scikit-learn-contrib/hdbscan/pull/495#issue-1014324032)
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
-        chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
-        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk) for chunk in chunks),
-                        total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
+        chunks = [
+            range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)
+        ]
+        parallel_configs = {
+            "n_jobs": config["GENERAL"]["NCPU"],
+            "max_nbytes": max_nbytes,
+            "temp_folder": memmap_folder,
+            "mmap_mode": "c",
+            "return_as": "generator",
+        }
+        ppxf_tmp = list(
+            tqdm(
+                Parallel(**parallel_configs)(
+                    delayed(worker)(chunk) for chunk in chunks
+                ),
+                total=len(chunks),
+                desc="Processing chunks",
+                ascii=" #",
+                unit="chunk",
+            )
+        )
 
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
-        
-        for i in range(0, nbins): 
+
+        for i in range(0, nbins):
             ls_indices[i, :], ls_errors[i, :], *extra = ppxf_tmp[i]
             if MCMC == True:
                 vals[i, :], percentile[i, :, :] = extra
@@ -623,7 +647,9 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                     MCMC,
                 )
 
-        printStatus.updateDone("Running lineStrengths in serial mode", progressbar=False)
+        printStatus.updateDone(
+            "Running lineStrengths in serial mode", progressbar=False
+        )
 
     print(
         "             Running lineStrengths on %s spectra took %.2fs using %i cores"

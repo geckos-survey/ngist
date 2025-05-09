@@ -24,7 +24,7 @@ C = 299792.458  # speed of light in km/s
 PURPOSE:
   This module executes the emission-line analysis of the pipeline.
   Uses the pPXF implementation, replacing Gandalf.
-  Module written for gist-geckos based on the gist SFH module
+  Module written for ngist-geckos based on the ngist SFH module
   combined with the PHANGS DAP emission line module.
 """
 
@@ -332,10 +332,24 @@ def save_ppxf_emlines(
         oiii_idx = np.where(names == 'OIII5006')
         ha_idx = np.where(names == 'Ha6562')
         nii_idx = np.where(names == 'NII6583')
-
-        l_nii_ha = np.log10(gas_flux_in_units[:,nii_idx]/gas_flux_in_units[:,ha_idx])
-        l_oiii_hb = np.log10(gas_flux_in_units[:,oiii_idx]/gas_flux_in_units[:,hb_idx])
-#             l_sii_ha = np.log10((Sii_6717+Sii_6730)/Ha)     
+        
+        # Correct for internal extinction using the Balmer decrement.
+        Ha_on_Hb_obs = gas_flux_in_units[:,ha_idx]/gas_flux_in_units[:,hb_idx]
+        EBminV = (np.log10(Ha_on_Hb_obs/2.86)) / (0.4*(3.588-2.517)) #k(Hbeta), k(Halpha), eqn 5 of Poetrodjojo et al. 2021
+        k_Hb = 3.588 #These values are from Boselli+2013, Table 4
+        k_OIII_5007 = 3.452
+        k_Ha = 2.517
+        k_NII_6584 = 2.507
+        A_HBETA = EBminV*3.588
+        HBETA = A_HBETA*gas_flux_in_units[:,hb_idx]
+        A_OIII_5007 = EBminV*k_OIII_5007
+        OIII_5007 = A_OIII_5007*gas_flux_in_units[:,oiii_idx]
+        A_NII_6584 = EBminV*k_NII_6584
+        NII_6584 = A_NII_6584*gas_flux_in_units[:,nii_idx]
+        A_HA =  EBminV*k_Ha
+        HALPHA = A_HA*gas_flux_in_units[:,ha_idx]
+        l_nii_ha = np.log10(NII_6584/HALPHA)
+        l_oiii_hb = np.log10(OIII_5007/HBETA)
 
         niihabpt = np.zeros((len(gas_flux_in_units)))
         for i in range(0,len(gas_flux_in_units)):
@@ -357,8 +371,26 @@ def save_ppxf_emlines(
         sii6716_idx = np.where(names == 'SII6716')
         sii6730_idx = np.where(names == 'SII6730')
 
-        l_oiii_hb = np.log10(gas_flux_in_units[:,oiii_idx]/gas_flux_in_units[:,hb_idx])
-        l_sii_ha = np.log10((gas_flux_in_units[:,sii6716_idx]+gas_flux_in_units[:,sii6730_idx])/gas_flux_in_units[:,ha_idx])     
+        # Correct for internal extinction using the Balmer decrement.
+        Ha_on_Hb_obs = gas_flux_in_units[:,ha_idx]/gas_flux_in_units[:,hb_idx]
+        EBminV = (np.log10(Ha_on_Hb_obs/2.86)) / (0.4*(3.588-2.517)) #k(Hbeta), k(Halpha), eqn 5 of Poetrodjojo et al. 2021
+        k_Hb = 3.588 #These values are from Boselli+2013, Table 4
+        k_OIII_5007 = 3.452
+        k_Ha = 2.517
+        k_SII_6717 = 2.444
+        k_SII_6731 = 2.437        
+        A_HBETA = EBminV*3.588
+        HBETA = A_HBETA*gas_flux_in_units[:,hb_idx]
+        A_OIII_5007 = EBminV*k_OIII_5007
+        OIII_5007 = A_OIII_5007*gas_flux_in_units[:,oiii_idx]
+        A_HA =  EBminV*k_Ha
+        HALPHA = A_HA*gas_flux_in_units[:,ha_idx]
+        A_SII_6717 = EBminV*k_SII_6717
+        A_SII_6731 = EBminV*k_SII_6731
+        SII_6717 = A_SII_6717*gas_flux_in_units[:,sii6716_idx]
+        SII_6731 = A_SII_6731*gas_flux_in_units[:,sii6730_idx] 
+        l_oiii_hb = np.log10(OIII_5007/HBETA)
+        l_sii_ha = np.log10((SII_6717+SII_6731)/HALPHA) 
 
         siihabpt = np.zeros((len(gas_flux_in_units)))
         for i in range(0,len(gas_flux_in_units)):

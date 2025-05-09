@@ -14,7 +14,7 @@ from printStatus import printStatus
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import extinction
+#import extinction
 
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import _prepareTemplates
@@ -100,17 +100,17 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
 
     if nmom == 2:
         plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
-        (f", S/N Residual = {snrResid:.1f}")
+                    (f", S/N Residual = {snrResid:.1f}")
     if nmom == 4:
         plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
-        (f", S/N Residual = {snrResid:.1f}")        
+                    (f", S/N Residual = {snrResid:.1f}")        
     if nmom == 6:            
         plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
-        (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
-        (f", S/N Residual = {snrResid:.1f}")   
+                    (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
+                    (f", S/N Residual = {snrResid:.1f}")   
     
     if len(mean_results) > 0:
-        plotText += (f", Age [] = {mean_results[0][0]:.2f}, [M/H] = {mean_results[0][1]:.2f}")+\
+        plotText += (f", Age [Gyr] = {mean_results[0][0]:.2f}, [M/H] = {mean_results[0][1]:.2f}")+\
         (", [alpha/Fe] = ")+(f"{mean_results[0][2]:.2f}")
 
     #plt.plot(x,pp.mpoly,color='orchid',linewidth=1.0)
@@ -144,6 +144,8 @@ def robust_sigma(y, zero=False):
      Hoaglin, Mosteller, Tukey ed., 1983, Chapter 12B, pg. 417
      Added for sigma-clipping method
      """
+     np.seterr(all='ignore') # to avoid getting a lot of warnings in zerodivide
+
      y = np.ravel(y)
      d = y if zero else y - np.median(y)
 
@@ -281,7 +283,7 @@ def run_ppxf(
 
 
             # check which optimal template method is preferred. If default rederive optimal set from step 0
-            if config['SFH']['OPT_TEMP'] == 'default':
+            if config["SFH"]["OPT_TEMP"] == "default":
 
                 # first reshape templates so that we can apply the weights
                 reshaped_templates = templates.reshape((templates.shape[0], ncomb))
@@ -312,7 +314,7 @@ def run_ppxf(
             component_true_step3 = np.array(component_step3) == 0
 
             # apply the dust correction if keyword is set:
-            if config['SFH']['DUST_CORR'] == True:
+            if config["SFH"]["DUST_CORR"] == True:
                 # old approach --> remove extinction from spectra
                 #log_bin_data_save = log_bin_data
                 #log_bin_data_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)
@@ -434,9 +436,9 @@ def run_ppxf(
         if doplot == True:
 
             # check if figure  folder exists, otherwise
-            outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],'figFit_SFH')
+            outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],"figFit_SFH")
             if os.path.exists(outfigDir) == False:
-                printStatus.running('Creating directory for pPXF figures:' + outfigDir)
+                printStatus.running("Creating directory for pPXF figures:" + outfigDir)
                 os.mkdir(outfigDir)
             
             outfigFile_step1 = (
@@ -515,7 +517,7 @@ def run_ppxf(
             }
 
         # apply the dust vector to bestfit if keyword set:
-        #if config['SFH']['DUST_CORR'] == True:
+        #if config["SFH"]["DUST_CORR"] == True:
         #    pp.bestfit = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), pp.bestfit) * \
         #                 median_log_bin_data_tmp
         
@@ -604,7 +606,7 @@ def save_sfh(
     ]
 
     # If MC_PPXF is enabled, add additional columns
-    if config['SFH']['MC_PPXF'] > 0:
+    if config["SFH"]["MC_PPXF"] > 0:
         # Define MC columns (mean values)
         mc_columns = [
             fits.Column(name=f"{name}_MC", format="D", array=mean_result_MC_mean[:,i])
@@ -702,7 +704,7 @@ def save_sfh(
     logging.info("Wrote: " + outfits_sfh)
     # ========================
     # SAVE MC RESULTS OF WEIGHTS AND GRID
-    if config['SFH']['MC_PPXF'] > 0:
+    if config["SFH"]["MC_PPXF"] > 0:
 
         outfits_sfh = (
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
@@ -715,7 +717,7 @@ def save_sfh(
 
         # Table HDU with weights from MC results
         dataHDU_list = []
-        for iter_i in range(config['SFH']['MC_PPXF']):
+        for iter_i in range(config["SFH"]["MC_PPXF"]):
             cols = [fits.Column(name="WEIGHTS_MC", format=str(w_row_MC_iter.shape[2]) + "D", array=w_row_MC_iter[:, iter_i, :])]
             dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
             dataHDU.name = "MC_ITER_%s" % iter_i
@@ -806,7 +808,7 @@ def extractStarFormationHistories(config):
     # Open the HDF5 file
     with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5", 'r') as f:
         # Read the VELSCALE attribute from the file
-        velscale = f.attrs['VELSCALE']
+        velscale = f.attrs["VELSCALE"]
         
     velscale_ratio = 2
 
@@ -824,8 +826,8 @@ def extractStarFormationHistories(config):
         nAlpha,
     ) = _prepareTemplates.prepareTemplates_Module(
         config,
-        config['SFH']['LMIN'],
-        config['SFH']['LMAX'],
+        config["SFH"]["LMIN"],
+        config["SFH"]["LMAX"],
         velscale/velscale_ratio,
         LSF_Data,
         LSF_Templates,
@@ -834,24 +836,24 @@ def extractStarFormationHistories(config):
     )
 
     # Define file paths
-    gas_cleaned_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + '_gas-cleaned_'+config['GAS']['LEVEL']+'.fits'
+    gas_cleaned_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + '_gas-cleaned_'+config["GAS"]["LEVEL"]+'.fits'
     bin_spectra_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"
 
     # Check if emission-subtracted spectra file exists
-    if (config['SFH']['SPEC_EMICLEAN'] == True) and os.path.isfile(gas_cleaned_file):
+    if (config["SFH"]["SPEC_EMICLEAN"] == True) and os.path.isfile(gas_cleaned_file):
         logging.info(f"Using emission-subtracted spectra at {gas_cleaned_file}")
         printStatus.done("Using emission-subtracted spectra")
         # Open the FITS file
         with fits.open(gas_cleaned_file, mem_map=True) as hdul:
             # Read the LOGLAM data from the file
-            logLam = hdul[2].data['LOGLAM']
+            logLam = hdul[2].data["LOGLAM"]
 
             # Select the indices where the wavelength is within the specified range
-            idx_lam = np.where(np.logical_and(np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX']))[0]
+            idx_lam = np.where(np.logical_and(np.exp(logLam) > config["SFH"]["LMIN"], np.exp(logLam) < config["SFH"]["LMAX"]))[0]
 
             # Read the SPEC and ESPEC data from the file, only for the selected indices
-            bin_data = hdul[1].data['SPEC'].T[idx_lam, :]
-            bin_err = hdul[1].data['ESPEC'].T[idx_lam, :]
+            bin_data = hdul[1].data["SPEC"].T[idx_lam, :]
+            bin_err = hdul[1].data["ESPEC"].T[idx_lam, :]
             logLam = logLam[idx_lam]
             nbins = bin_data.shape[1]
             npix = bin_data.shape[0]
@@ -860,14 +862,14 @@ def extractStarFormationHistories(config):
         printStatus.done("Using regular spectra without any emission-correction")
         with h5py.File(bin_spectra_file, 'r') as f:
             # Read the LOGLAM data from the file
-            logLam = f['LOGLAM'][:]
+            logLam = f["LOGLAM"][:]
 
             # Select the indices where the wavelength is within the specified range
-            idx_lam = np.where(np.logical_and(np.exp(logLam) > config['SFH']['LMIN'], np.exp(logLam) < config['SFH']['LMAX']))[0]
+            idx_lam = np.where(np.logical_and(np.exp(logLam) > config["SFH"]["LMIN"], np.exp(logLam) < config["SFH"]["LMAX"]))[0]
 
             # Read the SPEC and ESPEC data from the file, only for the selected indices
-            bin_data = f['SPEC'][idx_lam, :]
-            bin_err = f['ESPEC'][idx_lam, :]
+            bin_data = f["SPEC"][idx_lam, :]
+            bin_err = f["ESPEC"][idx_lam, :]
             logLam = logLam[idx_lam]
 
     # Define additional variables
@@ -881,12 +883,15 @@ def extractStarFormationHistories(config):
     offset = (logLam_template[0] - logLam[0])*C
     
     #check what type of noise should be passed on:
-    if config['SFH']['NOISE'] == 'variance': # use noise from cube 
+    if config["SFH"]["NOISE"] == 'variance': # use noise from cube 
         noise = bin_err  # already converted to noise, i.e. sqrt(variance)
-    elif config['SFH']['NOISE'] == 'constant': # use constant noise
+    elif config["SFH"]["NOISE"] == 'constant': # use constant noise
         noise  = np.ones((npix,nbins))
+        # while constant, the noise does need to be scaled to match the bin_err
+        med_bin_err = np.nanmedian(bin_err, axis=0)
+        noise *= med_bin_err        
 
-    nsims = config['SFH']['MC_PPXF']
+    nsims = config["SFH"]["MC_PPXF"]
 
     # Implementation of switch FIXED
     # Do fix kinematics to those obtained previously
@@ -922,17 +927,17 @@ def extractStarFormationHistories(config):
     # Define goodpixels
 
     #check if a premask for step zero has been defined
-    if 'SPEC_PREMASK' in config['SFH']:
+    if 'SPEC_PREMASK' in config["SFH"]:
         #yes, load this premask file
-        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_PREMASK'], logLam)
+        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_PREMASK"], logLam)
     else:
         #no, load this normal file
-        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_MASK'], logLam)
+        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
     
-    goodPixels_sfh = _auxiliary.spectralMasking(config, config['SFH']['SPEC_MASK'], logLam)
+    goodPixels_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
     
     # Check if plot keyword is set:
-    if 'PLOT' in config['SFH']:
+    if 'PLOT' in config["SFH"]:
         doplot = True
     else:
         doplot = False
@@ -972,10 +977,10 @@ def extractStarFormationHistories(config):
             velscale,
             start[0,:],
             goodPixels_step0_sfh,
-            config['SFH']['MOM'],
+            config["SFH"]["MOM"],
             offset,-1,
-            config['SFH']['MDEG'],
-            config['SFH']['REGUL_ERR'],
+            config["SFH"]["MDEG"],
+            config["SFH"]["REGUL_ERR"],
             velscale_ratio,
             ncomb,
         )
@@ -1027,11 +1032,11 @@ def extractStarFormationHistories(config):
                     start[i,:],
                     goodPixels_step0_sfh,
                     goodPixels_sfh,
-                    config['SFH']['MOM'],
+                    config["SFH"]["MOM"],
                     offset,
                     -1,
-                    config['SFH']['MDEG'],
-                    config['SFH']['REGUL_ERR'],
+                    config["SFH"]["MDEG"],
+                    config["SFH"]["REGUL_ERR"],
                     config["SFH"]["DOCLEAN"],
                     fixed,
                     velscale_ratio,
@@ -1042,7 +1047,7 @@ def extractStarFormationHistories(config):
                     optimal_template_comb,
                     EBV_init,
                     logLam,
-                    config['SFH']['MC_PPXF'],
+                    config["SFH"]["MC_PPXF"],
                     logAge_grid,
                     metal_grid,
                     alpha_grid,
@@ -1065,7 +1070,7 @@ def extractStarFormationHistories(config):
 
         # Unpack results
         for i in range(0, nbins):
-            ppxf_result[i,:config['SFH']['MOM']] = ppxf_tmp[i][0]
+            ppxf_result[i,:config["SFH"]["MOM"]] = ppxf_tmp[i][0]
             w_row[i,:] = ppxf_tmp[i][1]
             ppxf_bestfit[i,:] = ppxf_tmp[i][2]
             optimal_template[i,:] = ppxf_tmp[i][3]
@@ -1075,7 +1080,7 @@ def extractStarFormationHistories(config):
             mean_results_MC_iter[i,:,:] = ppxf_tmp[i][4]["mean_results_MC_iter"]
             mean_results_MC_mean[i,:]  = ppxf_tmp[i][4]["mean_results_MC_mean"]
             mean_results_MC_err[i,:]  = ppxf_tmp[i][4]["mean_results_MC_err"]
-            formal_error[i,:config['SFH']['MOM']] = ppxf_tmp[i][5]
+            formal_error[i,:config["SFH"]["MOM"]] = ppxf_tmp[i][5]
             spectral_mask[i,:] = ppxf_tmp[i][6]
             snr_postfit[i] = ppxf_tmp[i][7]
             EBV[i] = ppxf_tmp[i][8]
@@ -1088,26 +1093,24 @@ def extractStarFormationHistories(config):
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
         
 
-    if config['GENERAL']['PARALLEL'] == False:
+    if config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
 
         # check if we need to run all bins or only a subset
-        if 'DEBUG_BIN' in config['SFH']:
-            runbin = config['SFH']['DEBUG_BIN']
-            # replace config keyword with string to save it in header later
-            config['SFH']['DEBUG_BIN'] = str(runbin)
+        if 'DEBUG_BIN' in config["SFH"]:
+            runbin = config["SFH"]["DEBUG_BIN"]
         else:
             runbin = np.arange(0, nbins)
 
         for i in runbin:
             (
-                ppxf_result[i,:config['SFH']['MOM']],
+                ppxf_result[i,:config["SFH"]["MOM"]],
                 w_row[i,:],
                 ppxf_bestfit[i,:],
                 optimal_template[i,:],
                 mc_results_i,
-                formal_error[i,:config['SFH']['MOM']],
+                formal_error[i,:config["SFH"]["MOM"]],
                 spectral_mask[i,:],
                 snr_postfit[i],
                 EBV[i],
@@ -1119,11 +1122,11 @@ def extractStarFormationHistories(config):
                 start[i,:],
                 goodPixels_step0_sfh,
                 goodPixels_sfh,
-                config['SFH']['MOM'],
+                config["SFH"]["MOM"],
                 offset,
                 -1,
-                config['SFH']['MDEG'],
-                config['SFH']['REGUL_ERR'],
+                config["SFH"]["MDEG"],
+                config["SFH"]["REGUL_ERR"],
                 config["KIN"]["DOCLEAN"],
                 fixed,
                 velscale_ratio,
@@ -1134,7 +1137,7 @@ def extractStarFormationHistories(config):
                 optimal_template_comb,
                 EBV_init,
                 logLam,
-                config['SFH']['MC_PPXF'],
+                config["SFH"]["MC_PPXF"],
                 logAge_grid,
                 metal_grid,
                 alpha_grid,
@@ -1181,6 +1184,9 @@ def extractStarFormationHistories(config):
     )
 
     # Save to file
+    if 'DEBUG_BIN' in config["SFH"]:
+        # replace config keyword with string to save it in header later
+        config["SFH"]["DEBUG_BIN"] = str(config["SFH"]["DEBUG_BIN"])
 
     save_sfh(
         mean_results,

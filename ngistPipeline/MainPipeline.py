@@ -2,7 +2,7 @@
 
 # ==================================================================================================================== #
 #                                                                                                                      #
-#                                          T H E   G I S T   P I P E L I N E                                           #
+#                                          T H E   nG I S T   P I P E L I N E                                          #
 #                                                                                                                      #
 # ==================================================================================================================== #
 
@@ -49,7 +49,7 @@ from ngistPipeline.userModules import _userModules
 
 def skipGalaxy(config):
     # _auxiliary.addGISTHeaderComment(config)
-    printStatus.module("The GIST pipeline")
+    printStatus.module("The nGIST pipeline")
     printStatus.failed("Galaxy is skipped!")
     logging.critical("Galaxy is skipped!")
 
