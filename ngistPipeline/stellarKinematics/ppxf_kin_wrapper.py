@@ -101,12 +101,10 @@ def plot_ppxf_kin(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
         plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
                     (f", S/N Residual = {snrResid:.1f}")
     if nmom == 4:
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, \
-                    h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
                     (f", S/N Residual = {snrResid:.1f}")        
     if nmom == 6:            
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, \
-                    h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
+        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
                     (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
                     (f", S/N Residual = {snrResid:.1f}")   
             
