@@ -1,4 +1,10 @@
-# This is a test config file
+#
+#       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#       - - - - MASTER CONFIGURATION FILE FOR THE nGIST PIPELINE - - - - 
+#       - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+#
+#       Last updated 09/05/2025
+#
 GENERAL :
   RUN_ID : 'NGC0000Example' # Name of the analysis run. A subdirectory of this name within the output directory will be created. This identifier further serves as a prefix to all output files.
   INPUT : 'NGC0000.fits' # Input file for this analysis run. The specified path is relative to the input path given in defaultDir.
@@ -7,7 +13,6 @@ GENERAL :
   PARALLEL: True # Use multiprocessing [True/False]
   NCPU : 4 # Number of cores to use for multiprocessing
   LSF_DATA : 'lsf_MUSE-WFM' # Path of the file specifying the line-spread-function of the observational data. The specified path is relative to the configDir path in defaultDir.
-  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
   OW_CONFIG : True #  Ignore configurations from previous runs which are saved in the CONFIG file in the output directory [True/False]
   OW_OUTPUT : True # Overwrite any output files already present in the current output directory [True/False]
 
@@ -17,19 +22,20 @@ READ_DATA :
   DEBUG : FALSE # Switch to activate debug mode [True/False]: Pipeline runs on one, central line of pixels. Keep in mind to clean output directory after running in DEBUG mode!
   ORIGIN : 14,14 # Origin of the coordinate system in pixel coordinates: x,y (Indexing starts at 0).
   LMIN_TOT : 4800 # Spectra are shortened to the rest-frame wavelength range defined by LMIN_TOT and LMAX_TOT. Note that this wavelength range should be longer than all other wavelength ranges supplied to the modules [in Angst.]
-  LMAX_TOT : 5500
+  LMAX_TOT : 7000
   LMIN_SNR : 4800 # Rest-frame wavelength range used for the signal-to-noise calculation [in Angst.]
-  LMAX_SNR : 5500
+  LMAX_SNR : 7000
+  EBmV : null # Enter the E(B-V) value for the galaxy here (or use null for no Galactic dust correction)
 
 # Spatial masking module
 SPATIAL_MASKING :
-  METHOD : 'default' # Name of the routine in spatialMasking/ (without .py) to perform the tasks. Set 'False' to turn off module. Set 'default' to use the standard GIST implementation.
+  METHOD : 'default' # Name of the routine in spatialMasking/ (without .py) to perform the tasks. Set 'False' to turn off module. Set 'default' to use the standard nGIST implementation.
   MIN_SNR : 20.0 # Spaxels below the isophote level which has this mean signal-to-noise level are masked.
   MASK : 'NGC0000_mask.fits' # File containing a spatial mask (Set 'False' to not include a file).
 
 # Spatial binning module
 SPATIAL_BINNING :
-  METHOD : 'voronoi' # Name of the routine in spatialBinning/ (without .py) to perform the tasks. Set 'False' to turn off module. Set 'voronoi' to use the standard GIST implementation, exploiting the Voronoi tesselation routine of Cappellari & Copin (2003).
+  METHOD : 'voronoi' # Name of the routine in spatialBinning/ (without .py) to perform the tasks. Set 'False' to turn off module. Set 'voronoi' to use the standard nGIST implementation, exploiting the Voronoi tesselation routine of Cappellari & Copin (2003).
   TARGET_SNR : 500.0 # Target signal-to-noise ratio for the Voronoi binning
   COVARIANCE : 0.0 # Correct for spatial correlations of the noise during the Voronoi binning process according to the empirical equation SNR /= 1 + COVAR_VOR * np.log10(NSPAXEL) with NSPAXEL being the number of spaxels per bin (see e.g. Garcia-Benito et al. 2015).
 
@@ -39,47 +45,87 @@ PREPARE_SPECTRA :
   METHOD : 'default'
   VELSCALE : 70
 
-# Prepare templates module
-PREPARE_TEMPLATES :
-  METHOD : 'miles'
-  LIBRARY : 'MILES/'
-  NORM_TEMP : 'LIGHT'
-
 # Stellar kinematics module
 KIN :
   METHOD : 'ppxf'
   SPEC_MASK : 'specMask_KIN'
   LMIN : 4800
-  LMAX : 5500
+  LMAX : 7000
   SIGMA : 200
+  BIAS : 'Auto'
   MOM : 4
   ADEG : 8
   MDEG : 0
-  REDDENING : null # As opposed to None
   MC_PPXF : 0
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
+  DOCLEAN : True
+  OPT_TEMP : 'default'
+  DUST_CORR : True
+  NOISE : 'constant'
+
+# Continuum Cube module
+CONT :
+  METHOD : 'ppxf' # Name of the routine in stellarKinematics/ (without .py) to perform the tasks. Set 'False' to turn off module. Set 'ppxf' to use the standard nGIST implementation, exploiting the pPXF routine of Cappellari & Emsellem (2004).
+  SPEC_MASK : 'specMask_KIN' # File to define wavelength ranges to be masked during the stellar kinematics fit. The specified path is relative to the configDir path in defaultDir.
+  LMIN : 4750 # Rest-frame wavelength range used for the stellar kinematics analysis [in Angst.]
+  LMAX : 7100
+  SIGMA : 100 # Initial guess of the velocity dispersion of the system [in km/s]
+  MOM : 4 # Number of kinematic moments to be extracted
+  ADEG: 0
+  MDEG : 8 # Degree of the multiplicative Legendre polynomial. Set '0' to not include any multiplicative polynomials
+  MC_PPXF : 0 # Number of Monte-Carlo simulations to extract errors on the stellar kinematics. Formal errors are saved in any case.
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles' # options are 'miles' or 'IndoUS' or 'walcher'
+  LIBRARY : 'MILES/' # options are 'MILES/', 'miles_ssp_ch/', 'IndoUS', and 'Walcher/'
+  NORM_TEMP : 'LIGHT' # Normalise the spectral template library to obtain light- or mass-weighted results [LIGHT / MASS]
+  DOCLEAN : True # Keyword to turn on/off the sigma clipping. Set to 'False' for testing.
+  OPT_TEMP : 'default'
+  DUST_CORR : True
+  NOISE : 'constant'
 
 # Emission line fitting module
 GAS :
-  METHOD : 'gandalf'
+  METHOD : 'ppxf'
+  SPEC_MASK : 'specMask_GAS'
   LEVEL : 'BIN'
   LMIN : 4800
-  LMAX : 5500
+  LMAX : 7000
   ERRORS : 0
   REDDENING : 0.1,0.1
+  MDEG : 8
+  FIXED : True
+  MOM : 2
   EBmV : null # As opposed to None
-  EMI_FILE : 'emissionLines.config'
-
+  EMI_FILE : 'emissionLinesPHANGS.config'
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES_EMLINES/'
+  NORM_TEMP : 'LIGHT'
+  
 # Star formation histories module
 SFH :
   METHOD : 'ppxf'
   LMIN : 4800
   LMAX : 5500
   SPEC_MASK : 'specMask_SFH'
+  SPEC_EMICLEAN : True 
   MOM : 4
   MDEG : 4
   REGUL_ERR : 1.
   NOISE : 1.
   FIXED : True
+  MC_PPXF : 0 # Added to add the option of running MC on the SFH module
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
+  DOCLEAN : True
+  OPT_TEMP : 'default'
+  DUST_CORR : True
+  NOISE : 'constant'  
 
 # Line strenghts module
 LS :
@@ -91,3 +137,11 @@ LS :
   MC_LS : 30
   NWALKER : 10
   NCHAIN : 100
+  LSF_TEMP : 'lsf_MILES' # Path of the file specifying the line-spread-function of the spectral templates. The specified path is relative to the configDir path in defaultDir.
+  TEMPLATE_SET : 'miles'
+  LIBRARY : 'MILES/'
+  NORM_TEMP : 'LIGHT'
+  
+# User module kinematics module
+UMOD :
+  METHOD : False

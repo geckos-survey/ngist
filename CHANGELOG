@@ -7,6 +7,10 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V7.5.1	    2025-04-26 CHANGED Major: update CONT module to include all changes already 
+			applied to KIN and SFH module. FIXED a few bugs related to constant noise. 
+			Cleaned up code comments, changing GIST to nGIST. 
+			
 V7.5.0	    2025-04-26 CHANGED Major: updated KIN and SFH routines to use new dust 
 			method in pPXF, with the option to fix the dust in step 3. Changed step 2 from  
 			using pPXF CLEAN to new clip_outliers function. ADDED: options to KIN and 
