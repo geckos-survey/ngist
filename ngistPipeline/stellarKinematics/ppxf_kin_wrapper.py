@@ -720,6 +720,11 @@ def extractStellarKinematics(config):
 
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0]) * C
+    print(
+        f"{logLam_template[0]:.4f}",
+        f"{logLam[0]:.4f}",
+        f"{offset:.4f}",
+    )
     # noise  = np.ones((npix,nbins))
     noise = bin_err  # is actual noise, not variance
     nsims = config["KIN"]["MC_PPXF"]
