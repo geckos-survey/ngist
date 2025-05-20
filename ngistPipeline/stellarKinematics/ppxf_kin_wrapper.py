@@ -861,10 +861,7 @@ def extractStellarKinematics(config):
     goodPixels_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
 
     # Check if plot keyword is set:
-    if 'PLOT' in config["KIN"]:
-        doplot = True
-    else:
-        doplot = False
+    doplot = config["KIN"].get("PLOT", False)
 
     # Array to store results of ppxf
     ppxf_result = np.zeros((nbins, 6))

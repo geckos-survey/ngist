@@ -435,21 +435,33 @@ def saveContLineCube(config):
     linLam = linLam[idx_lam]
 
     # get PPXF best fit continuum from kinematics module
-    ppxf_bestfit = fits.open(
-        os.path.join(
-            config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-    )[1].data.BESTFIT
-    printStatus.running("Opening: -kin-bestfit-cont.fits")
+
+    if config["CONT"].get("SAVE_HDF5"):
+        with h5py.File(
+            os.path.join(
+                config["GENERAL"]["OUTPUT"],
+                config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5",
+            ), "r"
+        ) as f:
+            printStatus.running('Found it! opening -kin-bestfit-cont.hdf5')
+            ppxf_bestfit = f["BESTFIT"][:]
+            logLam = f["LOGLAM"][:]
+    else:
+        ppxf_bestfit = fits.open(
+            os.path.join(
+                config["GENERAL"]["OUTPUT"],
+                config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
+            )
+        )[1].data.BESTFIT
+        printStatus.running("Opening: -kin-bestfit-cont.fits")
     
-    # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
-    logLam = fits.open(
-        os.path.join(
-            config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
+        # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
+        logLam = fits.open(
+            os.path.join(
+                config["GENERAL"]["OUTPUT"],
+                config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
         )
-    )[2].data.LOGLAM
+        )[2].data.LOGLAM
 
     # table HDU
     tablehdu = fits.open(

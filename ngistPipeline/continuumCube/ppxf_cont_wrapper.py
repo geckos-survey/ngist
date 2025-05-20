@@ -486,21 +486,43 @@ def run_ppxf(
     except:
         return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
-
-
-def save_ppxf(
+def save_ppxf_hdf5(
     config,
-    ppxf_result,
-    mc_results,
-    formal_error,
     ppxf_bestfit,
     logLam,
     goodPixels,
-    optimal_template,
-    logLam_template,
+    bin_data,
+):
+    """Saves all results to disk."""
+    # SAVE BESTFIT
+    outfits_ppxf = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_kin-bestfit-cont.hdf5"
+    )
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5")
+
+    with h5py.File(outfits_ppxf, "w") as f:
+        # Save PPXF bestfit
+        f.create_dataset("BESTFIT", data=ppxf_bestfit)
+
+        # Save PPXF logLam
+        f.create_dataset("LOGLAM", data=logLam)
+
+        # Save PPXF goodpixels
+        f.create_dataset("GOODPIX", data=goodPixels)
+
+        # Save SPEC data
+        f.create_dataset("SPEC", data=bin_data.T)
+
+    printStatus.running("Writing complete: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5")
+    logging.info("Wrote: " + outfits_ppxf)
+
+def save_ppxf(
+    config,
+    ppxf_bestfit,
+    logLam,
+    goodPixels,
     npix,
-    spectral_mask,
-    optimal_template_comb,
     bin_data,
 ):
     """Saves all results to disk."""
@@ -668,10 +690,7 @@ def createContinuumCube(config):
     goodPixels_con = _auxiliary.spectralMasking(config, config["CONT"]["SPEC_MASK"], logLam)
 
     # Check if plot keyword is set:
-    if 'PLOT' in config["CONT"]:
-        doplot = True
-    else:
-        doplot = False
+    doplot = config["CONT"].get("PLOT", False)
 
     # Array to store results of ppxf
     ppxf_result = np.zeros((nbins, 6))
@@ -871,26 +890,28 @@ def createContinuumCube(config):
     print("")
 
     # Save to file
-    if 'DEBUG_BIN' in config["CONT"]:
+    if "DEBUG_BIN" in config["CONT"]:
         # replace config keyword with string to save it in header later
         config["CONT"]["DEBUG_BIN"] = str(config["CONT"]["DEBUG_BIN"])
 
-    save_ppxf(
-        config,
-        ppxf_result,
-        mc_results,
-        formal_error,
-        ppxf_bestfit,
-        logLam,
-        goodPixels_con,
-        optimal_template,
-        logLam_template,
-        npix,
-        spectral_mask,
-        optimal_template_comb,
-        bin_data,
-    )
+    #check if saved file should be HDF5 or Fits
+    if config["CONT"].get("SAVE_HDF5"):
+            save_ppxf_hdf5(
+                config,
+                ppxf_bestfit,
+                logLam,
+                goodPixels_con,
+                bin_data,
+            )
+    else:
+        save_ppxf(
+            config,
+            ppxf_bestfit,
+            logLam,
+            goodPixels_con,
+            npix,
+            bin_data,
+        )
 
     # Return
-
     return None

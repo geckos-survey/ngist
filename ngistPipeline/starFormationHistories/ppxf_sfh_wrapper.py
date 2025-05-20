@@ -937,10 +937,8 @@ def extractStarFormationHistories(config):
     goodPixels_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
     
     # Check if plot keyword is set:
-    if 'PLOT' in config["SFH"]:
-        doplot = True
-    else:
-        doplot = False
+    doplot = config["SFH"].get("PLOT", False)
+
 
     # Define output arrays
     ppxf_result = np.zeros((nbins,6    ))
