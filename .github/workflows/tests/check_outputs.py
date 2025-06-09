@@ -8,7 +8,7 @@ output_dir = f"./.github/workflows/tests/gistTutorial/results/NGC0000Example"
 with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
 		print(line)
-print('I got up to here!')
+
 #Check the output directory is created 
 with open(f"{output_dir}/LOGFILE") as f:
 	for line in f:
