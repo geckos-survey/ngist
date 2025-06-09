@@ -3,8 +3,8 @@ import os
 
 from printStatus import printStatus
 
-from ngistPipeline.plotting import (gistPlot_gas, gistPlot_kin,
-                                   gistPlot_lambdar, gistPlot_ls, gistPlot_sfh,
+from ngistPipeline.plotting import (ngistPlot_gas, ngistPlot_kin,
+                                   ngistPlot_lambdar, ngistPlot_ls, ngistPlot_sfh,
                                    save_maps_fits)
 
 
@@ -31,7 +31,7 @@ def generatePlots(config, module):
     if module == "GAS":
         try:
             printStatus.running("Producing maps from the emission-line analysis")
-            if os.path.isfile(outputPrefix + "_gas_BIN.fits") == True:
+            if os.path.isfile(outputPrefix + "_gas_bin.fits") == True:
                 # gistPlot_gas.plotMaps(config['GENERAL']['OUTPUT'], 'BIN', True)
                 save_maps_fits.savefitsmaps_GASmodule(
                     "gas",
@@ -39,7 +39,7 @@ def generatePlots(config, module):
                     LEVEL=config["GAS"]["LEVEL"],
                     AoNThreshold=4,
                 )
-            if os.path.isfile(outputPrefix + "_gas_SPAXEL.fits") == True:
+            if os.path.isfile(outputPrefix + "_gas_spaxel.fits") == True:
                 save_maps_fits.savefitsmaps_GASmodule(
                     "gas",
                     config["GENERAL"]["OUTPUT"],

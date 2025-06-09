@@ -25,8 +25,8 @@ def starFormationHistories_Module(config):
     if (
         config["GENERAL"]["OW_OUTPUT"] == False
         and os.path.isfile(outPrefix + "_sfh.fits") == True
-        and os.path.isfile(outPrefix + "_sfh-bestfit.fits") == True
-        and os.path.isfile(outPrefix + "_sfh-weights.fits") == True
+        and os.path.isfile(outPrefix + "_sfh_bestfit.fits") == True
+        and os.path.isfile(outPrefix + "_sfh_weights.fits") == True
     ):
         logging.info(
             "Results of the module are already in the output directory. Module is skipped."

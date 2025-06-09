@@ -30,8 +30,8 @@ def user_Modules(config):
         if (
             config["GENERAL"]["OW_OUTPUT"] == False
             and os.path.isfile(outPrefix + "_twocomp_kin.fits") == True
-            and os.path.isfile(outPrefix + "_twocomp_kin-bestfit.fits") == True
-            and os.path.isfile(outPrefix + "_twocomp_kin-optimalTemplates.fits") == True
+            and os.path.isfile(outPrefix + "_twocomp_kin_bestfit.fits") == True
+            and os.path.isfile(outPrefix + "_twocomp_kin_optimal_templates.fits") == True
         ):
             logging.info(
                 "Results of the module are already in the output directory. Module is skipped."

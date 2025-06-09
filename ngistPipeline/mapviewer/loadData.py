@@ -35,26 +35,26 @@ def loadData(self):
     self.KIN = os.path.isfile(self.dirprefix + "_kin.fits")
 
     if (
-        os.path.isfile(self.dirprefix + "_gas_BIN.fits") == False
-        and os.path.isfile(self.dirprefix + "_gas_SPAXEL.fits") == False
+        os.path.isfile(self.dirprefix + "_gas_bin.fits") == False
+        and os.path.isfile(self.dirprefix + "_gas_spaxel.fits") == False
     ):
         self.GAS = False
         self.gasLevelAvailable = []
     if (
-        os.path.isfile(self.dirprefix + "_gas_BIN.fits") == True
-        and os.path.isfile(self.dirprefix + "_gas_SPAXEL.fits") == False
+        os.path.isfile(self.dirprefix + "_gas_bin.fits") == True
+        and os.path.isfile(self.dirprefix + "_gas_spaxel.fits") == False
     ):
         self.GAS = True
         self.gasLevelAvailable = ["BIN"]
     if (
-        os.path.isfile(self.dirprefix + "_gas_BIN.fits") == False
-        and os.path.isfile(self.dirprefix + "_gas_SPAXEL.fits") == True
+        os.path.isfile(self.dirprefix + "_gas_bin.fits") == False
+        and os.path.isfile(self.dirprefix + "_gas_spaxel.fits") == True
     ):
         self.GAS = True
         self.gasLevelAvailable = ["SPAXEL"]
     if (
-        os.path.isfile(self.dirprefix + "_gas_BIN.fits") == True
-        and os.path.isfile(self.dirprefix + "_gas_SPAXEL.fits") == True
+        os.path.isfile(self.dirprefix + "_gas_bin.fits") == True
+        and os.path.isfile(self.dirprefix + "_gas_spaxel.fits") == True
     ):
         self.GAS = True
         self.gasLevelAvailable = ["BIN", "SPAXEL"]
@@ -67,26 +67,26 @@ def loadData(self):
     self.SFH = os.path.isfile(self.dirprefix + "_sfh.fits")
 
     if (
-        os.path.isfile(self.dirprefix + "_ls_OrigRes.fits") == False
-        and os.path.isfile(self.dirprefix + "_ls_AdapRes.fits") == False
+        os.path.isfile(self.dirprefix + "_ls_orig_res.fits") == False
+        and os.path.isfile(self.dirprefix + "_ls_adap_res.fits") == False
     ):
         self.LINE_STRENGTH = False
         self.LsLevelAvailable = []
     if (
-        os.path.isfile(self.dirprefix + "_ls_OrigRes.fits") == True
-        and os.path.isfile(self.dirprefix + "_ls_AdapRes.fits") == False
+        os.path.isfile(self.dirprefix + "_ls_orig_res.fits") == True
+        and os.path.isfile(self.dirprefix + "_ls_adap_res.fits") == False
     ):
         self.LINE_STRENGTH = True
         self.LsLevelAvailable = ["ORIGINAL"]
     if (
-        os.path.isfile(self.dirprefix + "_ls_OrigRes.fits") == False
-        and os.path.isfile(self.dirprefix + "_ls_AdapRes.fits") == True
+        os.path.isfile(self.dirprefix + "_ls_orig_res.fits") == False
+        and os.path.isfile(self.dirprefix + "_ls_adap_res.fits") == True
     ):
         self.LINE_STRENGTH = True
         self.LsLevelAvailable = ["ADAPTED"]
     if (
-        os.path.isfile(self.dirprefix + "_ls_OrigRes.fits") == True
-        and os.path.isfile(self.dirprefix + "_ls_AdapRes.fits") == True
+        os.path.isfile(self.dirprefix + "_ls_orig_res.fits") == True
+        and os.path.isfile(self.dirprefix + "_ls_adap_res.fits") == True
     ):
         self.LINE_STRENGTH = True
         self.LsLevelAvailable = ["ORIGINAL", "ADAPTED"]
@@ -106,8 +106,8 @@ def loadData(self):
     _, idxConvertShortToLong = np.unique(np.abs(self.table.BIN_ID), return_inverse=True)
 
     # Read spectra
-    hdf5_file = self.dirprefix + "_BinSpectra.hdf5"
-    fits_file = self.dirprefix + "_BinSpectra.fits"
+    hdf5_file = self.dirprefix + "_bin_spectra.hdf5"
+    fits_file = self.dirprefix + "_bin_spectra.fits"
 
     if os.path.isfile(hdf5_file):
         with h5py.File(hdf5_file, 'r') as f:
@@ -121,8 +121,8 @@ def loadData(self):
     nbins = self.Spectra.shape[0]
 
     if self.gasLevel == "SPAXEL":
-        hdf5_file = self.dirprefix + "_AllSpectra.hdf5"
-        fits_file = self.dirprefix + "_AllSpectra.fits"
+        hdf5_file = self.dirprefix + "_all_spectra.hdf5"
+        fits_file = self.dirprefix + "_all_spectra.fits"
 
         if os.path.isfile(hdf5_file):
             print('Loading All Spectra for GAS SPX mode. This could take some time')
@@ -141,11 +141,11 @@ def loadData(self):
         self.kinResults = fits.open(self.dirprefix + "_kin.fits")[1].data[
             idxConvertShortToLong
         ]
-        self.kinBestfit = fits.open(self.dirprefix + "_kin-bestfit.fits")[
+        self.kinBestfit = fits.open(self.dirprefix + "_kin_bestfit.fits")[
             1
         ].data.BESTFIT
-        self.kinLambda = fits.open(self.dirprefix + "_kin-bestfit.fits")[2].data.LOGLAM
-        self.kinGoodpix = fits.open(self.dirprefix + "_kin-bestfit.fits")[
+        self.kinLambda = fits.open(self.dirprefix + "_kin_bestfit.fits")[2].data.LOGLAM
+        self.kinGoodpix = fits.open(self.dirprefix + "_kin_bestfit.fits")[
             3
         ].data.GOODPIX
 
@@ -162,24 +162,24 @@ def loadData(self):
 
     # Read emissionLines results
     if self.GAS:
-        if os.path.isfile(self.dirprefix + "_gas-cleaned_BIN.fits") == True:
+        if os.path.isfile(self.dirprefix + "_gas_cleaned_bin.fits") == True:
             self.EmissionSubtractedSpectraBIN = np.array(
-                fits.open(self.dirprefix + "_gas-cleaned_BIN.fits")[1].data.SPEC
+                fits.open(self.dirprefix + "_gas_cleaned_bin.fits")[1].data.SPEC
             )
-        if os.path.isfile(self.dirprefix + "_gas-cleaned_SPAXEL.fits") == True:
+        if os.path.isfile(self.dirprefix + "_gas_cleaned_spaxel.fits") == True:
             self.EmissionSubtractedSpectraSPAXEL = np.array(
-                fits.open(self.dirprefix + "_gas-cleaned_SPAXEL.fits")[1].data.SPEC
+                fits.open(self.dirprefix + "_gas_cleaned_spaxel.fits")[1].data.SPEC
             )
 
-        gas = fits.open(self.dirprefix + "_gas_" + self.gasLevel + ".fits")[1].data
+        gas = fits.open(self.dirprefix + "_gas_" + self.gasLevel.lower() + ".fits")[1].data
         self.gasBestfit = fits.open(
-            self.dirprefix + "_gas-bestfit_" + self.gasLevel + ".fits"
+            self.dirprefix + "_gas_bestfit_" + self.gasLevel.lower() + ".fits"
         )[1].data.BESTFIT
         self.gasLambda = fits.open(
-            self.dirprefix + "_gas-bestfit_" + self.gasLevel + ".fits"
+            self.dirprefix + "_gas_bestfit_" + self.gasLevel.lower() + ".fits"
         )[2].data.LOGLAM
         self.gasGoodpix = fits.open(
-            self.dirprefix + "_gas-bestfit_" + self.gasLevel + ".fits"
+            self.dirprefix + "_gas_bestfit_" + self.gasLevel.lower() + ".fits"
         )[3].data.GOODPIX
 
         if self.gasLevel == "BIN":
@@ -202,11 +202,11 @@ def loadData(self):
         self.sfhResults = fits.open(self.dirprefix + "_sfh.fits")[1].data[
             idxConvertShortToLong
         ]
-        self.sfhBestfit = fits.open(self.dirprefix + "_sfh-bestfit.fits")[
+        self.sfhBestfit = fits.open(self.dirprefix + "_sfh_bestfit.fits")[
             1
         ].data.BESTFIT
-        self.sfhLambda = fits.open(self.dirprefix + "_sfh-bestfit.fits")[2].data.LOGLAM
-        self.sfhGoodpix = fits.open(self.dirprefix + "_sfh-bestfit.fits")[
+        self.sfhLambda = fits.open(self.dirprefix + "_sfh_bestfit.fits")[2].data.LOGLAM
+        self.sfhGoodpix = fits.open(self.dirprefix + "_sfh_bestfit.fits")[
             3
         ].data.GOODPIX
 
@@ -215,12 +215,12 @@ def loadData(self):
         #    self.sfhResults.V = self.sfhResults.V - median_V_stellar
 
         # Read the age, metallicity and [Mg/Fe] grid
-        grid = fits.open(self.dirprefix + "_sfh-weights.fits")[2].data
+        grid = fits.open(self.dirprefix + "_sfh_weights.fits")[2].data
         self.metals = np.unique(grid.METAL)
         self.age = np.power(10, np.unique(grid.LOGAGE))
 
         # Read weights
-        hdu_weights = fits.open(self.dirprefix + "_sfh-weights.fits")
+        hdu_weights = fits.open(self.dirprefix + "_sfh_weights.fits")
         nAges = hdu_weights[0].header["NAGES"]
         nMetal = hdu_weights[0].header["NMETAL"]
         nAlpha = hdu_weights[0].header["NALPHA"]
@@ -240,9 +240,9 @@ def loadData(self):
     # Read lineStrengths results
     if self.LINE_STRENGTH == True:
         if self.LsLevel == "ORIGINAL":
-            ls = fits.open(self.dirprefix + "_ls_OrigRes.fits")[1].data
+            ls = fits.open(self.dirprefix + "_ls_orig_res.fits")[1].data
         elif self.LsLevel == "ADAPTED":
-            ls = fits.open(self.dirprefix + "_ls_AdapRes.fits")[1].data
+            ls = fits.open(self.dirprefix + "_ls_adap_res.fits")[1].data
         self.lsResults = ls[idxConvertShortToLong]
     else:
         self.lsResults = None

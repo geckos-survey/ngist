@@ -24,9 +24,9 @@ def continuumCube_Module(config):
     outPrefix = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
     if (
         config["GENERAL"]["OW_OUTPUT"] == False
-        and os.path.isfile(outPrefix + "_CONTcube.fits") == True
-        and os.path.isfile(outPrefix + "_ORIGcube.fits") == True
-        and os.path.isfile(outPrefix + "_LINEcube.fits") == True
+        and os.path.isfile(outPrefix + "_cont_cube.fits") == True
+        and os.path.isfile(outPrefix + "_orig_cube.fits") == True
+        and os.path.isfile(outPrefix + "_line_cube.fits") == True
     ):
         logging.info(
             "Results of the module are already in the output directory. Module is skipped."

@@ -24,9 +24,9 @@ def lineStrengths_Module(config):
     outPrefix = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
     if (
         config["GENERAL"]["OW_OUTPUT"] == False
-        and os.path.isfile(outPrefix + "_ls_OrigRes.fits") == True
-        and os.path.isfile(outPrefix + "_ls_AdapRes.fits") == True
-        and os.path.isfile(outPrefix + "_ls-cleaned_linear.fits") == True
+        and os.path.isfile(outPrefix + "_ls_orig_res.fits") == True
+        and os.path.isfile(outPrefix + "_ls_adap_res.fits") == True
+        and os.path.isfile(outPrefix + "_ls_cleaned_linear.fits") == True
     ):
         logging.info(
             "Results of the module are already in the output directory. Module is skipped."

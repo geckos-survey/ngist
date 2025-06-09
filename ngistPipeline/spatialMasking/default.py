@@ -133,7 +133,6 @@ def applySNRThreshold(snr, signal, min_snr, threshold_method="isophote"):
     masked[idx_outside] = True
 
     return masked
-    return masked
 
 
 def applyMaskFile(config, cube):

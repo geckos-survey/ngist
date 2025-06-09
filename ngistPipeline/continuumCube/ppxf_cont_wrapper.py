@@ -417,10 +417,10 @@ def run_ppxf(
                         
             outfigFile_step1 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
-                                + "_con_bin_"+str(i)+"_step1.pdf"))
+                                + "_cont_bin_"+str(i)+"_step1.pdf"))
             outfigFile_step3 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
-                                + "_con_bin_"+str(i)+"_step3.pdf"))
+                                + "_cont_bin_"+str(i)+"_step3.pdf"))
 
             #produce plots
             tmp_plot1 = plot_ppxf_kin(pp_step1,np.exp(logLam),i,outfigFile_step1,
@@ -497,9 +497,9 @@ def save_ppxf_hdf5(
     # SAVE BESTFIT
     outfits_ppxf = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin-bestfit-cont.hdf5"
+        + "_kin_bestfit_cont.hdf5"
     )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5")
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_bestfit_cont.hdf5")
 
     with h5py.File(outfits_ppxf, "w") as f:
         # Save PPXF bestfit
@@ -514,69 +514,10 @@ def save_ppxf_hdf5(
         # Save SPEC data
         f.create_dataset("SPEC", data=bin_data.T)
 
-    printStatus.running("Writing complete: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5")
+    printStatus.running("Writing complete: " + config["GENERAL"]["RUN_ID"] + "_kin_bestfit_cont.hdf5")
     logging.info("Wrote: " + outfits_ppxf)
-
-def save_ppxf(
-    config,
-    ppxf_bestfit,
-    logLam,
-    goodPixels,
-    npix,
-    bin_data,
-):
-    """Saves all results to disk."""
-    # SAVE BESTFIT
-    outfits_ppxf = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin-bestfit-cont.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits")
-
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
-
-    # Table HDU with PPXF bestfit
-    cols = []
-    cols.append(fits.Column(name="BESTFIT", format=str(npix) + "D", array=ppxf_bestfit))
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "BESTFIT"
-
-    # Table HDU with PPXF logLam
-    cols = []
-    cols.append(fits.Column(name="LOGLAM", format="D", array=logLam))
-    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    logLamHDU.name = "LOGLAM"
-
-    # Table HDU with PPXF goodpixels
-    cols = []
-    cols.append(fits.Column(name="GOODPIX", format="J", array=goodPixels))
-    goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    goodpixHDU.name = "GOODPIX"
-
-    # Table HDU with PPXF goodpixels
-    cols = []
-    cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=bin_data.T))
-    specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    specHDU.name = "SPEC"
-
-    # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["CONT"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["CONT"])
-    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["CONT"])
-    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["CONT"])
-    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["CONT"])
-
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU])
-    HDUList.writeto(outfits_ppxf, overwrite=True)
-
-    printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits"
-    )
-    logging.info("Wrote: " + outfits_ppxf)
-
     
-
+    
 def createContinuumCube(config):
     """
     Perform the measurement of stellar kinematics, using the pPXF routine. This
@@ -584,8 +525,8 @@ def createContinuumCube(config):
     saves the outputs following the nGIST conventions.
     """
     # Read data from file
-    infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"
-    printStatus.running("Reading: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5")
+    infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_bin_spectra.hdf5"
+    printStatus.running("Reading: " + config["GENERAL"]["RUN_ID"] + "_bin_spectra.hdf5")
     
     # Open the HDF5 file
     with h5py.File(infile, 'r') as f:
@@ -649,23 +590,23 @@ def createContinuumCube(config):
     if (
         os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin-guess.fits"
+            + "_kin_guess.fits"
         )
         == True
     ):
         printStatus.done(
             "Using V and SIGMA from '"
             + config["GENERAL"]["RUN_ID"]
-            + "_kin-guess.fits' as initial guesses"
+            + "_kin_guess.fits' as initial guesses"
         )
         logging.info(
             "Using V and SIGMA from '"
             + config["GENERAL"]["RUN_ID"]
-            + "_kin-guess.fits' as initial guesses"
+            + "_kin_guess.fits' as initial guesses"
         )
         guess = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin-guess.fits"
+            + "_kin_guess.fits"
         )[1].data
         start[:, 0] = guess.V
         start[:, 1] = guess.SIGMA
@@ -894,24 +835,13 @@ def createContinuumCube(config):
         # replace config keyword with string to save it in header later
         config["CONT"]["DEBUG_BIN"] = str(config["CONT"]["DEBUG_BIN"])
 
-    #check if saved file should be HDF5 or Fits
-    if config["CONT"].get("SAVE_HDF5"):
-            save_ppxf_hdf5(
-                config,
-                ppxf_bestfit,
-                logLam,
-                goodPixels_con,
-                bin_data,
-            )
-    else:
-        save_ppxf(
-            config,
-            ppxf_bestfit,
-            logLam,
-            goodPixels_con,
-            npix,
-            bin_data,
-        )
-
+    save_ppxf_hdf5(
+        config,
+        ppxf_bestfit,
+        logLam,
+        goodPixels_con,
+        bin_data,
+    )
+    
     # Return
     return None

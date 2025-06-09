@@ -488,6 +488,7 @@ def run_ppxf(
             formal_error,
             spectral_mask,
             snr_postfit,
+            pp.chi2,
             EBV,
         )
 
@@ -510,6 +511,7 @@ def save_ppxf(
     optimal_template_comb,
     bin_data,
     snr_postfit,
+    red_chi2,
     EBV,
 ):
     """Saves all results to disk."""
@@ -575,6 +577,9 @@ def save_ppxf(
     cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
 
     # Add E(B-V) derived from pPXF 0th step with reddening but no polynomials
+    cols.append(fits.Column(name="RED_CHI2", format="D", array=red_chi2[:]))
+
+    # Add E(B-V) derived from pPXF 0th step with reddening but no polynomials
     cols.append(fits.Column(name="EBV", format="D", array=EBV[:]))
 
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
@@ -593,9 +598,9 @@ def save_ppxf(
     # SAVE BESTFIT
     outfits_ppxf = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin-bestfit.fits"
+        + "_kin_bestfit.fits"
     )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit.fits")
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_bestfit.fits")
 
     # Primary HDU
     priHDU = fits.PrimaryHDU()
@@ -635,7 +640,7 @@ def save_ppxf(
     HDUList.writeto(outfits_ppxf, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-bestfit.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_bestfit.fits"
     )
     logging.info("Wrote: " + outfits_ppxf)
 
@@ -643,10 +648,10 @@ def save_ppxf(
     # SAVE OPTIMAL TEMPLATE RESULT
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin-optimalTemplates.fits"
+        + "_kin_optimal_templates.fits"
     )
     printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-optimalTemplates.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_optimal_templates.fits"
     )
 
     # Primary HDU
@@ -691,7 +696,7 @@ def save_ppxf(
     HDUList.writeto(outfits, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-optimalTemplates.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_optimal_templates.fits"
     )
     logging.info("Wrote: " + outfits)
 
@@ -699,10 +704,10 @@ def save_ppxf(
     # SAVE SPECTRAL MASK RESULT
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin-SpectralMask.fits"
+        + "_kin_spectral_mask.fits"
     )
     printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-SpectralMask.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_spectral_mask.fits"
     )
 
     # Primary HDU
@@ -727,7 +732,7 @@ def save_ppxf(
     HDUList.writeto(outfits, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin-SpectralMask.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_spectral_mask.fits"
     )
     logging.info("Wrote: " + outfits)
 
@@ -739,8 +744,8 @@ def extractStellarKinematics(config):
     saves the outputs following the nGIST conventions.
     """
     # Read data from file
-    infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"
-    printStatus.running("Reading: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5")
+    infile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_bin_spectra.hdf5"
+    printStatus.running("Reading: " + config["GENERAL"]["RUN_ID"] + "_bin_spectra.hdf5")
     
     # Open the HDF5 file
     with h5py.File(infile, 'r') as f:
@@ -820,23 +825,23 @@ def extractStellarKinematics(config):
     if (
         os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin-guess.fits"
+            + "_kin_guess.fits"
         )
         == True
     ):
         printStatus.done(
             "Using V and SIGMA from '"
             + config["GENERAL"]["RUN_ID"]
-            + "_kin-guess.fits' as initial guesses"
+            + "_kin_guess.fits' as initial guesses"
         )
         logging.info(
             "Using V and SIGMA from '"
             + config["GENERAL"]["RUN_ID"]
-            + "_kin-guess.fits' as initial guesses"
+            + "_kin_guess.fits' as initial guesses"
         )
         guess = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin-guess.fits"
+            + "_kin_guess.fits"
         )[1].data
         start[:, 0] = guess.V
         start[:, 1] = guess.SIGMA
@@ -871,6 +876,7 @@ def extractStellarKinematics(config):
     formal_error = np.zeros((nbins, 6))
     spectral_mask = np.zeros((nbins, bin_data.shape[0]))
     snr_postfit = np.zeros(nbins)
+    red_chi2 = np.zeros(nbins)
     EBV = np.zeros(nbins)
  
 # ====================
@@ -980,7 +986,8 @@ def extractStellarKinematics(config):
             formal_error[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][4]
             spectral_mask[i, :] = ppxf_tmp[i][5]
             snr_postfit[i] = ppxf_tmp[i][6]
-            EBV[i] = ppxf_tmp[i][7]
+            red_chi2[i] = ppxf_tmp[i][7]
+            EBV[i] = ppxf_tmp[i][8]
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
@@ -1008,6 +1015,7 @@ def extractStellarKinematics(config):
                 formal_error[i, : config["KIN"]["MOM"]],
                 spectral_mask[i, :],
                 snr_postfit[i],
+                red_chi2[i],
                 EBV[i],
             ) = run_ppxf(
                 templates,
@@ -1083,6 +1091,7 @@ def extractStellarKinematics(config):
         optimal_template_comb,
         bin_data,
         snr_postfit,
+        red_chi2,
         EBV,
     )
 
