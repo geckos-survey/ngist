@@ -370,7 +370,7 @@ def run_ppxf(
             # A temporary fix for the noise issue where a single high S/N spaxel causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est-noise_new_std)] = noise_est
 
-        
+
             ################ 2 ##################
             # Second step (formely done with pPXF CLEAN)
             # switch to mask instead of goodpixels
@@ -436,7 +436,7 @@ def run_ppxf(
         if doplot == True:
 
             # check if figure  folder exists, otherwise
-            outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],"figFit_SFH")
+            outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],"FigFit_SFH")
             if os.path.exists(outfigDir) == False:
                 printStatus.running("Creating directory for pPXF figures:" + outfigDir)
                 os.mkdir(outfigDir)
@@ -533,21 +533,23 @@ def run_ppxf(
             formal_error,
             spectral_mask,
             snr_postfit,
+            pp.chi2,
             EBV,
         )
 
-    except Exception as e:
+    #except Exception as e:
+    except:
         # Handle any other type of exception
-        print(f"An error occurred: {e}")
-    #     mc_results_nan = {
-    #             "w_row_MC_iter": np.nan,
-    #             "w_row_MC_mean": np.nan,
-    #             "w_row_MC_err": np.nan,
-    #             "mean_results_MC_iter": np.nan,
-    #             "mean_results_MC_mean":  np.nan,
-    #             "mean_results_MC_err":  np.nan
-    #         }
-    #     return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan)
+        #print(f"An error occurred: {e}")
+        mc_results_nan = {
+            "w_row_MC_iter": np.nan,
+                "w_row_MC_mean": np.nan,
+                "w_row_MC_err": np.nan,
+                "mean_results_MC_iter": np.nan,
+                "mean_results_MC_mean":  np.nan,
+                "mean_results_MC_err":  np.nan
+            }
+        return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan,np.nan)
 
 
 def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
@@ -589,6 +591,7 @@ def save_sfh(
     spectral_mask,
     optimal_template_comb,
     snr_postfit,
+    red_chi2,
     EBV,
 ):
     """ Save all results to disk. """
@@ -651,9 +654,12 @@ def save_sfh(
     # Add SNR_POSTFIT column to the main list
     columns.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
 
+    # Add Chi2 column to the main list
+    columns.append(fits.Column(name="RED_CHI2", format="D", array=red_chi2[:]))
+
     # Add E(B-V) derived from pPXF 0th step with reddening but no polynomials
     columns.append(fits.Column(name="EBV", format="D", array=EBV[:]))
-
+    
     # Create the HDUs
     priHDU = fits.PrimaryHDU()
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(columns), name="SFH")
@@ -672,8 +678,8 @@ def save_sfh(
     # ========================
     # SAVE WEIGHTS AND GRID
     # Define the output file
-    outfits_sfh = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_sfh-weights.fits"
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights.fits")
+    outfits_sfh = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_sfh_weights.fits"
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_weights.fits")
 
     # Primary HDU
     priHDU = fits.PrimaryHDU()
@@ -699,7 +705,7 @@ def save_sfh(
         fits.setval(outfits_sfh, name, value=value)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_weights.fits"
     )
     logging.info("Wrote: " + outfits_sfh)
     # ========================
@@ -710,7 +716,7 @@ def save_sfh(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
             + "_sfh-weights_mc.fits"
         )
-        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights_mc.fits")
+        printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_weights_mc.fits")
 
         # Primary HDU
         priHDU = fits.PrimaryHDU()
@@ -733,7 +739,7 @@ def save_sfh(
         fits.setval(outfits_sfh, "NALPHA", value=nAlpha)
 
         printStatus.updateDone(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-weights_mc.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_weights_mc.fits"
         )
         logging.info("Wrote: " + outfits_sfh)
 
@@ -741,9 +747,9 @@ def save_sfh(
     # SAVE BESTFIT
     outfits_sfh = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_sfh-bestfit.fits"
+        + "_sfh_bestfit.fits"
     )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-bestfit.fits")
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_bestfit.fits")
 
     # Primary HDU
     priHDU = fits.PrimaryHDU()
@@ -783,7 +789,7 @@ def save_sfh(
     fits.setval(outfits_sfh, "CDELT1", value=logLam1[1] - logLam1[0])
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh-bestfit.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_bestfit.fits"
     )
     logging.info("Wrote: " + outfits_sfh)
 
@@ -806,7 +812,7 @@ def extractStarFormationHistories(config):
 
     # Prepare template library
     # Open the HDF5 file
-    with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5", 'r') as f:
+    with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_bin_spectra.hdf5", 'r') as f:
         # Read the VELSCALE attribute from the file
         velscale = f.attrs["VELSCALE"]
         
@@ -836,8 +842,8 @@ def extractStarFormationHistories(config):
     )
 
     # Define file paths
-    gas_cleaned_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + '_gas-cleaned_'+config["GAS"]["LEVEL"]+'.fits'
-    bin_spectra_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5"
+    gas_cleaned_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + '_gas_cleaned_'+config["GAS"]["LEVEL"].lower()+'.fits'
+    bin_spectra_file = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_bin_spectra.hdf5"
 
     # Check if emission-subtracted spectra file exists
     if (config["SFH"]["SPEC_EMICLEAN"] == True) and os.path.isfile(gas_cleaned_file):
@@ -948,6 +954,7 @@ def extractStarFormationHistories(config):
     formal_error = np.zeros((nbins,6))
     spectral_mask = np.zeros((nbins,bin_data.shape[0]))
     snr_postfit = np.zeros(nbins)
+    red_chi2 = np.zeros(nbins)
     EBV = np.zeros(nbins)
 
     # Define output arrays of MC realizations
@@ -1081,7 +1088,8 @@ def extractStarFormationHistories(config):
             formal_error[i,:config["SFH"]["MOM"]] = ppxf_tmp[i][5]
             spectral_mask[i,:] = ppxf_tmp[i][6]
             snr_postfit[i] = ppxf_tmp[i][7]
-            EBV[i] = ppxf_tmp[i][8]
+            red_chi2[i] = ppxf_tmp[i][8]
+            EBV[i] = ppxf_tmp[i][9]
 
         # Remove the memory-mapped files
         os.remove(templates_filename_memmap)
@@ -1111,6 +1119,7 @@ def extractStarFormationHistories(config):
                 formal_error[i,:config["SFH"]["MOM"]],
                 spectral_mask[i,:],
                 snr_postfit[i],
+                red_chi2[i],
                 EBV[i],
             ) = run_ppxf(
                 templates,
@@ -1211,6 +1220,7 @@ def extractStarFormationHistories(config):
         spectral_mask,
         optimal_template_comb,
         snr_postfit,
+        red_chi2,
         EBV,
     )
 

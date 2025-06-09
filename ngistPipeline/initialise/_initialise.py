@@ -79,7 +79,6 @@ def readMasterConfig(filename, galindex):
     """
     Read the MasterConfig file and stores all parameters in the configs dictionary.
     """
-    # Amelia edited this module to instead of reading in the old MasterConfig, to read in MasterConfig.yaml
     with open(filename, "r") as f:
         configs = yaml.safe_load(f)
 
@@ -88,7 +87,7 @@ def readMasterConfig(filename, galindex):
 
 def addPathsToConfig(
     config, dirPath
-):  # Amrlia - I *think* the input here is the dictionary...
+):  
     """
     Combine the configuration parameters from MasterConfig with the paths specified as command line arguments.
 
@@ -97,7 +96,6 @@ def addPathsToConfig(
     if os.path.isfile(dirPath.defaultDir) == True:
         for line in open(dirPath.defaultDir, "r"):
 
-        #for line in open('configFiles/defaultDir', "r"): #Amelia uncomment for testing only. Need to be in ngistTutorial folder
             if not line.startswith('#'):
                 line = line.split('=')
                 line = [x.strip() for x in line]

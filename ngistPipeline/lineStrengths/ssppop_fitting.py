@@ -73,12 +73,10 @@ def load_models(modelfile, index_names):
 
     ## Creating the triangulation array
     params = numpy.empty((nmodels, 3))
-    #    params[:,0] = numpy.log10(model.field('AGE'))
     params[:, 0] = model.field("AGE")
     params[:, 1] = model.field("MET")
     params[:, 2] = model.field("ALPHA")
     tri = qhull.Delaunay(params, qhull_options="QJ")
-    #    labels = ['LOG_AGE','MET','ALPHA']
     labels = ["AGE", "METAL", "ALPHA"]
 
     return model_indices, params, tri, labels

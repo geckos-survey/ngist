@@ -584,7 +584,7 @@ def save_ppxf(
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_twocomp_kin-bestfit.fits"
     )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin-bestfit.fits")
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin_bestfit.fits")
 
     # Primary HDU
     priHDU = fits.PrimaryHDU()
@@ -624,7 +624,7 @@ def save_ppxf(
     HDUList.writeto(outfits_ppxf, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin-bestfit.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin_bestfit.fits"
     )
     logging.info("Wrote: " + outfits_ppxf)
 
@@ -632,10 +632,10 @@ def save_ppxf(
     # SAVE OPTIMAL TEMPLATE RESULT
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_twocomp_kin-optimalTemplates.fits"
+        + "_twocomp_kin_optimal_templates.fits"
     )
     printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin-optimalTemplates.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin_optimal_templates.fits"
     )
 
     # Primary HDU
@@ -691,7 +691,7 @@ def save_ppxf(
     HDUList.writeto(outfits, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin-optimalTemplates.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin_optimal_templates.fits"
     )
     logging.info("Wrote: " + outfits)
 
@@ -702,7 +702,7 @@ def save_ppxf(
         + "_twocomp_kin-SpectralMask.fits"
     )
     printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin-SpectralMask.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin_spectral_mask.fits"
     )
 
     # Primary HDU
@@ -727,14 +727,14 @@ def save_ppxf(
     HDUList.writeto(outfits, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin-SpectralMask.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_twocomp_kin_spectral_mask.fits"
     )
     logging.info("Wrote: " + outfits)
 
     # ============================
     # SAVE WEIGHTS and TEMPLATE Properties
-    outfits = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_twocomp_kin-weightTemplates.fits'
-    printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_twocomp_kin-weightTemplates.fits')
+    outfits = os.path.join(config['GENERAL']['OUTPUT'],config['GENERAL']['RUN_ID'])+'_twocomp_kin-weight_templates.fits'
+    printStatus.running("Writing: "+config['GENERAL']['RUN_ID']+'_twocomp_kin_weight_templates.fits')
     
     # Primary HDU
     priHDU = fits.PrimaryHDU()
@@ -763,7 +763,7 @@ def save_ppxf(
     HDUList = fits.HDUList([priHDU, dataHDU])
     HDUList.writeto(outfits, overwrite=True)
     
-    printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_twocomp_kin-weightTemplates.fits')
+    printStatus.updateDone("Writing: "+config['GENERAL']['RUN_ID']+'_twocomp_kin_weight_templates.fits')
     logging.info("Wrote: "+outfits)
 
 
@@ -777,7 +777,7 @@ def extractStellarKinematics(config):
     # Read data from file
     hdu = fits.open(
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_BinSpectra.fits"
+        + "_bin_spectra.fits"
     )
     bin_data = np.array(hdu[1].data.SPEC.T)
     bin_err = np.array(hdu[1].data.ESPEC.T)
@@ -966,23 +966,23 @@ def extractStellarKinematics(config):
     if (
         os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin-guess.fits"
+            + "_kin_guess.fits"
         )
         == True
     ):
         printStatus.done(
             "Using V and SIGMA from '"
             + config["GENERAL"]["RUN_ID"]
-            + "_kin-guess.fits' as initial guesses"
+            + "_kin_guess.fits' as initial guesses"
         )
         logging.info(
             "Using V and SIGMA from '"
             + config["GENERAL"]["RUN_ID"]
-            + "_kin-guess.fits' as initial guesses"
+            + "_kin_guess.fits' as initial guesses"
         )
         guess = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin-guess.fits"
+            + "_kin_guess.fits"
         )[1].data
         # ignore guess values for now
         #start[:, 0] = guess.V
@@ -1164,7 +1164,6 @@ def extractStellarKinematics(config):
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
         for i in range(0, nbins):
-            # for i in range(1, 2):
             (
                 tmp_result,
                 ppxf_reddening[i],

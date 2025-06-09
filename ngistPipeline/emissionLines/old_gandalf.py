@@ -188,11 +188,11 @@ def save_gandalf(
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_gas_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
     printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_" + currentLevel + ".fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_" + currentLevel.lower() + ".fits"
     )
 
     # Primary HDU
@@ -252,7 +252,7 @@ def save_gandalf(
     HDUList.writeto(outfits, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_" + currentLevel + ".fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_" + currentLevel.lower() + ".fits"
     )
     logging.info("Wrote: " + outfits)
 
@@ -261,14 +261,14 @@ def save_gandalf(
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_gas-bestfit_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
     printStatus.running(
         "Writing: "
         + config["GENERAL"]["RUN_ID"]
         + "_gas-bestfit_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
 
@@ -308,7 +308,7 @@ def save_gandalf(
         "Writing: "
         + config["GENERAL"]["RUN_ID"]
         + "_gas-bestfit_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
     logging.info("Wrote: " + outfits)
@@ -318,14 +318,14 @@ def save_gandalf(
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_gas-emission_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
     printStatus.running(
         "Writing: "
         + config["GENERAL"]["RUN_ID"]
         + "_gas-emission_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
 
@@ -355,7 +355,7 @@ def save_gandalf(
         "Writing: "
         + config["GENERAL"]["RUN_ID"]
         + "_gas-emission_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
     logging.info("Wrote: " + outfits)
@@ -365,14 +365,14 @@ def save_gandalf(
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_gas-cleaned_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
     printStatus.running(
         "Writing: "
         + config["GENERAL"]["RUN_ID"]
         + "_gas-cleaned_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
 
@@ -405,7 +405,7 @@ def save_gandalf(
         "Writing: "
         + config["GENERAL"]["RUN_ID"]
         + "_gas-cleaned_"
-        + currentLevel
+        + currentLevel.lower()
         + ".fits"
     )
     logging.info("Wrote: " + outfits)
@@ -418,14 +418,14 @@ def save_gandalf(
         outfits = (
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
             + "_gas-weights_"
-            + currentLevel
+            + currentLevel.lower()
             + ".fits"
         )
         printStatus.running(
             "Writing: "
             + config["GENERAL"]["RUN_ID"]
             + "_gas-weights_"
-            + currentLevel
+            + currentLevel.lower()
             + ".fits"
         )
 
@@ -464,7 +464,7 @@ def save_gandalf(
             "Writing: "
             + config["GENERAL"]["RUN_ID"]
             + "_gas-weights_"
-            + currentLevel
+            + currentLevel.lower()
             + ".fits"
         )
         logging.info("Wrote: " + outfits)
@@ -475,14 +475,14 @@ def save_gandalf(
         outfits = (
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
             + "_gas-optimalTemplate_"
-            + currentLevel
+            + currentLevel.lower()
             + ".fits"
         )
         printStatus.running(
             "Writing: "
             + config["GENERAL"]["RUN_ID"]
             + "_gas-optimalTemplate_"
-            + currentLevel
+            + currentLevel.lower()
             + ".fits"
         )
 
@@ -520,8 +520,8 @@ def save_gandalf(
         printStatus.updateDone(
             "Writing: "
             + config["GENERAL"]["RUN_ID"]
-            + "_gas-optimalTemplate_"
-            + currentLevel
+            + "_gas_optimal_template_"
+            + currentLevel.lower()
             + ".fits"
         )
         logging.info("Wrote: " + outfits)
@@ -718,7 +718,7 @@ def performEmissionLineAnalysis(config):
         # Read spectra from file
         hdu = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_AllSpectra.fits"
+            + "_all_spectra.fits"
         )
         spectra = np.array(hdu[1].data.SPEC.T)
         logLam_galaxy = np.array(hdu[2].data.LOGLAM)

@@ -101,7 +101,7 @@ def plotMaps(
             labellist = ["AGE", "METAL", "ALPHA"]
 
     elif flag == "LS":
-        ls_hdu = fits.open(os.path.join(outdir, rootname) + "_ls_AdapRes.fits")
+        ls_hdu = fits.open(os.path.join(outdir, rootname) + "_ls_adap_res.fits")
         result = np.zeros((len(ubins), 3))
         result[:, 0] = np.array(ls_hdu[1].data.AGE)
         result[:, 1] = np.array(ls_hdu[1].data.METAL)
@@ -397,7 +397,7 @@ def plotMaps(
             )
         elif flag == "LS":
             plt.savefig(
-                os.path.join(outdir, rootname) + "_ls-spp.pdf",
+                os.path.join(outdir, rootname) + "_ls_spp.pdf",
                 bbox_inches="tight",
                 pad_inches=0.3,
             )

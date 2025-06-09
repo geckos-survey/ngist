@@ -256,10 +256,10 @@ def save_ppxf_emlines(
 ):
     # ========================
     # SAVE RESULTS
-    outfits_ppxf = rootname + "/" + outdir + "_gas_" + level + ".fits"
+    outfits_ppxf = rootname + "/" + outdir + "_gas_" + level.lower() + ".fits"
     printStatus.running("Writing: " + outfits_ppxf.split("/")[-1])
     printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_" + level + ".fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_gas_" + level.lower() + ".fits"
     )
 
     # Primary HDU
@@ -416,7 +416,7 @@ def save_ppxf_emlines(
 
     # ========================
     # SAVE CLEANED SPECTRUM
-    outfits_ppxf = rootname + "/" + outdir + "_gas-cleaned_" + level + ".fits"
+    outfits_ppxf = rootname + "/" + outdir + "_gas_cleaned_" + level.lower() + ".fits"
     printStatus.running("Writing: " + outfits_ppxf.split("/")[-1])
     cleaned = spectra.T - gas_bestfit
     spec = spectra.T
@@ -464,7 +464,7 @@ def save_ppxf_emlines(
 
     # ========================
     # SAVE BESTFIT
-    outfits_ppxf = rootname + "/" + outdir + "_gas-bestfit_" + level + ".fits"
+    outfits_ppxf = rootname + "/" + outdir + "_gas_bestfit_" + level.lower() + ".fits"
     printStatus.running("Writing: " + outfits_ppxf.split("/")[-1])
     # cleaned = spectra.T - gas_bestfit
     spec = spectra.T
@@ -550,7 +550,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         config["GAS"]["LEVEL"] == "BOTH"
         and os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_gas_BIN.fits"  # If you haven't already created the BIN products
+            + "_gas_bin.fits"  # If you haven't already created the BIN products
         )
         == False
     ):
@@ -559,7 +559,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         config["GAS"]["LEVEL"] == "BOTH"
         and os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_gas_BIN.fits"  # If you have created BIN products, move on to SPAXEL
+            + "_gas_bin.fits"  # If you have created BIN products, move on to SPAXEL
         )
         == True
     ):
@@ -577,7 +577,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
     # Read data if we run on BIN level
     if currentLevel == "BIN":
         # Open the HDF5 file
-        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_BinSpectra.hdf5", 'r') as f:
+        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_bin_spectra.hdf5", 'r') as f:
             # Read the data from the file
             spectra = f['SPEC'][:]
             error = f['ESPEC'][:]
@@ -645,7 +645,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
     if currentLevel == "SPAXEL":
 
         # Open the HDF5 file
-        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_AllSpectra.hdf5", 'r') as f:
+        with h5py.File(os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_all_spectra.hdf5", 'r') as f:
             # Read the data from the file
             spectra = f['SPEC'][:]
             error = f['ESPEC'][:]

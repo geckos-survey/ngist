@@ -170,9 +170,9 @@ def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
 
     outfn_spectra = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_AllSpectra.hdf5"
+        + "_all_spectra.hdf5"
     )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.hdf5")
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_all_spectra.hdf5")
 
     # Create a new HDF5 file
     with h5py.File(outfn_spectra, 'w') as f:
@@ -196,7 +196,7 @@ def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
         f.attrs["CDELT1"] = logLam[1] - logLam[0]
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.hdf5"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_all_spectra.hdf5"
     )
     logging.info("Wrote: " + outfn_spectra)
 
@@ -206,14 +206,14 @@ def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag):
     outfile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
 
     if flag == "log":
-        outfn_spectra = outfile + "_BinSpectra.hdf5"
+        outfn_spectra = outfile + "_bin_spectra.hdf5"
         printStatus.running(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_bin_spectra.hdf5"
         )
     elif flag == "lin":
-        outfn_spectra = outfile + "_BinSpectra_linear.hdf5"
+        outfn_spectra = outfile + "_bin_spectra_linear.hdf5"
         printStatus.running(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra_linear.hdf5"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_bin_spectra_linear.hdf5"
         )
 
     # Create a new HDF5 file
@@ -239,11 +239,11 @@ def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag):
 
     if flag == "log":
         printStatus.updateDone(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra.hdf5"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_bin_spectra.hdf5"
         )
     elif flag == "lin":
         printStatus.updateDone(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_BinSpectra_linear.hdf5"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_bin_spectra_linear.hdf5"
         )
     logging.info("Wrote: " + outfn_spectra)
 

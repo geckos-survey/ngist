@@ -171,7 +171,7 @@ def savefitsmaps(module_id, method_id, outdir=""):
         # Append fits image
         hdu1.append(image_hdu)
     hdu1.writeto(
-        os.path.join(outdir, rootname) + "_" + module_id + "_maps.fits", overwrite=True
+        os.path.join(outdir, rootname) + "_" + module_id.lower() + "_maps.fits", overwrite=True
     )
     hdu1.close()
 
@@ -228,11 +228,11 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         )
 
     if LEVEL == "SPAXEL":
-        results = fits.open(os.path.join(outdir, rootname) + "_gas_SPAXEL.fits")[
+        results = fits.open(os.path.join(outdir, rootname) + "_gas_spaxel.fits")[
             1
         ].data#[~maskedSpaxel]
     elif LEVEL == "BIN":
-        results = fits.open(os.path.join(outdir, rootname) + "_gas_BIN.fits")[1].data
+        results = fits.open(os.path.join(outdir, rootname) + "_gas_bin.fits")[1].data
     elif LEVEL == None:
         print("LEVEL keyword not set!")
 
@@ -289,7 +289,7 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         hdu1.append(image_hdu)
 
     hdu1.writeto(
-        os.path.join(outdir, rootname) + "_" + module_id + "_" + LEVEL + "_maps.fits",
+        os.path.join(outdir, rootname) + "_" + module_id.lower() + "_" + LEVEL.lower() + "_maps.fits",
         overwrite=True,
     )
     hdu1.close()
@@ -339,9 +339,9 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
 
     # Read results
     if RESOLUTION == "ORIGINAL":
-        hdu = fits.open(os.path.join(outdir, rootname) + "_ls_OrigRes.fits")
+        hdu = fits.open(os.path.join(outdir, rootname) + "_ls_orig_res.fits")
     elif RESOLUTION == "ADAPTED":
-        hdu = fits.open(os.path.join(outdir, rootname) + "_ls_AdapRes.fits")
+        hdu = fits.open(os.path.join(outdir, rootname) + "_ls_adap_res.fits")
 
     names = list(hdu[1].data.dtype.names)
 
@@ -393,9 +393,9 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
     hdu1.writeto(
         os.path.join(outdir, rootname)
         + "_"
-        + module_id
+        + module_id.lower()
         + "_"
-        + RESOLUTION
+        + RESOLUTION.lower()
         + "_maps.fits",
         overwrite=True,
     )
@@ -436,32 +436,16 @@ def saveContLineCube(config):
 
     # get PPXF best fit continuum from kinematics module
 
-    if config["CONT"].get("SAVE_HDF5"):
-        with h5py.File(
-            os.path.join(
-                config["GENERAL"]["OUTPUT"],
-                config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.hdf5",
-            ), "r"
-        ) as f:
-            printStatus.running('Found it! opening -kin-bestfit-cont.hdf5')
-            ppxf_bestfit = f["BESTFIT"][:]
-            logLam = f["LOGLAM"][:]
-    else:
-        ppxf_bestfit = fits.open(
-            os.path.join(
-                config["GENERAL"]["OUTPUT"],
-                config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-            )
-        )[1].data.BESTFIT
-        printStatus.running("Opening: -kin-bestfit-cont.fits")
-    
-        # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
-        logLam = fits.open(
-            os.path.join(
-                config["GENERAL"]["OUTPUT"],
-                config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-        )[2].data.LOGLAM
+
+    with h5py.File(
+        os.path.join(
+            config["GENERAL"]["OUTPUT"],
+            config["GENERAL"]["RUN_ID"] + "_kin_bestfit_cont.hdf5",
+        ), "r"
+    ) as f:
+        printStatus.running('Found it! opening _kin_bestfit_cont.hdf5')
+        ppxf_bestfit = f["BESTFIT"][:]
+        logLam = f["LOGLAM"][:]
 
     # table HDU
     tablehdu = fits.open(
@@ -527,12 +511,12 @@ def saveContLineCube(config):
 
     # save line and continuum cubes
     # float32 preferred over float64 to save size and allow for conversion to hdf5
-    fn_suffix = ["CONT", "LINE", "ORIG"]
+    fn_suffix = ["cont", "line", "orig"]
     for cube, name in zip([contCube, lineCube, origCube], fn_suffix):
 
         outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_{}cube.fits".format(name)
+        + "_{}_cube.fits".format(name)
         )
 
         cubehdul = [fits.PrimaryHDU(data=np.float32(cube.reshape((len(linLam), NY, NX))),

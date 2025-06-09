@@ -153,18 +153,18 @@ def save_ls(
     if RESOLUTION == "ORIGINAL":
         outfits = (
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls_OrigRes.fits"
+            + "_ls_orig_res.fits"
         )
         printStatus.running(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_OrigRes.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_orig_res.fits"
         )
     if RESOLUTION == "ADAPTED":
         outfits = (
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls_AdapRes.fits"
+            + "_ls_adap_res.fits"
         )
         printStatus.running(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_AdapRes.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_adap_res.fits"
         )
 
     # Primary HDU
@@ -219,11 +219,11 @@ def save_ls(
 
     if RESOLUTION == "ORIGINAL":
         printStatus.updateDone(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_OrigRes.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_orig_res.fits"
         )
     if RESOLUTION == "ADAPTED":
         printStatus.updateDone(
-            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_AdapRes.fits"
+            "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_adap_res.fits"
         )
     logging.info("Wrote: " + outfits)
 
@@ -232,10 +232,10 @@ def saveCleanedLinearSpectra(spec, espec, wave, npix, config):
     """Save emission-subtracted, linearly binned spectra to disk."""
     outfits = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_ls-cleaned_linear.fits"
+        + "_ls_cleaned_linear.fits"
     )
     printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls-cleaned_linear.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_cleaned_linear.fits"
     )
 
     # Primary HDU
@@ -259,7 +259,7 @@ def saveCleanedLinearSpectra(spec, espec, wave, npix, config):
     HDUList.writeto(outfits, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls-cleaned_linear.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_cleaned_linear.fits"
     )
     logging.info("Wrote: " + outfits)
 
@@ -339,7 +339,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     if (
         os.path.isfile(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls-cleaned_linear.fits"
+            + "_ls_cleaned_linear.fits"
         )
         == False
     ) or (config["GENERAL"]["OW_OUTPUT"] == True):
@@ -347,19 +347,19 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         if (
             os.path.isfile(
                 os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_gas-cleaned_BIN.fits"
+                + "_gas_cleaned_bin.fits"
             )
             == True
         ):
             logging.info(
                 "Using emission-subtracted spectra at "
                 + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_gas-cleaned_BIN.fits"
+                + "_gas_cleaned_bin.fits"
             )
             printStatus.done("Using emission-subtracted spectra")
             hdu_spec = fits.open(
                 os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_gas-cleaned_BIN.fits"
+                + "_gas_cleaned_bin.fits"
             )
             binned_spec_data = hdu_spec[1].data["SPEC"]
             binned_loglam_data = hdu_spec[2].data["LOGLAM"]
@@ -367,19 +367,19 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             logging.info(
                 "Using regular spectra without any emission-correction at "
                 + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_BinSpectra.hdf5"
+                + "_bin_spectra.hdf5"
             )
             printStatus.done("Using regular spectra without any emission-correction")
             with h5py.File(
                 os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-                + "_BinSpectra.hdf5",
+                + "_bin_spectra.hdf5",
                 "r",
             ) as f:
                 binned_spec_data = f["SPEC"][:].T
                 binned_loglam_data = f["LOGLAM"][:]
         with h5py.File(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_BinSpectra.hdf5",
+            + "_bin_spectra.hdf5",
             "r",
         ) as errorf:
             binned_espec_data = errorf["ESPEC"][:].T
@@ -425,11 +425,11 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         logging.info(
             "Reading "
             + os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls-cleaned_linear.fits"
+            + "_ls_cleaned_linear.fits"
         )
         hdu = fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_ls-cleaned_linear.fits"
+            + "_ls_cleaned_linear.fits"
         )
         spec = np.array(hdu[1].data.SPEC)
         espec = np.array(hdu[1].data.ESPEC)
@@ -461,7 +461,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         # Open the HDF5 file
         with h5py.File(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) 
-            + "_BinSpectra.hdf5", 
+            + "_bin_spectra.hdf5", 
             'r',
         ) as f:
             # Read the VELSCALE attribute from the file
