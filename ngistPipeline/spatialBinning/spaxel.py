@@ -13,38 +13,11 @@ PURPOSE:
     no binning (i.e. each spaxel is considered a bin)
 """
 
-
-def sn_func(index, signal=None, noise=None, covar_vor=0.00):
-    """
-    This function is passed to the Voronoi binning routine of Cappellari &
-    Copin 2003 (ui.adsabs.harvard.edu/?#abs/2003MNRAS.342..345C) and used to
-    estimate the noise in the bin from the noise in the spaxels. This
-    implementation is identical to the default one, but accounts for spatial
-    correlations in the noise by applying an empirical equation (see e.g.
-    Garcia-Benito et al. 2015;
-    ui.adsabs.harvard.edu/?#abs/2015A&A...576A.135G) together with the
-    parameter defined in the Config-file.
-    """
-
-    # Add the noise in the spaxels to obtain the noise in the bin
-    sn = np.sum(signal[index]) / np.sqrt(np.sum(noise[index] ** 2))
-
-    # Account for spatial correlations in the noise by applying an empirical
-    # equation (see e.g. Garcia-Benito et al. 2015;
-    # ui.adsabs.harvard.edu/?#abs/2015A&A...576A.135G)
-    sn /= 1 + covar_vor * np.log10(index.size)
-
-    return sn
-
-
 def generateSpatialBins(config, cube):
     """
     In case no Voronoi-binning is required/possible, treat spaxels in the input
     data as Voronoi bins, in order to continue the analysis.
     """
-    sn_func_covariances = functools.partial(
-        sn_func, covar_vor=config["SPATIAL_BINNING"]["COVARIANCE"]
-    )
 
     # Generate the Voronoi bins
     printStatus.running("Defining the Voronoi bins")
@@ -83,7 +56,6 @@ def generateSpatialBins(config, cube):
     #   Positive binNum (including zero) indicate the Voronoi bin of the spaxel (for unmasked spaxels)
     #   Negative binNum indicate the nearest Voronoi bin of the spaxel (for masked spaxels)
     ubins = np.unique(binNum)
-    nbins = len(ubins)
     binNum_long = np.zeros(len(cube["x"]))
     binNum_long[:] = np.nan
     binNum_long[idxUnmasked] = binNum
