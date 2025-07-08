@@ -1,3 +1,4 @@
+import logging
 import os
 
 import numpy as np
@@ -6,7 +7,7 @@ from astropy.table import Table
 # PHYSICAL CONSTANTS
 C = 299792.458  # km/s
 
-def load_spec_mask(config, file, logLam):
+def loadSpecMask(config, file, logLam):
     """
     Returns a map of all emission line masked and a
     base goodPixels that has skylines already masked
@@ -19,7 +20,7 @@ def load_spec_mask(config, file, logLam):
     """
 
     # Creates good pixels with only skylines
-    base_goodpixels = np.arange(len(logLam))
+    base_goodPixels = np.arange(len(logLam))
     emission_lines = {}
 
     mask_wavelength = np.genfromtxt(
@@ -61,7 +62,7 @@ def load_spec_mask(config, file, logLam):
                 maximumPixel = len(logLam) - 1
 
             # Mark masked spectral pixels
-            base_goodpixels[minimumPixel : maximumPixel + 1] = -1
+            base_goodPixels[minimumPixel : maximumPixel + 1] = -1
 
         else:
             # Comments should be in the format [line label as defined in emissionLines.config],adaptive
@@ -76,18 +77,19 @@ def load_spec_mask(config, file, logLam):
                 f"{lineName}{lineWavelength}"
             ] = { "wavelength": wavelength, "width": width, "adaptive": adaptive }
 
-    return emission_lines, base_goodpixels
+    return emission_lines, base_goodPixels
 
-def load_gas_kinematics(config):
+def loadGasKinematics(config):
     """
     Loads in gas kinematics per bin from GAS module output if it exists, otherwise returns None
     """
     gas_kin_path \
         = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
-    if not os.path.exists(gas_kin_path):
+    try:
+        gas_kin = Table.read(gas_kin_path)
+    except FileNotFoundError:
+        logging.warning("Gas kinematics file not found. Returning None.")
         return None
-
-    gas_kin = Table.read(gas_kin_path)
 
     emldb = Table.read(
         config["GENERAL"]["CONFIG_DIR"] + "/" + config["GAS"]["EMI_FILE"],
@@ -111,7 +113,7 @@ def load_gas_kinematics(config):
     return gas_kin[columns]
 
 
-def create_adaptive_spectral_mask(emission_lines, base_goodpixels, gas_kin, logLam, bin_id):
+def createAdaptiveSpectralMask(emission_lines, base_goodpixels, gas_kin, logLam, bin_id):
     """
     Creates an adaptive masking depending on gasKinematics measured in the gas module
     """
@@ -123,16 +125,20 @@ def create_adaptive_spectral_mask(emission_lines, base_goodpixels, gas_kin, logL
 
     gas_kin_bin = gas_kin[gas_kin["BIN_ID"] == bin_id]
 
+    min_width, max_width = 5, 30
+    # Mask Width as a function of the velocity dispersion
+    mask_width = 6
+
     for line_label, line_info in emission_lines.items():
         wavelength, width = line_info["wavelength"], line_info["width"]
         if line_info["adaptive"]:
             velocity, velocity_dispersion = gas_kin_bin[f"{line_label}_VEL"].value[0], gas_kin_bin[f"{line_label}_SIGMA"].value[0]
-            # Keep width between 5 and 30 angstroms
+            # Keep width between min_width and max_width
             width = max(
-                5,
+                min_width,
                 min(
-                    6 * wavelength * velocity_dispersion / C,
-                    30
+                    mask_width * wavelength * velocity_dispersion / C,
+                    max_width
                 )
             )
             wavelength = wavelength * (1 + velocity / C)
