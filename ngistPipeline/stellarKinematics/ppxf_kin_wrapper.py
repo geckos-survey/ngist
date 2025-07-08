@@ -786,7 +786,7 @@ def extractStellarKinematics(config):
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "KIN")  # added input of module
 
     # Prepare templates
-    velscale_ratio = 2
+    velscale_ratio = 1
     logging.info("Using full spectral library for PPXF")
     (
         templates,
