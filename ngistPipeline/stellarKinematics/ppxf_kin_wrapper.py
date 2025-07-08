@@ -16,8 +16,9 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 #import extinction
 
-from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.auxiliary import _auxiliary, _adaptive_spectral_masking
 from ngistPipeline.prepareTemplates import _prepareTemplates
+from ngistPipeline.emissionLines import _emissionLines
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -229,7 +230,10 @@ def run_ppxf(
     optimal_template_in,
     EBV_init,
     config,
-    doplot,    
+    doplot,
+    gas_kin,
+    emission_lines,
+    base_goodpixels,
 ):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
@@ -351,6 +355,17 @@ def run_ppxf(
             ################ 2 ##################
             # Second step (formely done with pPXF CLEAN)
             # switch to mask instead of goodpixels
+
+            # If adaptive spectral masking is turned on, use gas kinematics to adaptively change width of emission lines
+            if 'ADAPTIVE_SPECTRAL_MASKING' in config["KIN"] and config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"] == True:
+                goodPixels = _adaptive_spectral_masking.createAdaptiveSpectralMask(
+                    emission_lines,
+                    base_goodpixels,
+                    gas_kin,
+                    logLam,
+                    i,
+                )
+
             mask0 = logLam > 0
             mask0[:] = False
             mask0[goodPixels] = True
@@ -865,6 +880,24 @@ def extractStellarKinematics(config):
     
     goodPixels_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
 
+    gas_kin, emission_lines, base_goodPixels = None, None, None
+    if 'ADAPTIVE_SPECTRAL_MASKING' in config["KIN"] and config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"] == True:
+        gas_kin_path \
+            = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
+
+        # If gas kinematics file does not exist, create them using pPXF
+        if not os.path.exists(gas_kin_path):
+            # We need to run the emission lines module first using pPXF on each voronoi bin
+            # Remove the FIXED keyword from the config as this require kinematics to be fitted first
+            config_tmp = config.copy()
+            config_tmp["GAS"]["METHOD"] = 'ppxf'
+            config_tmp["GAS"]["LEVEL"] = 'BIN'
+            config_tmp["GAS"]["FIXED"] = False
+            _emissionLines.emissionLines_Module(config_tmp)
+
+        gas_kin = _adaptive_spectral_masking.loadGasKinematics(config)
+        emission_lines, base_goodPixels = _adaptive_spectral_masking.loadSpecMask(config, config["KIN"]["SPEC_MASK"], logLam)
+
     # Check if plot keyword is set:
     doplot = config["KIN"].get("PLOT", False)
 
@@ -963,6 +996,9 @@ def extractStellarKinematics(config):
                     EBV_init,
                     config,
                     doplot,
+                    gas_kin,
+                    emission_lines,
+                    base_goodPixels,
                 )
                 results.append(result)
             return results
@@ -1040,7 +1076,10 @@ def extractStellarKinematics(config):
                 optimal_template_comb,
                 EBV_init,
                 config,
-                doplot,                
+                doplot,
+                gas_kin,
+                emission_lines,
+                base_goodPixels,
             )
         
         printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
