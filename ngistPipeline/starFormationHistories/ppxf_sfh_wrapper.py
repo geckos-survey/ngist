@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 #import extinction
 
-from ngistPipeline.auxiliary import _auxiliary
+from ngistPipeline.auxiliary import _auxiliary, _adaptive_spectral_masking
 from ngistPipeline.prepareTemplates import _prepareTemplates
 
 import warnings
@@ -248,6 +248,9 @@ def run_ppxf(
     alpha_grid,
     config,
     doplot,
+    gas_kin,
+    emission_lines,
+    base_goodpixels,
 ):
 
     """
@@ -374,6 +377,16 @@ def run_ppxf(
             ################ 2 ##################
             # Second step (formely done with pPXF CLEAN)
             # switch to mask instead of goodpixels
+
+            # If adaptive spectral masking is turned on, use gas kinematics to adaptively change width of emission lines
+            if 'ADAPTIVE_SPECTRAL_MASKING' in config["SFH"] and config["SFH"]["ADAPTIVE_SPECTRAL_MASKING"] == True:
+                goodPixels = _adaptive_spectral_masking.createAdaptiveSpectralMask(
+                    emission_lines,
+                    base_goodpixels,
+                    gas_kin,
+                    logLam,
+                    i,
+                )
             mask0 = logLam > 0
             mask0[:] = False
             mask0[goodPixels] = True
@@ -941,7 +954,26 @@ def extractStarFormationHistories(config):
         goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
     
     goodPixels_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
-    
+
+
+    gas_kin, emission_lines, base_goodPixels = None, None, None
+    if 'ADAPTIVE_SPECTRAL_MASKING' in config["KIN"] and config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"] == True:
+        gas_kin_path \
+            = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
+
+        # If gas kinematics file does not exist, create them using pPXF
+        if not os.path.exists(gas_kin_path):
+            # We need to run the emission lines module first using pPXF on each voronoi bin
+            # Remove the FIXED keyword from the config as this require kinematics to be fitted first
+            config_tmp = config.copy()
+            config_tmp["GAS"]["METHOD"] = 'ppxf'
+            config_tmp["GAS"]["LEVEL"] = 'BIN'
+            config_tmp["GAS"]["FIXED"] = False
+            _emissionLines.emissionLines_Module(config_tmp)
+
+        gas_kin = _adaptive_spectral_masking.loadGasKinematics(config)
+        emission_lines, base_goodPixels = _adaptive_spectral_masking.loadSpecMask(config, config["KIN"]["SPEC_MASK"], logLam)
+
     # Check if plot keyword is set:
     doplot = config["SFH"].get("PLOT", False)
 
@@ -1058,6 +1090,10 @@ def extractStarFormationHistories(config):
                     alpha_grid,
                     config,
                     doplot,
+
+                    gas_kin,
+                    emission_lines,
+                    base_goodPixels,
                 )
                 results.append(result)
             return results
