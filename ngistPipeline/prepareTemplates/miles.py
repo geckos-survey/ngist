@@ -281,3 +281,4 @@ def prepareSpectralTemplateLibrary(
             nMetal,
             nAlpha,
         )
+    return None

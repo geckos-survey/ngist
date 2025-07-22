@@ -216,7 +216,7 @@ def plotData(self):
             and "H4" in self.kinResults.names
         ):
             self.axes[1].set_title(
-                "Stellar kinematics: V={:.1f}km/s, SIGMA={:.1f}km/s, H3={:.2f}, H4={:.2f}".format(
+                "Stellar kinematics: V={:.2f}km/s, SIGMA={:.2f}km/s, H3={:.4f}, H4={:.4f}".format(
                     self.kinResults.V[self.idxBinLong],
                     self.kinResults.SIGMA[self.idxBinLong],
                     self.kinResults.H3[self.idxBinLong],
@@ -233,6 +233,7 @@ def plotData(self):
                 loc="left",
             )
         self.axes[1].set_title("BIN_ID = {:d}".format(self.idxBinShort), loc="right")
+        self.axes[1].minorticks_on()
 
     # Plot emissionLines fit
     if self.GAS == True:
@@ -278,10 +279,11 @@ def plotData(self):
             3,
         )
         self.axes[3].set_title(
-            "Stellar populations: Age={:.2f} Gyr, [M/H]={:.2f}, [alpha/Fe]={:.2f}".format(
+            "Stellar populations: Age={:.2f} Gyr, [M/H]={:.2f}, [alpha/Fe]={:.2f} E(B-V)={:.2f}".format(
                 self.sfhResults["AGE"][self.idxBinLong],
                 self.sfhResults["METAL"][self.idxBinLong],
                 self.sfhResults["ALPHA"][self.idxBinLong],
+                self.sfhResults["EBV"][self.idxBinLong],
             ),
             loc="left",
         )
