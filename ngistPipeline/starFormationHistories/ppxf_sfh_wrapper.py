@@ -452,7 +452,7 @@ def run_ppxf(
             mean_results_step3 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
 
             #for plotting output
-            if fixed[0] == True:
+            if fixed != None:
                 pp.sol[0:4] = start
             
             #produce plots
@@ -464,7 +464,7 @@ def run_ppxf(
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
         if nsims > 0:
 
-            w_row_MC = np.zeros((nsims, w_row.shape[0]))
+            w_row_MC = np.zeros((nsims, ncomb))
 
             for o in range(0, nsims):
                 # Add noise to input spectrum "log_bin_data":
@@ -477,15 +477,19 @@ def run_ppxf(
                     noise_new,
                     velscale,
                     start,
-                    goodpixels=goodPixels,
+                    mask=mask,
                     plot=False,
                     quiet=True,
                     moments=nmoments,
                     degree=-1,
                     vsyst=offset,
                     mdegree=mdeg,
+                    regul = 1./regul_err,
                     fixed=fixed,
-                    velscale_ratio=velscale_ratio
+                    lam=np.exp(logLam),
+                    velscale_ratio=velscale_ratio,
+                    component=component_step3,
+                    dust=dust_step3,
                 )
                 weights_mc_iter   = mc_iter.weights.reshape(templates.shape[1:])/mc_iter.weights.sum()
                 w_row_MC[o, :]    = np.reshape(weights_mc_iter, ncomb)
@@ -928,7 +932,12 @@ def extractStarFormationHistories(config):
         fixed = None
         start = np.zeros((nbins, config["SFH"]["MOM"]))
         for i in range(nbins):
-            start[i, :] = np.array([0.0, config["KIN"]["SIGMA"]])
+            if config["SFH"]["MOM"] == 2:
+                start[i, :] = np.array([0.0, config["KIN"]["SIGMA"]])
+            elif config["SFH"]["MOM"] == 4:
+                start[i, :] = np.array([0.0, config["KIN"]["SIGMA"],0.0,0.0])
+            elif config["SFH"]["MOM"] == 6:
+                start[i, :] = np.array([0.0, config["KIN"]["SIGMA"],0.0,0.0,0.0,0.0])
 
     # Define goodpixels
 

@@ -7,6 +7,8 @@
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 
+V7.6.1	    2025-06-09 FIXED bugs in SFH module. ADDED sMILES read-in routine.
+
 V7.6.0	    2025-06-09 FIXED bug in KIN module. CHANGED output filenames.
 			
 V7.5.2	    2025-05-19 ADDED option to save CONT module fits in HDF5 with keyword 
