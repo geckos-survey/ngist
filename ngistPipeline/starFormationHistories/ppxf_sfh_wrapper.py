@@ -9,7 +9,7 @@ from astropy.io import fits
 from astropy.stats import biweight_location
 from joblib import Parallel, delayed, dump, load
 from packaging import version
-from ppxf.ppxf import ppxf
+from ppxf.ppxf import ppxf##
 from printStatus import printStatus
 from tqdm import tqdm
 import matplotlib.pyplot as plt
