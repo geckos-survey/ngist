@@ -161,10 +161,11 @@ def run_ppxf_firsttime(
     start,
     goodPixels,
     nmoments,
-    offset,
     adeg,
     mdeg,
     velscale_ratio,
+    logLam,
+    logLam_template,
 ):
     """
     Call PPXF for first time to get optimal template
@@ -186,9 +187,10 @@ def run_ppxf_firsttime(
         quiet=True,
         moments=nmoments,
         degree=adeg,
-        vsyst=offset,
         mdegree=mdeg,
         velscale_ratio=velscale_ratio,
+        lam=np.exp(logLam),
+        lam_temp=np.exp(logLam_template),
     )
 
     normalized_weights = pp.weights / np.sum( pp.weights )
@@ -221,7 +223,7 @@ def run_ppxf(
     mdeg,
     doclean,
     logLam,
-    offset,
+    logLam_template,
     velscale_ratio,
     ntemplates,
     nsims,
@@ -261,7 +263,7 @@ def run_ppxf(
             dust = [{"start": [EBV_init], "bounds": [[0, 8]], "component": component_true_step0}]
 
             pp_step0 = ppxf(optimal_template_in, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), 
-                            goodpixels=goodPixels_step0,degree=-1, mdegree=-1, vsyst=offset, 
+                            goodpixels=goodPixels_step0,degree=-1, mdegree=-1, lam_temp=np.exp(logLam_template),
                             velscale_ratio=velscale_ratio,moments=nmoments, start=start, plot=False, 
                             dust = dust, component = component_step0, regul=0,quiet=True)
 
@@ -331,8 +333,8 @@ def run_ppxf(
                 degree=adeg,
                 mdegree=mdeg,
                 lam=np.exp(logLam),
+                lam_temp=np.exp(logLam_template),
                 velscale_ratio=velscale_ratio,
-                vsyst=offset,
                 component=component_step12,
                 dust=dust_step12,
             )
@@ -403,10 +405,10 @@ def run_ppxf(
                 degree=adeg,
                 mdegree=mdeg,
                 lam=np.exp(logLam),
+                lam_temp=np.exp(logLam_template),
                 velscale_ratio=velscale_ratio,
-                vsyst=offset,
                 component=component_step3,
-                dust=dust_step3,                
+                dust=dust_step3,
             )
 
         # update goodpixels again
@@ -479,8 +481,9 @@ def run_ppxf(
                 degree=adeg,
                 mdegree=mdeg,
                 velscale_ratio=velscale_ratio,
-                vsyst=offset,
                 bias=0.0,
+                lam=np.exp(logLam),
+                lam_temp=np.exp(logLam_template),
             )
             sol_MC[o, :] = mc.sol[:]
 
@@ -821,9 +824,6 @@ def extractStellarKinematics(config):
     ]
     templates = templates.reshape((templates.shape[0], ntemplates))
 
-    # Last preparatory steps
-    offset = (logLam_template[0] - logLam[0]) * C
-
     #check what type of noise should be passed on:
     if config["KIN"]["NOISE"] == "variance": # use noise from cube 
         noise = bin_err  # already converted to noise, i.e. sqrt(variance)
@@ -889,6 +889,7 @@ def extractStellarKinematics(config):
         if not os.path.exists(gas_kin_path):
             # We need to run the emission lines module first using pPXF on each voronoi bin
             # Remove the FIXED keyword from the config as this require kinematics to be fitted first
+            # TODO: Make this run at the start of the module, otherwise this doubles the memory requirement
             config_tmp = config.copy()
             config_tmp["GAS"]["METHOD"] = 'ppxf'
             config_tmp["GAS"]["LEVEL"] = 'BIN'
@@ -928,10 +929,11 @@ def extractStellarKinematics(config):
             start[0,:],
             goodPixels_step0_kin,
             config["KIN"]["MOM"],
-            offset,
             config["KIN"]["ADEG"],
             config["KIN"]["MDEG"],
             velscale_ratio,
+            logLam,
+            logLam_template
         )
 
         # now define the optimal template that we'll use throughout
@@ -986,7 +988,7 @@ def extractStellarKinematics(config):
                     config["KIN"]["MDEG"],
                     config["KIN"]["DOCLEAN"],
                     logLam,
-                    offset,
+                    logLam_template,
                     velscale_ratio,
                     ntemplates,
                     nsims,
@@ -1012,7 +1014,6 @@ def extractStellarKinematics(config):
                         total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
-
         # Unpack results
         for i in range(0, nbins):
             ppxf_result[i, : config["KIN"]["MOM"]] = ppxf_tmp[i][0]
@@ -1067,7 +1068,7 @@ def extractStellarKinematics(config):
                 config["KIN"]["MDEG"],
                 config["KIN"]["DOCLEAN"],
                 logLam,
-                offset,
+                logLam_template,
                 velscale_ratio,
                 ntemplates,
                 nsims,

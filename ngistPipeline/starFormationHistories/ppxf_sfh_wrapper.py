@@ -167,12 +167,13 @@ def run_ppxf_firsttime(
     start,
     goodPixels,
     nmoments,
-    offset,
     degree,
     mdeg,
     regul_err,
     velscale_ratio,
     ncomb,
+    logLam,
+    logLam_template
 ):
     """
     Call PPXF for first time to get optimal template
@@ -194,10 +195,11 @@ def run_ppxf_firsttime(
         quiet=True,
         moments=nmoments,
         degree=-1,
-        vsyst=offset,
         mdegree=mdeg,
         regul = 1./regul_err,
         velscale_ratio=velscale_ratio,
+        lam=np.exp(logLam),
+        lam_temp=np.exp(logLam_template),
     )
 
     # Templates shape is currently [Wavelength, nAge, nMet, nAlpha]. Reshape to [Wavelength, ncomb] to create optimal template
@@ -228,7 +230,6 @@ def run_ppxf(
     goodPixels_step0,
     goodPixels,
     nmoments,
-    offset,
     degree,
     mdeg,
     regul_err,
@@ -242,6 +243,7 @@ def run_ppxf(
     optimal_template_in,
     EBV_init,
     logLam,
+    logLam_template,
     nsims,
     logAge_grid,
     metal_grid,
@@ -280,7 +282,7 @@ def run_ppxf(
             dust = [{"start": [EBV_init], "bounds": [[0, 8]], "component": component_true_step0}]
 
             pp_step0 = ppxf(optimal_template_in, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), 
-                            goodpixels=goodPixels_step0,degree=-1, mdegree=-1, vsyst=offset, 
+                            goodpixels=goodPixels_step0,degree=-1, mdegree=-1, lam_temp=np.exp(logLam_template),
                             velscale_ratio=velscale_ratio,moments=nmoments, start=start, plot=False, 
                             dust = dust, component = component_step0, regul=0, quiet=True)
 
@@ -349,10 +351,10 @@ def run_ppxf(
                 quiet=True,
                 moments=nmoments,
                 degree=-1,
-                vsyst=offset,
                 mdegree=mdeg,
                 fixed=fixed,
                 lam=np.exp(logLam),
+                lam_temp=np.exp(logLam_template),
                 velscale_ratio=velscale_ratio,
                 component=component_step12,
                 dust=dust_step12,                
@@ -411,11 +413,11 @@ def run_ppxf(
                 quiet=True,
                 moments=nmoments,
                 degree=-1,
-                vsyst=offset,
                 mdegree=mdeg,
                 regul = 1./regul_err,
                 fixed=fixed,
                 lam=np.exp(logLam),
+                lam_temp=np.exp(logLam_template),
                 velscale_ratio=velscale_ratio,
                 component=component_step3,
                 dust=dust_step3,                
@@ -465,7 +467,7 @@ def run_ppxf(
             mean_results_step3 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
 
             #for plotting output
-            if fixed[0] == True:
+            if fixed and fixed[0] == True:
                 pp.sol[0:4] = start
             
             #produce plots
@@ -495,7 +497,8 @@ def run_ppxf(
                     quiet=True,
                     moments=nmoments,
                     degree=-1,
-                    vsyst=offset,
+                    lam=np.exp(logLam),
+                    lam_temp=np.exp(logLam_template),
                     mdegree=mdeg,
                     fixed=fixed,
                     velscale_ratio=velscale_ratio
@@ -550,7 +553,7 @@ def run_ppxf(
             EBV,
         )
 
-    #except Exception as e:
+    # except Exception as e:
     except:
         # Handle any other type of exception
         #print(f"An error occurred: {e}")
@@ -897,10 +900,6 @@ def extractStarFormationHistories(config):
     ubins = np.arange(nbins)
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
 
-
-    # Last preparatory steps
-    offset = (logLam_template[0] - logLam[0])*C
-    
     #check what type of noise should be passed on:
     if config["SFH"]["NOISE"] == 'variance': # use noise from cube 
         noise = bin_err  # already converted to noise, i.e. sqrt(variance)
@@ -941,7 +940,7 @@ def extractStarFormationHistories(config):
         fixed = None
         start = np.zeros((nbins, config["SFH"]["MOM"]))
         for i in range(nbins):
-            start[i, :] = np.array([0.0, config["KIN"]["SIGMA"]])
+            start[i, :] = np.array([0.0, config["KIN"]["SIGMA"], 0, 0])
 
     # Define goodpixels
 
@@ -1015,11 +1014,13 @@ def extractStarFormationHistories(config):
             start[0,:],
             goodPixels_step0_sfh,
             config["SFH"]["MOM"],
-            offset,-1,
+            -1,
             config["SFH"]["MDEG"],
             config["SFH"]["REGUL_ERR"],
             velscale_ratio,
             ncomb,
+            logLam,
+            logLam_template,
         )
 
         # now define the optimal template that we'll use throughout
@@ -1070,7 +1071,6 @@ def extractStarFormationHistories(config):
                     goodPixels_step0_sfh,
                     goodPixels_sfh,
                     config["SFH"]["MOM"],
-                    offset,
                     -1,
                     config["SFH"]["MDEG"],
                     config["SFH"]["REGUL_ERR"],
@@ -1084,13 +1084,13 @@ def extractStarFormationHistories(config):
                     optimal_template_comb,
                     EBV_init,
                     logLam,
+                    logLam_template,
                     config["SFH"]["MC_PPXF"],
                     logAge_grid,
                     metal_grid,
                     alpha_grid,
                     config,
                     doplot,
-
                     gas_kin,
                     emission_lines,
                     base_goodPixels,
@@ -1166,7 +1166,6 @@ def extractStarFormationHistories(config):
                 goodPixels_step0_sfh,
                 goodPixels_sfh,
                 config["SFH"]["MOM"],
-                offset,
                 -1,
                 config["SFH"]["MDEG"],
                 config["SFH"]["REGUL_ERR"],
@@ -1180,6 +1179,7 @@ def extractStarFormationHistories(config):
                 optimal_template_comb,
                 EBV_init,
                 logLam,
+                logLam_template,
                 config["SFH"]["MC_PPXF"],
                 logAge_grid,
                 metal_grid,
