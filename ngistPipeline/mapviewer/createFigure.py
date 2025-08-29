@@ -32,7 +32,7 @@ def createFigure(self):
     # Create colorbars
     self.divider = make_axes_locatable(self.axes[0])
     self.cax = self.divider.append_axes("right", size="5%", pad=0.1)
-    self.div4 = make_axes_locatable(self.axes[6])
+    self.div4 = make_axes_locatable(self.axes[4])
     self.cax4 = self.div4.append_axes("right", size="2.5%", pad=0.05)
 
     # Activate picker and show plot

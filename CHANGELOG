@@ -6,13 +6,16 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.2	    2025-08-29 ADDED alphaMC and XSL-SSP read-in routines. Added new option to
+			produce html pages with all output maps with keyword CREATE_HMTL. 
+			FIXED bugs in MapViewer.
 
-V7.6.1	    2025-06-09 FIXED bugs in SFH module. ADDED sMILES read-in routine.
+V7.6.1	    2025-07-18 FIXED bugs in SFH module. ADDED sMILES read-in routine.
 
 V7.6.0	    2025-06-09 FIXED bug in KIN module. CHANGED output filenames.
 			
 V7.5.2	    2025-05-19 ADDED option to save CONT module fits in HDF5 with keyword 
-			SAVE_HDF5=True/False. FIXED bug in KIN, CONT, SFH modules to use PLOT keyword
+			SAVE_HDF5=True/False. FIXED bug in KIN, CONT, SFH modules to use PLOT keyword.
 			
 V7.5.1	    2025-05-12 CHANGED Major: update CONT module to include all changes already 
 			applied to KIN and SFH module. FIXED a few bugs related to constant noise. 

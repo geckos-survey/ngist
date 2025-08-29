@@ -1003,6 +1003,7 @@ def extractStellarKinematics(config):
         # check if we need to run all bins or only a subset
         if 'DEBUG_BIN' in config["KIN"]:
             runbin = np.array(config["KIN"]["DEBUG_BIN"])
+            printStatus.running("Running PPXF in Debug mode on bins: "+str(runbin))
         else:
             runbin = np.arange(0, nbins)
         

@@ -45,6 +45,7 @@ from ngistPipeline.spatialMasking import _spatialMasking
 from ngistPipeline.starFormationHistories import _starFormationHistories
 from ngistPipeline.stellarKinematics import _stellarKinematics
 from ngistPipeline.userModules import _userModules
+from ngistPipeline.writeHTML import _writeHTML
 
 
 def skipGalaxy(config):
@@ -165,6 +166,13 @@ def runGIST(dirPath, galindex):
         skipGalaxy(config)
         return None
 
+    # - - - - - CREATE HTML - - - - -
+
+    if 'CREATE_HTML' in config["GENERAL"]:
+        _ = _writeHTML.writeHTML(config)
+        if _ == "SKIP":
+            skipGalaxy(config)
+            return None
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # - - - - - - - -  F I N A L I S E   T H E   A N A L Y S I S  - - - - - - - - -
