@@ -6,7 +6,7 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
-V7.6.2	    2025-07-24 ADDED alphaMC and XSL-SSP read-in routines. Added new option to
+V7.6.2	    2025-08-29 ADDED alphaMC and XSL-SSP read-in routines. Added new option to
 			produce html pages with all output maps with keyword CREATE_HMTL. 
 			FIXED bugs in MapViewer.
 
