@@ -5,6 +5,8 @@ import time
 import h5py
 import numpy as np
 import ppxf as ppxf_package
+import code
+
 from astropy.io import fits
 from astropy.stats import biweight_location
 from joblib import Parallel, delayed, dump, load
@@ -1115,6 +1117,7 @@ def extractStarFormationHistories(config):
         # check if we need to run all bins or only a subset
         if 'DEBUG_BIN' in config["SFH"]:
             runbin = config["SFH"]["DEBUG_BIN"]
+            printStatus.running("Running PPXF in Debug mode on bins: "+str(runbin))
         else:
             runbin = np.arange(0, nbins)
 

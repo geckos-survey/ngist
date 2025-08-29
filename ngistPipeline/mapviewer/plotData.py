@@ -1,15 +1,20 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.ticker as ticker
+
 from matplotlib import rcParams
 from matplotlib.colors import ListedColormap
-
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 rcParams.update({"figure.autolayout": True})
 from plotbin.sauron_colormap import register_sauron_colormap
 
 register_sauron_colormap()
-import matplotlib.ticker as ticker
 
+
+# easy option for linear versus log for the SFH
+useLinear = True
+useLog = False
 
 # ============================================================================ #
 #                               P L O T   M A P                                #
@@ -156,7 +161,7 @@ def plotMap(self, module, maptype):
     elif maptype == "METALS":
         cbar.set_label("[M/H]")
     elif maptype == "ALPHA":
-        cbar.set_label("[Mg/Fe]")
+        cbar.set_label("[alpha/Fe]")
     else:
         cbar.set_label(maptype)
 
@@ -286,28 +291,55 @@ def plotData(self):
             loc="left",
         )
         self.axes[3].set_xlabel("$\lambda\ [\AA]$")
-
+        
+        # Plot the metallicity-age distributions and SFH
         self.axes[4].cla()
         self.cax4.cla()
-        self.axes[6].cla()
-
-        # Plot age-metallicity-alpha cube
+        
+        # Different options: 1 alpha bin, 2 alpha bins, or >2 alpha bins
+        if self.Weights.shape[3] <= 2:
+            plotWeights = self.Weights[self.idxBinShort, :, :, 0]
+            plotAlpha = '0'
+        elif self.Weights.shape[3] > 2:
+            plotWeights = self.Weights[self.idxBinShort].sum(axis=-1)
+            plotAlpha = 'all'
         pcol3 = self.axes[4].pcolormesh(
             self.age,
             self.metals,
-            self.Weights[self.idxBinShort, :, :, 0],
+            plotWeights,
             edgecolors="face",
+            shading="auto",   # safe for mismatched shapes
         )
+
+        # ideally this colour bar would be on the left of axes 4 - todo
         self.cbar3 = plt.colorbar(pcol3, cax=self.cax4)
         self.cbar3.solids.set_edgecolor("face")
         self.cbar3.ax.tick_params(labelsize=8)
 
-        self.axes[4].set_title("Mass Fraction - [alpha/Fe]=0", loc="left")
+        self.axes[4].set_title("Mass Fraction - [alpha/Fe]="+plotAlpha, loc="left")
         self.axes[4].set_ylabel("[M/H]")
         self.axes[4].set_xlabel("Age [Gyr]")
 
+        # === control x-axis scaling ===
+        if useLog:
+            self.axes[4].set_xscale("log")
+            self.axes[4].xaxis.set_major_locator(
+                ticker.LogLocator(base=10, subs=[1, 2, 5], numticks=30)
+            )
+            self.axes[4].xaxis.set_major_formatter(
+                ticker.FuncFormatter(lambda v, _: f"{v:g}")
+            )
+        elif useLinear:
+            self.axes[4].set_xscale("linear")
+            self.axes[4].xaxis.set_major_locator(ticker.MaxNLocator(6))  # ~6 ticks
+            self.axes[4].xaxis.set_major_formatter(
+                ticker.FuncFormatter(lambda v, _: f"{v:.1f}")
+            )
+
         if self.Weights.shape[3] == 2:
             # Plot age-metallicity-alpha cube
+            self.axes[6].cla()
+
             pcol4 = self.axes[6].pcolormesh(
                 self.age,
                 self.metals,
@@ -317,6 +349,25 @@ def plotData(self):
 
             self.axes[6].set_title("Mass Fraction - [alpha/Fe]=0.40", loc="left")
             self.axes[6].set_xlabel("Age [Gyr]")
+
+            # === control x-axis scaling ===
+            if useLog:
+                self.axes[6].set_xscale("log")
+                self.axes[6].xaxis.set_major_locator(
+                    ticker.LogLocator(base=10, subs=[1, 2, 5], numticks=30)
+                )
+                self.axes[6].xaxis.set_major_formatter(
+                    ticker.FuncFormatter(lambda v, _: f"{v:g}")
+                )
+            elif useLinear:
+                self.axes[6].set_xscale("linear")
+                self.axes[6].xaxis.set_major_locator(ticker.MaxNLocator(6))  # ~6 ticks
+                self.axes[6].xaxis.set_major_formatter(
+                    ticker.FuncFormatter(lambda v, _: f"{v:.1f}")
+                )
+        else:
+            # hide completely
+            self.axes[6].set_visible(False)
 
         # Plot star-formation history
         self.plotSFH(5)
@@ -490,7 +541,9 @@ def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
     idxMax = np.where(self.Lambda == self.sfhLambda[-1])[0]
     idxLam = np.arange(idxMin, idxMax + 1)
 
-    try:
+    # see if Emission subtracted spectra exist and use those
+    # Note, this should be replaced by checking config file
+    try: 
         idxMin = np.where(self.gasLambda == self.sfhLambda[0])[0]
         idxMax = np.where(self.gasLambda == self.sfhLambda[-1])[0]
         idxLamGand = np.arange(idxMin, idxMax + 1)
@@ -508,8 +561,15 @@ def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
             color="limegreen",
             linewidth=2,
         )
-    except:
-        pass
+    except: #else use default spectra
+        self.axes[panel].plot(self.Lambda[idxLam], spectra[idxLam], color="k", linewidth=2)
+        self.axes[panel].plot(self.sfhLambda, bestfit[:], color="crimson", linewidth=2)
+        self.axes[panel].plot(
+            self.sfhLambda,
+            spectra[idxLam] - bestfit + offset,
+            color="limegreen",
+            linewidth=2,
+        )        
 
     self.axes[panel].plot(self.Lambda[idxLam], spectra[idxLam], color="k", linewidth=2)
     self.axes[panel].plot(self.sfhLambda, bestfit[:], color="crimson", linewidth=2)
@@ -543,14 +603,54 @@ def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
 
 
 def plotSFH(self, panel):
+
     # Clear panels
     self.axes[panel].cla()
 
     # Get star formation history
     collapsed = np.sum(self.Weights, axis=(1, 3))
 
-    # Plot it all
-    self.axes[panel].plot(self.age, collapsed[self.idxBinShort, :])
+    # Plot it like a line --> deprecated
+    #self.axes[panel].plot(self.age, collapsed[self.idxBinShort, :])
+    
+    # Plot it like a box plot:
+    yvals = collapsed[self.idxBinShort, :]
+    xvals = self.age
+    
+    if useLinear:
+        # For a linear x-axis
+        # Get bin edges from midpoints
+        edges = np.concatenate([
+            [xvals[0] - 0.5*(xvals[1]-xvals[0])],
+            0.5*(xvals[1:] + xvals[:-1]),
+            [xvals[-1] + 0.5*(xvals[-1]-xvals[-2])]
+        ])
+        self.axes[panel].bar(edges[:-1], yvals, width=np.diff(edges), align="edge")    
+
+    if useLog:
+        # Log x-axis, not used at the moment
+        # Compute edges in log space
+        logx = np.log10(xvals)
+        edges_log = np.concatenate([
+            [logx[0] - 0.5*(logx[1]-logx[0])],
+            0.5*(logx[1:] + logx[:-1]),
+            [logx[-1] + 0.5*(logx[-1]-logx[-2])]
+        ])
+
+        edges = 10**edges_log  # back to linear space for plotting
+
+        self.axes[panel].bar(edges[:-1], yvals, width=np.diff(edges), align="edge")
+        
+        ax = self.axes[panel]
+        ax.set_xscale("log")
+        
+        ax.xaxis.set_major_locator(
+            ticker.LogLocator(base=10, subs=[1, 2, 5], numticks=30)
+        )
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:g}"))
+
+
+    # plot the rest
     self.axes[panel].set_xlim([self.age[0], self.age[-1]])
     self.axes[panel].set_ylim(bottom=0)
     self.axes[panel].set_title(
