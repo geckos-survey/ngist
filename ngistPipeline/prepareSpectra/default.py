@@ -55,7 +55,7 @@ def prepSpectra(config, cube):
     
 
     # Save all log-rebinned spectra only if running in full spaxel mode
-    if config["GAS"]["LEVEL"] == "SPAXEL":
+    if (config["GAS"]["LEVEL"] == "SPAXEL") | (config["GAS"]["LEVEL"] == "BOTH"):
         saveAllSpectra(
             config, log_spec, log_error, config["PREPARE_SPECTRA"]["VELSCALE"], logLam
             )

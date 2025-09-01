@@ -168,7 +168,7 @@ def runGIST(dirPath, galindex):
 
     # - - - - - CREATE HTML - - - - -
 
-    if 'CREATE_HTML' in config["GENERAL"]:
+    if config["GENERAL"].get("CREATE_HTML", False):
         _ = _writeHTML.writeHTML(config)
         if _ == "SKIP":
             skipGalaxy(config)

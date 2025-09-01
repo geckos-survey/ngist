@@ -94,7 +94,7 @@ def generateFITS(config, module):
             if os.path.isfile(outputPrefix + "_gas_bin.fits") == True and os.path.isfile(outputPrefix + "_gas_spaxel.fits") == True:
                 if config["GAS"]["LEVEL"] == 'BOTH': # Special case for running in BOTH mode
                     # Run first to create the _BIN maps
-                    print('First run-through to save bin results')
+                    printStatus.running('First run-through to save bin results')
                     save_maps_fits.savefitsmaps_GASmodule(
                         "gas",
                         config["GENERAL"]["OUTPUT"],
@@ -102,7 +102,7 @@ def generateFITS(config, module):
                         AoNThreshold=4,
                     )
                     # Then run to create the SPAXEL maps
-                    print('second run through to save SPAXEL results')
+                    printStatus.running('second run through to save SPAXEL results')
                     save_maps_fits.savefitsmaps_GASmodule(
                         "gas",
                         config["GENERAL"]["OUTPUT"],

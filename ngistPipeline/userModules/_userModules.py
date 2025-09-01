@@ -13,17 +13,17 @@ def user_Modules(config):
     This function calls user defined routin.
     """
     printStatus.module("user module")
+
+    config_use = config['UMOD']["METHOD"]
+
+    # Check if module is turned off in MasterConfig
+    if config_use == False:
+        message = "The module was turned off."
+        printStatus.warning(message)
+        logging.warning(message)
+        return None
         
     if config['UMOD']["METHOD"] == "twocomp_ppxf":
-
-        config_use = config['UMOD']["METHOD"]
-
-        # Check if module is turned off in MasterConfig
-        if config_use == False:
-            message = "The module was turned off."
-            printStatus.warning(message)
-            logging.warning(message)
-            return None
 
         # Check if outputs are already available
         outPrefix = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])        

@@ -564,7 +564,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         == True
     ):
         currentLevel = "SPAXEL"
-        print("currentLevel = %s" % (currentLevel))
+        
     # Oversample the templates by a factor of two
     velscale_ratio = 2
 
