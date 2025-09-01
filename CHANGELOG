@@ -6,6 +6,11 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.3	    2025-09-01 FIXED bugs in GAS module when running in SPAXEL and BOTH mode, 
+			where routine failed because all_spectra was not available and final products 
+			were not saved. FIXED bugs in CREATE_HTML and USER module where module == 
+			False had no effect.
+			
 V7.6.2	    2025-08-29 ADDED alphaMC and XSL-SSP read-in routines. Added new option to
 			produce html pages with all output maps with keyword CREATE_HMTL. 
 			FIXED bugs in MapViewer.
