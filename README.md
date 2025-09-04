@@ -25,8 +25,10 @@ on the fly.
 
 Citing GIST and the analysis routines
 -------------------------------------
-If you use this software framework for any publication, please cite Fraser-McKelvie et al. (http://arxiv.org/abs/2411.03430).
-Also consider citing the original GIST pipeline, the code for which the nGIST pipeline is based:
+If you use this software framework for any publication, please cite Fraser-McKelvie et al. 2025, A&A 700, 237 (https://ui.adsabs.harvard.edu/abs/2025A%26A...700A.237F/abstract), and 
+include the nGIST ASCL entry (https://ascl.net/2507.015) in a footnote.
+
+You may also consider citing the original GIST pipeline, the code for which the nGIST pipeline is based:
 Bittner et al. 2019 (https://ui.adsabs.harvard.edu/abs/2019A%26A...628A.117B) and include its ASCL entry 
 (http://ascl.net/1907.025) in a footnote. 
 
