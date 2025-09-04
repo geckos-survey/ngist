@@ -6,8 +6,9 @@ This code is made available under the standard MIT license enclosed with the sof
 
 Over and above the legal restrictions imposed by this license, if you use this software or a modification of this
 software for an academic publication we ask that you provide proper attribution. This must be done by citing the
-paper that describes this software: Fraser-McKelvie et al., submitted http://arxiv.org/abs/2411.03430 (reference to be 
-updated upon acceptance).
+paper that describes this software: Fraser-McKelvie et al., 2025, A&A, 700, 237  
+(https://ui.adsabs.harvard.edu/abs/2025A%26A...700A.237F/abstract), and the ASCL entry (https://ascl.net/2507.015)
+as a footnote.
 
 In addition, please consider citing the GIST pipeline, the code for which nGIST is based upon: 
 Bittner et al. 2020, A&A, 628, 117; ui.adsabs.harvard.edu/abs/2019A%26A...628A.117B.
@@ -17,3 +18,5 @@ analysis. In the default nGIST implementation, these are the adaptive Voronoi te
 2003), the penalised pixel-fitting method (pPXF; Cappellari & Emsellem 2004; Cappellari 2017, Cappellari 2023), 
 the line-strength measurement routines (Kuntschner et al. 2006; Martin-Navarro et al. 2018), and the MILES models 
 included in the tutorial (Vazdekis et al. 2010). 
+
+More details on relevant citations for the individual modules can be found in the README.
