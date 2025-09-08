@@ -76,7 +76,6 @@ def loadSpecMask(config, file, logLam):
             emission_lines[
                 f"{lineName}{lineWavelength}"
             ] = { "wavelength": wavelength, "width": width, "adaptive": adaptive }
-
     return emission_lines, base_goodPixels
 
 def loadGasKinematics(config):
@@ -113,7 +112,14 @@ def loadGasKinematics(config):
     return gas_kin[columns]
 
 
-def createAdaptiveSpectralMask(emission_lines, base_goodpixels, gas_kin, logLam, bin_id):
+def createAdaptiveSpectralMask(
+        emission_lines,
+        base_goodpixels,
+        gas_kin,
+        logLam,
+        bin_id,
+        mask_width
+):
     """
     Creates an adaptive masking depending on gasKinematics measured in the gas module
     """
@@ -125,9 +131,9 @@ def createAdaptiveSpectralMask(emission_lines, base_goodpixels, gas_kin, logLam,
 
     gas_kin_bin = gas_kin[gas_kin["BIN_ID"] == bin_id]
 
-    min_width, max_width = 5, 30
     # Mask Width as a function of the velocity dispersion
-    mask_width = 4
+    # TODO GIVE MORE REASONABLE LIMITS
+    min_width, max_width = 5, 30
 
     for line_label, line_info in emission_lines.items():
         wavelength, width = line_info["wavelength"], line_info["width"]

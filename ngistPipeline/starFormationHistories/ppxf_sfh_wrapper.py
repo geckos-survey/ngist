@@ -388,7 +388,9 @@ def run_ppxf(
                     gas_kin,
                     logLam,
                     i,
+                    mask_width=config["SFH"]["ADAPTIVE_SPECTRAL_MASKING_WIDTH"],
                 )
+
             mask0 = logLam > 0
             mask0[:] = False
             mask0[goodPixels] = True
@@ -553,10 +555,9 @@ def run_ppxf(
             EBV,
         )
 
-    # except Exception as e:
-    except:
+    except Exception as e:
         # Handle any other type of exception
-        #print(f"An error occurred: {e}")
+        print(f"An error occurred: {e}")
         mc_results_nan = {
             "w_row_MC_iter": np.nan,
                 "w_row_MC_mean": np.nan,
@@ -954,24 +955,17 @@ def extractStarFormationHistories(config):
     
     goodPixels_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
 
-
+    # Adaptive Spectral Masking
+    # Checks that adaptive masking is turned on and gas kinematics are available
+    gas_kin_path \
+        = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
     gas_kin, emission_lines, base_goodPixels = None, None, None
-    if 'ADAPTIVE_SPECTRAL_MASKING' in config["KIN"] and config["KIN"]["ADAPTIVE_SPECTRAL_MASKING"] == True:
-        gas_kin_path \
-            = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
-
-        # If gas kinematics file does not exist, create them using pPXF
-        if not os.path.exists(gas_kin_path):
-            # We need to run the emission lines module first using pPXF on each voronoi bin
-            # Remove the FIXED keyword from the config as this require kinematics to be fitted first
-            config_tmp = config.copy()
-            config_tmp["GAS"]["METHOD"] = 'ppxf'
-            config_tmp["GAS"]["LEVEL"] = 'BIN'
-            config_tmp["GAS"]["FIXED"] = False
-            _emissionLines.emissionLines_Module(config_tmp)
-
+    if ('ADAPTIVE_SPECTRAL_MASKING' in config["SFH"]
+            and config["SFH"]["ADAPTIVE_SPECTRAL_MASKING"] == True
+            and os.path.exists(gas_kin_path)
+    ):
         gas_kin = _adaptive_spectral_masking.loadGasKinematics(config)
-        emission_lines, base_goodPixels = _adaptive_spectral_masking.loadSpecMask(config, config["KIN"]["SPEC_MASK"], logLam)
+        emission_lines, base_goodPixels = _adaptive_spectral_masking.loadSpecMask(config, config["SFH"]["SPEC_MASK"], logLam)
 
     # Check if plot keyword is set:
     doplot = config["SFH"].get("PLOT", False)
@@ -1169,7 +1163,7 @@ def extractStarFormationHistories(config):
                 -1,
                 config["SFH"]["MDEG"],
                 config["SFH"]["REGUL_ERR"],
-                config["KIN"]["DOCLEAN"],
+                config["SFH"]["DOCLEAN"],
                 fixed,
                 velscale_ratio,
                 npix,
