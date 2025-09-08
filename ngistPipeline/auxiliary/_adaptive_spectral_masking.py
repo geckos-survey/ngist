@@ -145,7 +145,7 @@ def createAdaptiveSpectralMask(
             width = max(
                 min_width,
                 min(
-                    mask_width * wavelength * velocity_dispersion / C,
+                    2 * mask_width * wavelength * velocity_dispersion / C,
                     max_width
                 )
             )
