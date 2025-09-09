@@ -1146,7 +1146,7 @@ def extractStarFormationHistories(config):
                 -1,
                 config["SFH"]["MDEG"],
                 config["SFH"]["REGUL_ERR"],
-                config["KIN"]["DOCLEAN"],
+                config["SFH"]["DOCLEAN"],
                 fixed,
                 velscale_ratio,
                 npix,
