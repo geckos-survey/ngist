@@ -1180,6 +1180,9 @@ def extractStarFormationHistories(config):
                 alpha_grid,
                 config,
                 doplot,
+                gas_kin,
+                emission_lines,
+                base_goodPixels,
             )
             w_row_MC_iter[i,:,:] = mc_results_i["w_row_MC_iter"]
             w_row_MC_mean[i,:] = mc_results_i["w_row_MC_mean"]
