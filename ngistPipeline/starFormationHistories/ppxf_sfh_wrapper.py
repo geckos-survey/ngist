@@ -958,7 +958,7 @@ def extractStarFormationHistories(config):
     # Adaptive Spectral Masking
     # Checks that adaptive masking is turned on and gas kinematics are available
     gas_kin_path \
-        = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
+        = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_bin.fits"
     gas_kin, emission_lines, base_goodPixels = None, None, None
     if ('ADAPTIVE_SPECTRAL_MASKING' in config["SFH"]
             and config["SFH"]["ADAPTIVE_SPECTRAL_MASKING"] == True

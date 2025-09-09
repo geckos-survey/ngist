@@ -83,7 +83,7 @@ def loadGasKinematics(config):
     Loads in gas kinematics per bin from GAS module output if it exists, otherwise returns None
     """
     gas_kin_path \
-        = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_BIN.fits"
+        = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"]) + "_gas_bin.fits"
     try:
         gas_kin = Table.read(gas_kin_path)
     except FileNotFoundError:
