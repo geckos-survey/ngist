@@ -473,10 +473,14 @@ def run_ppxf(
                 pp.sol[0:4] = start
             
             #produce plots
-            tmp_plot1 = plot_ppxf_sfh(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,
-                                      snrResid=snr_Resid1)
-            tmp_plot3 = plot_ppxf_sfh(pp,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,snrResid=snr_postfit,\
-                             goodpixelsPre=goodPixels_preclip,mean_results=mean_results_step3)
+            plot_ppxf_sfh(pp_step1, np.exp(logLam), i, outfigFile_step1, snrCubevar=snr_prefit,
+                          snrResid=snr_Resid1)
+
+            # plot_ppxf_sfh(pp, np.exp(logLam), i, outfigFile_step3, snrCubevar=snr_prefit, snrResid=snr_postfit, \
+            #               goodpixelsPre=goodPixels_preclip, mean_results=mean_results_step3)
+            # Plotting script currently doesnt account if the masking region is less than what was previously clipped
+            plot_ppxf_sfh(pp, np.exp(logLam), i, outfigFile_step3, snrCubevar=snr_prefit, snrResid=snr_postfit, \
+                          goodpixelsPre=[], mean_results=mean_results_step3)
 
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
         if nsims > 0:
@@ -972,7 +976,7 @@ def extractStarFormationHistories(config):
 
 
     # Define output arrays
-    ppxf_result = np.zeros((nbins,6    ))
+    ppxf_result = np.zeros((nbins, 6))
     w_row = np.zeros((nbins,ncomb))
     ppxf_bestfit = np.zeros((nbins,npix))
     optimal_template = np.zeros((nbins,templates.shape[0]))
