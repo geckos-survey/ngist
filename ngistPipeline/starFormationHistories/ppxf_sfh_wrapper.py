@@ -814,6 +814,41 @@ def save_sfh(
     )
     logging.info("Wrote: " + outfits_sfh)
 
+    # ============================
+    # SAVE SPECTRAL MASK RESULT
+    outfits = (
+            os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+            + "_sfh_spectral_mask.fits"
+    )
+    printStatus.running(
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_spectral_mask.fits"
+    )
+
+    # Primary HDU
+    priHDU = fits.PrimaryHDU()
+
+    # Extension 1: Table HDU with optimal templates
+    cols = []
+    cols.append(
+        fits.Column(
+            name="SPECTRAL_MASK",
+            format=str(spectral_mask.shape[1]) + "D",
+            array=spectral_mask,
+        )
+    )
+    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    dataHDU.name = "SPECTRAL_MASK"
+
+    # Create HDU list and write to file
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
+    HDUList = fits.HDUList([priHDU, dataHDU])
+    HDUList.writeto(outfits, overwrite=True)
+
+    printStatus.updateDone(
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_spectral_mask.fits"
+    )
+    logging.info("Wrote: " + outfits)
 
 def extractStarFormationHistories(config):
     """
