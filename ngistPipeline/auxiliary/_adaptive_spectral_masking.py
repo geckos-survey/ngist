@@ -132,9 +132,6 @@ def createAdaptiveSpectralMask(
     gas_kin_bin = gas_kin[gas_kin["BIN_ID"] == bin_id]
 
     # Mask Width as a function of the velocity dispersion
-    # TODO GIVE MORE REASONABLE LIMITS
-    min_width, max_width = 5, 30
-
     for line_label, line_info in emission_lines.items():
         wavelength, width = line_info["wavelength"], line_info["width"]
         if line_info["adaptive"]:
@@ -142,13 +139,7 @@ def createAdaptiveSpectralMask(
             print(f"Old position: {wavelength:.4f} and old width {width:.4f}")
             velocity, velocity_dispersion = gas_kin_bin[f"{line_label}_VEL"].value[0], gas_kin_bin[f"{line_label}_SIGMA"].value[0]
             # Keep width between min_width and max_width
-            width = max(
-                min_width,
-                min(
-                    2 * mask_width * wavelength * velocity_dispersion / C,
-                    max_width
-                )
-            )
+            width = 2 * mask_width * wavelength * velocity_dispersion / C
             wavelength = wavelength * (1 + velocity / C)
             print(f"New position: {wavelength:.4f} and new width {width:.4f}")
 
