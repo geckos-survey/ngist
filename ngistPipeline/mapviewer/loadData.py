@@ -149,6 +149,12 @@ def loadData(self):
             3
         ].data.GOODPIX
 
+        # Temporary since some of my old data do not have this fit
+        try:
+            self.kinSpecMask = fits.open(self.dirprefix + "_kin_spectral_mask.fits")[1].data.SPECTRAL_MASK
+        except:
+            self.kinSpecMask = None
+
         # following line does not work if your data is not symetric around centre
         #median_V_stellar = np.nanmedian(
         #    self.kinResults.V[np.where(self.table.BIN_ID >= 0)[0]]
@@ -159,6 +165,7 @@ def loadData(self):
         self.kinBestfit = None
         self.kinLambda = None
         self.kinGoodpix = None
+        self.kinSpecMask = None
 
     # Read emissionLines results
     if self.GAS:
@@ -209,6 +216,11 @@ def loadData(self):
         self.sfhGoodpix = fits.open(self.dirprefix + "_sfh_bestfit.fits")[
             3
         ].data.GOODPIX
+        # Temporary since some of my old data do not have this fit
+        try:
+            self.sfhSpecMask = fits.open(self.dirprefix + "_sfh_spectral_mask.fits")[1].data.SPECTRAL_MASK
+        except:
+            self.sfhSpecMask = None
 
         # following line does not work if your data is not symetric around centre
         #if "V" in self.sfhResults.names:
@@ -233,6 +245,7 @@ def loadData(self):
         self.sfhBestfit = None
         self.sfhLambda = None
         self.sfhGoodpix = None
+        self.sfhSpecMask = None
         self.metals = None
         self.age = None
         self.Weights = None

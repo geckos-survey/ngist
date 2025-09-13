@@ -203,10 +203,14 @@ def plotData(self):
 
     # Plot stellarKinematics fit
     if self.KIN == True:
+        if self.kinSpecMask is not None:
+            goodpix = np.where(self.kinSpecMask[self.idxBinShort] == 1)[0]
+        else:
+            goodpix = self.kinGoodpix
         self.plotSpectraKIN(
             self.Spectra[self.idxBinShort],
             self.kinBestfit[self.idxBinShort],
-            self.kinGoodpix,
+            goodpix,
             1,
         )
         if (
@@ -272,10 +276,15 @@ def plotData(self):
 
     # Plot starFormationHistories results
     if self.SFH == True:
+        if self.sfhSpecMask is not None:
+            goodpix = np.where(self.sfhSpecMask[self.idxBinShort] == 1)[0] + 1
+        else:
+            goodpix = self.sfhGoodpix
+
         self.plotSpectraSFH(
             self.Spectra[self.idxBinShort],
             self.sfhBestfit[self.idxBinShort],
-            self.sfhGoodpix,
+            goodpix,
             3,
         )
         self.axes[3].set_title(
@@ -511,7 +520,12 @@ def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
             linewidth=2,
         )
     except:
-        pass
+        self.axes[panel].plot(
+            self.sfhLambda,
+            spectra[idxLam] - bestfit + offset,
+            color="limegreen",
+            linewidth=2,
+        )
 
     self.axes[panel].plot(self.Lambda[idxLam], spectra[idxLam], color="k", linewidth=2)
     self.axes[panel].plot(self.sfhLambda, bestfit[:], color="crimson", linewidth=2)
