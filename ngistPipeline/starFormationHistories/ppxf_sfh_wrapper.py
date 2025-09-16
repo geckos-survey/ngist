@@ -557,6 +557,7 @@ def run_ppxf(
             snr_postfit,
             pp.chi2,
             EBV,
+            pp.mpoly
         )
 
     except Exception as e:
@@ -614,6 +615,7 @@ def save_sfh(
     snr_postfit,
     red_chi2,
     EBV,
+    mpoly
 ):
     """ Save all results to disk. """
 
@@ -796,12 +798,20 @@ def save_sfh(
     goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     goodpixHDU.name = "GOODPIX"
 
+    # Table HDU with multiplicative polynomial
+    cols = []
+    cols.append(fits.Column(name="MPOLY", format=str(npix) + "D", array=mpoly))
+    mpolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    mpolyHDU.name = "MPOLY"
+
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
     logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["SFH"])
     goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU])
+    mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["KIN"])
+
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, mpolyHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
     fits.setval(outfits_sfh, "VELSCALE", value=velscale)
@@ -1020,6 +1030,7 @@ def extractStarFormationHistories(config):
     snr_postfit = np.zeros(nbins)
     red_chi2 = np.zeros(nbins)
     EBV = np.zeros(nbins)
+    mpolys = np.zeros((nbins, npix))
 
     # Define output arrays of MC realizations
     if nsims > 0:
@@ -1159,6 +1170,7 @@ def extractStarFormationHistories(config):
             snr_postfit[i] = ppxf_tmp[i][7]
             red_chi2[i] = ppxf_tmp[i][8]
             EBV[i] = ppxf_tmp[i][9]
+            mpolys[i] = ppxf_tmp[i][10]
 
         # Remove the memory-mapped files
         os.remove(templates_filename_memmap)
@@ -1294,6 +1306,7 @@ def extractStarFormationHistories(config):
         snr_postfit,
         red_chi2,
         EBV,
+        mpolys
     )
 
     # Return

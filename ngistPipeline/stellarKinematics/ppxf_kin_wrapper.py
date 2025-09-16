@@ -494,6 +494,8 @@ def run_ppxf(
             snr_postfit,
             pp.chi2,
             EBV,
+            pp.apoly,
+            pp.mpoly
         )
 
     except:
@@ -517,6 +519,8 @@ def save_ppxf(
     snr_postfit,
     red_chi2,
     EBV,
+    apoly,
+    mpoly
 ):
     """Saves all results to disk."""
     # ========================
@@ -633,14 +637,28 @@ def save_ppxf(
     specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     specHDU.name = "SPEC"
 
+    # Table HDU with additive polynomial
+    cols = []
+    cols.append(fits.Column(name="APOLY", format=str(npix) + "D", array=apoly))
+    apolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    apolyHDU.name = "APOLY"
+
+    # Table HDU with multiplicative polynomial
+    cols = []
+    cols.append(fits.Column(name="MPOLY", format=str(npix) + "D", array=mpoly))
+    mpolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    mpolyHDU.name = "MPOLY"
+
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
     logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
     goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["KIN"])
     specHDU = _auxiliary.saveConfigToHeader(specHDU, config["KIN"])
+    apolyHDU = _auxiliary.saveConfigToHeader(apolyHDU, config["KIN"])
+    mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["KIN"])
 
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU])
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU, apolyHDU, mpolyHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
 
     printStatus.updateDone(
@@ -879,7 +897,9 @@ def extractStellarKinematics(config):
     snr_postfit = np.zeros(nbins)
     red_chi2 = np.zeros(nbins)
     EBV = np.zeros(nbins)
- 
+    mpolys = np.zeros((nbins, npix))
+    apolys = np.zeros((nbins, npix))
+
 # ====================
     # If OPT_TEMP keyword set to 'galaxy_single' or 'galaxy_set' then
     # run PPXF once on combined mean spectrum to get a single or optimal template set
@@ -989,7 +1009,9 @@ def extractStellarKinematics(config):
             snr_postfit[i] = ppxf_tmp[i][6]
             red_chi2[i] = ppxf_tmp[i][7]
             EBV[i] = ppxf_tmp[i][8]
-        
+            apolys[i, :] = ppxf_tmp[i][9]
+            mpolys[i, :] = ppxf_tmp[i][10]
+
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
         # Remove the memory-mapped files
@@ -1094,6 +1116,8 @@ def extractStellarKinematics(config):
         snr_postfit,
         red_chi2,
         EBV,
+        apolys,
+        mpolys
     )
 
     # Return
