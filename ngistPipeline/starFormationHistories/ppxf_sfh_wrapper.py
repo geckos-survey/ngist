@@ -253,6 +253,7 @@ def run_ppxf(
     gas_kin,
     emission_lines,
     base_goodpixels,
+    LSF_templates,
 ):
 
     """
@@ -389,6 +390,7 @@ def run_ppxf(
                     logLam,
                     i,
                     mask_width=config["SFH"]["ADAPTIVE_SPECTRAL_MASKING_WIDTH"],
+                    LSF_templates
                 )
 
             mask0 = logLam > 0
@@ -1234,6 +1236,7 @@ def extractStarFormationHistories(config):
                 gas_kin,
                 emission_lines,
                 base_goodPixels,
+                LSF_Templates,
             )
             w_row_MC_iter[i,:,:] = mc_results_i["w_row_MC_iter"]
             w_row_MC_mean[i,:] = mc_results_i["w_row_MC_mean"]
