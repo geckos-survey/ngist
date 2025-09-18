@@ -105,7 +105,7 @@ def loadGasKinematics(config):
         if LMIN <= line_wavelength <= LMAX:
             # Round down to nearest angstrom to get the same label style as emissionLines.config
             line_wavelength = str(int(float(line_wavelength)))
-            for measurement in ["VEL", "SIGMA"]:
+            for measurement in ["VEL", "SIGMA", "FLUX", "FLUX_ERR"]:
                 column_name = f"{line_name}{line_wavelength}_{measurement}"
                 columns.append(column_name)
 
@@ -141,10 +141,16 @@ def createAdaptiveSpectralMask(
         wavelength, width = line_info["wavelength"], line_info["width"]
         if line_info["adaptive"]:
             # Determine the LSF
-            lsf = findClosestLSF(logLam, LSF_templates, wavelength)
             print("Adaptive masking for line:", line_label)
             print(f"Old position: {wavelength:.4f} and old width {width:.4f}")
+            flux, flux_err = gas_kin_bin[f"{line_label}_FLUX"].value[0], gas_kin_bin[f"{line_label}_FLUX_ERR"].value[0]
+            if flux / flux_err < 3:
+                # If SNR < 3, do not adaptively mask
+                print("Adaptive masking for line:", line_label, "skipped due to low SNR")
+                break
             velocity, velocity_dispersion = gas_kin_bin[f"{line_label}_VEL"].value[0], gas_kin_bin[f"{line_label}_SIGMA"].value[0]
+
+            lsf = findClosestLSF(logLam, LSF_templates, wavelength)
             sigma_adjusted = np.sqrt(lsf ** 2 + (wavelength * velocity_dispersion / C)  ** 2)
             # adjusted_width = 2 * mask_width * wavelength * velocity_dispersion / C
             # adjusted_width = np.sqrt(adjusted_width ** 2 + lsf ** 2)
