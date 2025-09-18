@@ -204,7 +204,8 @@ def plotData(self):
     # Plot stellarKinematics fit
     if self.KIN == True:
         if self.kinSpecMask is not None:
-            goodpix = np.where(self.kinSpecMask[self.idxBinShort] == 1)[0]
+            # spectral mask is 1-index instead of 0-indexed
+            goodpix = np.where(self.kinSpecMask[self.idxBinShort] == 1)[0] + 1
         else:
             goodpix = self.kinGoodpix
         self.plotSpectraKIN(
@@ -277,6 +278,7 @@ def plotData(self):
     # Plot starFormationHistories results
     if self.SFH == True:
         if self.sfhSpecMask is not None:
+            # spectral mask is 1-index instead of 0-indexed
             goodpix = np.where(self.sfhSpecMask[self.idxBinShort] == 1)[0] + 1
         else:
             goodpix = self.sfhGoodpix
