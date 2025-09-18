@@ -37,7 +37,6 @@ def run_ppxf(
     goodPixels,
     tpl_comp,
     moments,
-    offset,
     mdeg,
     fixed,
     velscale_ratio,
@@ -47,6 +46,8 @@ def run_ppxf(
     i,
     nbins,
     ubins,
+    logLam,
+    logLam_template
 ):
     """
     Calls the penalised Pixel-Fitting routine from Cappellari & Emsellem 2004
@@ -69,13 +70,14 @@ def run_ppxf(
             component=tpl_comp,
             moments=moments,
             degree=-1,
-            vsyst=offset,
             mdegree=mdeg,
             fixed=fixed,
             velscale_ratio=velscale_ratio,
             tied=tied,
             gas_component=gas_comp,
             gas_names=gas_names,
+            lam=np.exp(logLam),
+            lam_temp=np.exp(logLam_template),
         )
 
         return (
@@ -638,7 +640,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         ]
         star_templates = templates.reshape((templates.shape[0], n_templates))
 
-        offset = (logLam_template[0] - logLam_galaxy[0]) * C  # km/s
         # error        = np.ones((npix,nbins))
         ## --------------------- ##
 
@@ -706,8 +707,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
             :4
         ]
         star_templates = templates.reshape((templates.shape[0], n_templates))
-
-        offset = (logLam_template[0] - logLam_galaxy[0]) * C  # km/s
 
     # --> generate the gas templates
     # emldb=table.Table.read('./configFiles/'+config['GAS']['EMI_FILE'] , format='ascii') # Now using the PHANGS emission line config file. NB change '/configFiles' to dirPath or something like that
@@ -922,7 +921,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                     goodPixels_gas,
                     tpl_comp,
                     moments,
-                    offset,
                     emi_mpol_deg,
                     fixed[i],
                     velscale_ratio,
@@ -932,6 +930,8 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                     i,
                     nbins,
                     ubins,
+                    logLam_galaxy,
+                    logLam_template
                 )
                 results.append(result)
             return results
@@ -992,7 +992,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                 goodPixels_gas,
                 tpl_comp,
                 moments,
-                offset,
                 emi_mpol_deg,
                 fixed[i],
                 velscale_ratio,
@@ -1002,6 +1001,8 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                 i,
                 nbins,
                 ubins,
+                logLam_galaxy,
+                logLam_template
             )
 
         printStatus.updateDone("Running PPXF in serial mode", progressbar=False)
