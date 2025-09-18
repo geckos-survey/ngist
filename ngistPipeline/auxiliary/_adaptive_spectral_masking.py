@@ -98,7 +98,7 @@ def loadGasKinematics(config):
     linesfitted = emldb[w]
 
     # Create columns to extract
-    columns = ["BIN_ID", "V_STARS2"]
+    columns = ["BIN_ID"]
     LMAX, LMIN = config["GAS"]["LMAX"], config["GAS"]["LMIN"]
 
     for line_name, line_wavelength in zip(linesfitted["name"], linesfitted["lambda"]):
@@ -111,6 +111,10 @@ def loadGasKinematics(config):
 
     return gas_kin[columns]
 
+def findClosestLSF(loglam, LSF_template, target_lambda):
+    log_target = np.log(target_lambda)
+    idx = np.argmin(np.abs(logLam - log_target))
+    return LSF_template[idx]
 
 def createAdaptiveSpectralMask(
         emission_lines,
@@ -118,7 +122,8 @@ def createAdaptiveSpectralMask(
         gas_kin,
         logLam,
         bin_id,
-        mask_width
+        mask_width,
+        LSF_templates,
 ):
     """
     Creates an adaptive masking depending on gasKinematics measured in the gas module
@@ -135,11 +140,16 @@ def createAdaptiveSpectralMask(
     for line_label, line_info in emission_lines.items():
         wavelength, width = line_info["wavelength"], line_info["width"]
         if line_info["adaptive"]:
+            # Determine the LSF
+            lsf = findClosestLSF(logLam, LSF_templates, wavelength)
             print("Adaptive masking for line:", line_label)
             print(f"Old position: {wavelength:.4f} and old width {width:.4f}")
             velocity, velocity_dispersion = gas_kin_bin[f"{line_label}_VEL"].value[0], gas_kin_bin[f"{line_label}_SIGMA"].value[0]
-            # Keep width between min_width and max_width
-            width = 2 * mask_width * wavelength * velocity_dispersion / C
+            sigma_adjusted = np.sqrt(lsf ** 2 + (wavelength * velocity_dispersion / C)  ** 2)
+            # adjusted_width = 2 * mask_width * wavelength * velocity_dispersion / C
+            # adjusted_width = np.sqrt(adjusted_width ** 2 + lsf ** 2)
+            adjusted_width = 2 * mask_width * sigma_adjusted
+            width = np.clip(adjusted_width, None, width)
             wavelength = wavelength * (1 + velocity / C)
             print(f"New position: {wavelength:.4f} and new width {width:.4f}")
 
