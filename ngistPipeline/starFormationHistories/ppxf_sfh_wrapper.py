@@ -389,7 +389,7 @@ def run_ppxf(
                     gas_kin,
                     logLam,
                     i,
-                    mask_width=config["SFH"]["ADAPTIVE_SPECTRAL_MASKING_WIDTH"],
+                    config["SFH"]["ADAPTIVE_SPECTRAL_MASKING_WIDTH"],
                     LSF_templates
                 )
 
@@ -1105,7 +1105,7 @@ def extractStarFormationHistories(config):
         noise = load(noise_filename_memmap, mmap_mode='r')
 
         # Define a function to encapsulate the work done in the loop
-        def worker(chunk, templates):
+        def worker(chunk, templates, LSF_templates):
             results = []
             for i in chunk:
                 result = run_ppxf(
@@ -1140,6 +1140,7 @@ def extractStarFormationHistories(config):
                     gas_kin,
                     emission_lines,
                     base_goodPixels,
+                    LSF_templates
                 )
                 results.append(result)
             return results
@@ -1149,7 +1150,7 @@ def extractStarFormationHistories(config):
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
         parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
-        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
+        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates, LSF_Templates) for chunk in chunks),
                         total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
 
         # Flatten the results
