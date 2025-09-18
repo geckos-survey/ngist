@@ -113,7 +113,7 @@ def loadGasKinematics(config):
 
 def findClosestLSF(loglam, LSF_template, target_lambda):
     log_target = np.log(target_lambda)
-    idx = np.argmin(np.abs(logLam - log_target))
+    idx = np.argmin(np.abs(loglam - log_target))
     return LSF_template[idx]
 
 def createAdaptiveSpectralMask(
