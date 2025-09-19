@@ -118,7 +118,6 @@ def createAdaptiveSpectralMask(
         logLam,
         bin_id,
         mask_width,
-        LSF_templates,
 ):
     """
     Creates an adaptive masking depending on gasKinematics measured in the gas module
@@ -135,14 +134,10 @@ def createAdaptiveSpectralMask(
     for line_label, line_info in emission_lines.items():
         wavelength, width = line_info["wavelength"], line_info["width"]
         if line_info["adaptive"]:
-            # Determine the LSF
             print("Adaptive masking for line:", line_label)
             print(f"Old position: {wavelength:.4f} and old width {width:.4f}")
             velocity, velocity_dispersion = gas_kin_bin[f"{line_label}_VEL"].value[0], gas_kin_bin[f"{line_label}_SIGMA"].value[0]
-
-            lsf = LSF_templates(wavelength) / 2.355  # convert FWHM to sigma
-            sigma_adjusted = np.sqrt(lsf ** 2 + (wavelength * velocity_dispersion / C)  ** 2)
-            adjusted_width = 2 * mask_width * sigma_adjusted
+            adjusted_width = 2 * wavelength * (mask_width * velocity_dispersion / C)
             width = np.clip(adjusted_width, None, width)
             wavelength = wavelength * (1 + velocity / C)
             print(f"New position: {wavelength:.4f} and new width {width:.4f}")

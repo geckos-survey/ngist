@@ -390,7 +390,6 @@ def run_ppxf(
                     logLam,
                     i,
                     config["SFH"]["ADAPTIVE_SPECTRAL_MASKING_WIDTH"],
-                    LSF_templates
                 )
 
             mask0 = logLam > 0
