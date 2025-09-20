@@ -118,6 +118,8 @@ def createAdaptiveSpectralMask(
         logLam,
         bin_id,
         mask_width,
+        lmin,
+        lmax
 ):
     """
     Creates an adaptive masking depending on gasKinematics measured in the gas module
@@ -133,6 +135,8 @@ def createAdaptiveSpectralMask(
     # Mask Width as a function of the velocity dispersion
     for line_label, line_info in emission_lines.items():
         wavelength, width = line_info["wavelength"], line_info["width"]
+        if not (lmin <= wavelength <= lmax):
+            continue
         if line_info["adaptive"]:
             print("Adaptive masking for line:", line_label)
             print(f"Old position: {wavelength:.4f} and old width {width:.4f}")
