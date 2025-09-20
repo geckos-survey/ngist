@@ -208,6 +208,13 @@ def plotData(self):
             goodpix = np.where(self.kinSpecMask[self.idxBinShort] == 1)[0] + 1
         else:
             goodpix = self.kinGoodpix
+
+        if self.axes[1].has_data():
+            xlim = self.axes[1].get_xlim()
+            ylim = self.axes[1].get_ylim()
+        else:
+            xlim, ylim = None, None
+
         self.plotSpectraKIN(
             self.Spectra[self.idxBinShort],
             self.kinBestfit[self.idxBinShort],
@@ -240,8 +247,18 @@ def plotData(self):
         self.axes[1].set_title("BIN_ID = {:d}".format(self.idxBinShort), loc="right")
         self.axes[1].minorticks_on()
 
+        if xlim is not None and ylim is not None:
+            self.axes[1].set_xlim(xlim)
+            self.axes[1].set_ylim(ylim)
+
     # Plot emissionLines fit
     if self.GAS == True:
+        if self.axes[2].has_data():
+            xlim = self.axes[2].get_xlim()
+            ylim = self.axes[2].get_ylim()
+        else:
+            xlim, ylim = None, None
+
         if self.gasLevel == "BIN":
             self.plotSpectraGAS(
                 self.Spectra[self.idxBinShort],
@@ -275,6 +292,10 @@ def plotData(self):
         except:
             self.axes[2].set_title("Emission-line analysis", loc="left")
 
+        if xlim is not None and ylim is not None:
+            self.axes[2].set_xlim(xlim)
+            self.axes[2].set_ylim(ylim)
+
     # Plot starFormationHistories results
     if self.SFH == True:
         if self.sfhSpecMask is not None:
@@ -282,6 +303,12 @@ def plotData(self):
             goodpix = np.where(self.sfhSpecMask[self.idxBinShort] == 1)[0] + 1
         else:
             goodpix = self.sfhGoodpix
+
+        if self.axes[3].has_data():
+            xlim = self.axes[3].get_xlim()
+            ylim = self.axes[3].get_ylim()
+        else:
+            xlim, ylim = None, None
 
         self.plotSpectraSFH(
             self.Spectra[self.idxBinShort],
@@ -299,6 +326,9 @@ def plotData(self):
             loc="left",
         )
         self.axes[3].set_xlabel("$\lambda\ [\AA]$")
+        if xlim is not None and ylim is not None:
+            self.axes[3].set_xlim(xlim)
+            self.axes[3].set_ylim(ylim)
 
         self.axes[4].cla()
         self.cax4.cla()
