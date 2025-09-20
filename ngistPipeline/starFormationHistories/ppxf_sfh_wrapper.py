@@ -253,7 +253,6 @@ def run_ppxf(
     gas_kin,
     emission_lines,
     base_goodpixels,
-    LSF_templates,
 ):
 
     """
@@ -425,7 +424,7 @@ def run_ppxf(
                 lam_temp=np.exp(logLam_template),
                 velscale_ratio=velscale_ratio,
                 component=component_step3,
-                dust=dust_step3,                
+                dust=dust_step3,
             )
 
         #update goodpixels again
@@ -574,7 +573,7 @@ def run_ppxf(
                 "mean_results_MC_mean":  np.nan,
                 "mean_results_MC_err":  np.nan
             }
-        return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan,np.nan)
+        return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan,np.nan, np.nan)
 
 
 def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
@@ -1106,7 +1105,7 @@ def extractStarFormationHistories(config):
         noise = load(noise_filename_memmap, mmap_mode='r')
 
         # Define a function to encapsulate the work done in the loop
-        def worker(chunk, templates, LSF_templates):
+        def worker(chunk, templates):
             results = []
             for i in chunk:
                 result = run_ppxf(
@@ -1141,7 +1140,6 @@ def extractStarFormationHistories(config):
                     gas_kin,
                     emission_lines,
                     base_goodPixels,
-                    LSF_templates
                 )
                 results.append(result)
             return results
@@ -1151,7 +1149,7 @@ def extractStarFormationHistories(config):
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
         parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
-        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates, LSF_Templates) for chunk in chunks),
+        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
                         total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
 
         # Flatten the results
@@ -1238,7 +1236,6 @@ def extractStarFormationHistories(config):
                 gas_kin,
                 emission_lines,
                 base_goodPixels,
-                LSF_Templates,
             )
             w_row_MC_iter[i,:,:] = mc_results_i["w_row_MC_iter"]
             w_row_MC_mean[i,:] = mc_results_i["w_row_MC_mean"]
