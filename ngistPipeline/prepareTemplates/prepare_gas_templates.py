@@ -206,7 +206,12 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
     # lines in the database minus the number of lines with mode=aN
     tied_all = np.array([m[0] == 'a' for m in emldb['mode']])
     nlinesdb=len(emldb)
-    ntpl = nlinesdb - np.sum(ignore_line) - np.sum(tied_all)
+    primary_line = (emldb['mode'] == 'f') & np.invert(ignore_line)
+    unique_kinematic_group = np.unique(
+        [m for m, ignore in zip(emldb['mode'], ignore_line) if m.startswith('k') and not ignore]
+    )
+    # Number of templates are the number of primary lines plus the number of kinematic groups tied to primary lines
+    ntpl = np.sum(primary_line) + len(unique_kinematic_group)
 
     # Initialize the components
     comp = np.zeros(ntpl, dtype=int)-1
@@ -216,7 +221,6 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
     # All the primary lines go into individual templates, kinematic
     # components, velocity groups, and sigma groups
     tpli = np.zeros(len(emldb), dtype=int)-1
-    primary_line = (emldb['mode'] == 'f') & np.invert(ignore_line)
 
     nprimary = np.sum(primary_line)
     tpli[primary_line] = np.arange(nprimary)
@@ -232,7 +236,6 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
         start_sum = np.sum(finished)
 
         for i in range(nlinesdb):
-
             if finished[i]:
                 continue
             indx = _find_primary(emldb, i)
