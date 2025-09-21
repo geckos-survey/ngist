@@ -209,7 +209,7 @@ def plotData(self):
         else:
             goodpix = self.kinGoodpix
 
-        if self.axes[1].has_data():
+        if self.fixSpectrumWindow and self.axes[1].has_data():
             xlim = self.axes[1].get_xlim()
             ylim = self.axes[1].get_ylim()
         else:
@@ -253,7 +253,7 @@ def plotData(self):
 
     # Plot emissionLines fit
     if self.GAS == True:
-        if self.axes[2].has_data():
+        if self.fixSpectrumWindow and self.axes[2].has_data():
             xlim = self.axes[2].get_xlim()
             ylim = self.axes[2].get_ylim()
         else:
@@ -304,7 +304,7 @@ def plotData(self):
         else:
             goodpix = self.sfhGoodpix
 
-        if self.axes[3].has_data():
+        if self.fixSpectrumWindow and self.axes[3].has_data():
             xlim = self.axes[3].get_xlim()
             ylim = self.axes[3].get_ylim()
         else:

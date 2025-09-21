@@ -31,6 +31,7 @@ class Mapviewer(pyqt.QMainWindow):
         self.LsLevelSelected = "ADAPTED"
         self.AoNThreshold = 3
         self.forAleksandra = False
+        self.fixSpectrumWindow = False
 
         # Setup the rest
         self.createFigure()

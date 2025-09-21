@@ -62,6 +62,15 @@ def createWindow(self):
     InfoButton.setShortcut("Ctrl+I")
     fileMenu.addAction(InfoButton)
 
+    # Ensures that moving between different bins does not change the
+    # range wavelength or flux values
+    fixSpectrumWindowCheckbox = pyqt.QAction("Fix Spectrum Window", self)
+    fixSpectrumWindowCheckbox.setCheckable(True)
+    fixSpectrumWindowCheckbox.setChecked(self.fixSpectrumWindow)
+    fixSpectrumWindowCheckbox.setShortcut("Ctrl+F")
+    fixSpectrumWindowCheckbox.toggled.connect(lambda checked: setattr(self, "fixSpectrumWindow", checked))
+    fileMenu.addAction(fixSpectrumWindowCheckbox)
+
     exitButton = pyqt.QAction("Exit", self)
     exitButton.setShortcut("Ctrl+W")
     exitButton.setStatusTip("Exit application")
