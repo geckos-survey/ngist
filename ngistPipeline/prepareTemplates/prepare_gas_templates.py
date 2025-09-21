@@ -207,11 +207,12 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
     tied_all = np.array([m[0] == 'a' for m in emldb['mode']])
     nlinesdb=len(emldb)
     primary_line = (emldb['mode'] == 'f') & np.invert(ignore_line)
-    unique_kinematic_group = np.unique(
-        [m for m, ignore in zip(emldb['mode'], ignore_line) if m.startswith('k') and not ignore]
-    )
+    # unique_kinematic_group = np.unique(
+    #     [m for m, ignore in zip(emldb['mode'], ignore_line) if m.startswith('k') and not ignore]
+    # )
     # Number of templates are the number of primary lines plus the number of kinematic groups tied to primary lines
-    ntpl = np.sum(primary_line) + len(unique_kinematic_group)
+    # ntpl = np.sum(primary_line) + len(unique_kinematic_group)
+    ntpl = nlinesdb - np.sum(ignore_line) - np.sum(tied_all)
 
     # Initialize the components
     comp = np.zeros(ntpl, dtype=int)-1
