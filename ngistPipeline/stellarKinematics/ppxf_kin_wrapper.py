@@ -498,8 +498,9 @@ def run_ppxf(
             pp.mpoly
         )
 
-    except:
-        return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
 def save_ppxf(

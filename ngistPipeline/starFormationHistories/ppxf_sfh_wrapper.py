@@ -564,7 +564,7 @@ def run_ppxf(
 
     except Exception as e:
         # Handle any other type of exception
-        print(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
         mc_results_nan = {
             "w_row_MC_iter": np.nan,
                 "w_row_MC_mean": np.nan,
