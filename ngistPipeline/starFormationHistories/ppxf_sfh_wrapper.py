@@ -812,7 +812,7 @@ def save_sfh(
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
     logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["SFH"])
     goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["SFH"])
-    mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["KIN"])
+    mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["SFH"])
 
     HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, mpolyHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
