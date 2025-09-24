@@ -176,7 +176,7 @@ def createAdaptiveSpectralMask(
 
         return goodPixels
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred in _adaptive_spectral_masking: {e}")
         logging.error(f"An error occurred: {e}")
         goodPixels = np.array(base_goodpixels)
         return goodPixels

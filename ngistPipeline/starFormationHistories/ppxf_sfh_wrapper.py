@@ -262,7 +262,6 @@ def run_ppxf(
     non-parametric star-formation histories.
     """
     # printStatus.progressBar(i, nbins, barLength=50)
-
     try:
         if len(optimal_template_in) > 1:
 
@@ -565,6 +564,8 @@ def run_ppxf(
     except Exception as e:
         # Handle any other type of exception
         logging.error(f"An error occurred: {e}")
+        import traceback
+        traceback.print_exc()
         mc_results_nan = {
             "w_row_MC_iter": np.nan,
                 "w_row_MC_mean": np.nan,

@@ -93,10 +93,11 @@ def run_ppxf(
             pp.error[0],
         )
 
-    except:
+    except Exception as e:
         # raise exception
         printStatus.running("Emission line fit failed")
         logging.info("Emission line fit failed")
+        logging.error(f"An error occurred: {e}")
 
         return (
             np.nan,
