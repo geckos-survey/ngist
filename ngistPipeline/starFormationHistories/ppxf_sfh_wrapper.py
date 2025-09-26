@@ -35,9 +35,9 @@ PURPOSE:
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
 def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], 
-                  norm=False,mean_results=''):
+                  norm=False,mean_results='', lamRange=(None, None), figsize=(13, 3)):
     #routine to plot first and final pPXF fit
-    fig = plt.figure(i, figsize=(13, 3.0))
+    fig = plt.figure(i, figsize=figsize)
 
     #plot second figure
     ax2 = plt.subplot(111)
@@ -48,29 +48,29 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
         median_norm = 1
 
     stars_bestfit = pp.bestfit #/ median_norm
-    bestfit_shown = pp.bestfit #/ median_norm
+    # bestfit_shown = pp.bestfit #/ median_norm
     galaxy = pp.galaxy #/ median_norm
     resid = galaxy - stars_bestfit
     goodpixels = pp.goodpixels
-    
+
     ll, rr = np.min(x), np.max(x)
     
-    sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
-    bestfit_shown = bestfit_shown[goodpixels[0] : goodpixels[-1] + 1]
+    # sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
+    # bestfit_shown = bestfit_shown[goodpixels[0] : goodpixels[-1] + 1]
     mx = 2.49
     mn = -0.49
     plt.plot(x, galaxy, 'black', linewidth=0.5)
-    plt.plot(x[goodpixels], resid[goodpixels], 'd',
-                color='LimeGreen', mec='LimeGreen', ms=1)
+    plt.plot(x[goodpixels], resid[goodpixels], 'x',
+                color='LimeGreen', mec='LimeGreen', ms=1, alpha=0.3)
     
     if len(goodpixelsPre) > 0:
         w = np.flatnonzero(np.diff(goodpixels) > 1)
         for wj in w:
             a, b = goodpixels[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightpink')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5,alpha=0.5)
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=1, alpha=0.7)
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=0.5)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=1)
 
         #repeat square lines with  pp_step1
             w = np.flatnonzero(np.diff(goodpixelsPre) > 1)
@@ -78,23 +78,26 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
             a, b = goodpixelsPre[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightgray')
         for k in goodpixelsPre[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=1)
     else:
         w = np.flatnonzero(np.diff(goodpixels) > 1)
         for wj in w:
             a, b = goodpixels[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightgray')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5, alpha=0.5)
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=1, alpha=0.7)
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.7)
     
-    plt.plot(x[goodpixels], goodpixels*0, '.k', ms=1)
+    plt.plot(x[goodpixels], goodpixels*0, 'k', lw=0.25)
     plt.plot(x, stars_bestfit, 'red', linewidth=0.5)
     ax2.set(xlabel='wavelength [Ang]', ylabel='Flux [normalised]')
     ax2.set(ylim=(mn,mx))
     ax2.tick_params(direction='in', which='both') 
     ax2.minorticks_on()
     ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
+
+    lmin, lmax = lamRange
+    ax2.set(xlim=(lmin, lmax))
 
     nmom = np.max(pp.moments)
 
@@ -466,6 +469,10 @@ def run_ppxf(
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
                                 + "_sfh_bin_"+str(i)+"_step3.pdf"))
 
+            outfigFile_step3_Hbeta = (
+                os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
+                             + "_sfh_bin_"+str(i)+"_step3_Hbeta.pdf"))
+
             #calculate mean age, metallicity, and alpha step 1
             mean_results_step3 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
 
@@ -482,6 +489,12 @@ def run_ppxf(
             # Plotting script currently doesnt account if the masking region is less than what was previously clipped
             plot_ppxf_sfh(pp, np.exp(logLam), i, outfigFile_step3, snrCubevar=snr_prefit, snrResid=snr_postfit, \
                           goodpixelsPre=[], mean_results=mean_results_step3)
+
+            # Plots Hbeta region
+
+            plot_ppxf_sfh(pp, np.exp(logLam), i, outfigFile_step3_Hbeta, snrCubevar=snr_prefit,
+                          snrResid=snr_postfit, figsize=(5, 3), lamRange=(4930, 5030))
+
 
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
         if nsims > 0:
