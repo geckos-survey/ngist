@@ -68,9 +68,9 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
         for wj in w:
             a, b = goodpixels[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightpink')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=1, alpha=0.7)
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5, alpha=0.7)
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=1)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=0.5)
 
         #repeat square lines with  pp_step1
             w = np.flatnonzero(np.diff(goodpixelsPre) > 1)
@@ -78,15 +78,15 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
             a, b = goodpixelsPre[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightgray')
         for k in goodpixelsPre[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=1)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
     else:
         w = np.flatnonzero(np.diff(goodpixels) > 1)
         for wj in w:
             a, b = goodpixels[wj : wj + 2]
             plt.axvspan(x[a], x[b], facecolor='lightgray')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=1, alpha=0.7)
+            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5, alpha=0.7)
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.7)
+            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
     
     plt.plot(x[goodpixels], goodpixels*0, 'k', lw=0.25)
     plt.plot(x, stars_bestfit, 'red', linewidth=0.5)
@@ -493,7 +493,7 @@ def run_ppxf(
             # Plots Hbeta region
 
             plot_ppxf_sfh(pp, np.exp(logLam), i, outfigFile_step3_Hbeta, snrCubevar=snr_prefit,
-                          snrResid=snr_postfit, figsize=(5, 3), lamRange=(4930, 5030))
+                          snrResid=snr_postfit, figsize=(5, 3), lamRange=(4820, 4920))
 
 
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
@@ -1218,6 +1218,7 @@ def extractStarFormationHistories(config):
                 snr_postfit[i],
                 red_chi2[i],
                 EBV[i],
+                mpolys[i],
             ) = run_ppxf(
                 templates,
                 bin_data[:,i],
