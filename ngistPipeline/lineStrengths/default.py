@@ -264,6 +264,42 @@ def saveCleanedLinearSpectra(spec, espec, wave, npix, config):
     logging.info("Wrote: " + outfits)
 
 
+def saveConvolvedLinearSpectra(spec, espec, wave, npix, config):
+    """Save emission-subtracted, linearly binned, convolved spectra to disk."""
+    outfits = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_ls_convolved_linear.fits"
+    )
+    printStatus.running(
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_convolved_linear.fits"
+    )
+
+    # Primary HDU
+    priHDU = fits.PrimaryHDU()
+
+    # Extension 1: Table HDU with cleaned, linear spectra
+    cols = []
+    cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=spec))
+    cols.append(fits.Column(name="ESPEC", format=str(npix) + "D", array=espec))
+    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    dataHDU.name = "CONVOLVED_SPECTRA"
+
+    # Extension 2: Table HDU with wave
+    cols = []
+    cols.append(fits.Column(name="LAM", format="D", array=wave))
+    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    logLamHDU.name = "LAM"
+
+    # Create HDU list and write to file
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU])
+    HDUList.writeto(outfits, overwrite=True)
+
+    printStatus.updateDone(
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_convolved_linear.fits"
+    )
+    logging.info("Wrote: " + outfits)
+
+
 def log_unbinning(lamRange, spec, oversample=1, flux=True):
     """
     This function transforms logarithmically binned spectra back to linear
@@ -494,6 +530,9 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         printStatus.updateDone(
             "Broadening the spectra to LIS resolution", progressbar=False
         )
+    
+    # Save convolved, linear spectra
+    saveConvolvedLinearSpectra(spec, espec, wave, npix, config)
 
     # Get indices that are considered in SSP-conversion
     idx = np.where(tab["spp"] == 1)[0]
