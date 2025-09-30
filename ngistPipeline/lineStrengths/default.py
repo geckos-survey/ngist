@@ -471,6 +471,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         espec = np.array(hdu[1].data.ESPEC)
         wave = np.array(hdu[2].data.LAM)
         nbins = spec.shape[0]
+        npix = spec.shape[1]
 
     # Read PPXF results
     ppxf_data = fits.open(
@@ -531,8 +532,8 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             "Broadening the spectra to LIS resolution", progressbar=False
         )
     
-    # Save convolved, linear spectra
-    saveConvolvedLinearSpectra(spec, espec, wave, npix, config)
+        # Save convolved, linear spectra
+        saveConvolvedLinearSpectra(spec, espec, wave, npix, config)
 
     # Get indices that are considered in SSP-conversion
     idx = np.where(tab["spp"] == 1)[0]
