@@ -218,7 +218,7 @@ def lsindex(ll, flux_in, noise, z, lickfile, plot=0, sims=0, z_err=0):
         # Get STD of distribution (index error)
         index_error = numpy.std(index_noise, axis=1)
 
-    return names, index, index_error
+    return names, index, index_error, index_noise
 
 
 # ==============================================================================

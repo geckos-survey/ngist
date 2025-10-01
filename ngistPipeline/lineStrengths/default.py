@@ -80,7 +80,7 @@ def run_ls(
 
     try:
         # Measure the LS indices
-        names, indices, errors = lsindex.lsindex(
+        names, indices, errors, mc_chains = lsindex.lsindex(
             wave,
             spec,
             espec,
@@ -123,7 +123,7 @@ def run_ls(
 
             percentiles = np.percentile(chains, np.arange(101), axis=0)
 
-            return (indices, errors, vals, percentiles)
+            return (indices, errors, vals, percentiles, mc_chains)
 
         elif MCMC == False:
             return (indices, errors)
@@ -332,6 +332,7 @@ def log_unbinning(lamRange, spec, oversample=1, flux=True):
 
         specNew[j] = np.sum(spec[k[j] : k[j + 1]]) - a * spec[k[j]] - b * spec[k[j + 1]]
 
+
     # Rescale flux
     if flux == True:
         specNew = (
@@ -425,14 +426,35 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         idx_lamMax = np.where(binned_loglam_data[-1] == binned_eloglam_data)[0]
         idx_lam = np.arange(idx_lamMin, idx_lamMax + 1)
         oldspec = np.array(binned_spec_data)
-        oldespec = np.sqrt(np.array(binned_espec_data)[:, idx_lam])
+        oldespec = np.sqrt(np.array(binned_espec_data)[:, idx_lam]) * 0.001  # Scale errors to near-zero #np.sqrt(np.array(binned_espec_data)[:, idx_lam])
         wave = np.array(binned_loglam_data)
+
+        print("")
+        print("=" * 60)
+        print("DIAGNOSTIC: Error Spectrum Statistics")
+        print("=" * 60)
+        # Calculate S/N for each bin
+        sn_per_bin = oldspec / oldespec
+        median_sn = np.median(sn_per_bin[np.isfinite(sn_per_bin)])
+        print(f"Median S/N across all bins: {median_sn:.2f}")
+        print(f"S/N range: {np.nanmin(sn_per_bin):.2f} to {np.nanmax(sn_per_bin):.2f}")
+        print(f"Error spectrum (oldespec) range: {np.nanmin(oldespec):.4e} to {np.nanmax(oldespec):.4e}")
+        print(f"Median error spectrum value: {np.nanmedian(oldespec):.4e}")
+        print(f"Flux spectrum (oldspec) range: {np.nanmin(oldspec):.4e} to {np.nanmax(oldspec):.4e}")
+        print(f"Median flux spectrum value: {np.nanmedian(oldspec):.4e}")
+        print("")
+        print("Expected S/N for line strength measurements: 20-100+")
+        print("If S/N is much lower, uncertainties will be large")
+        print("=" * 60)
+        print("")
 
         nbins = oldspec.shape[0]
         npix = oldspec.shape[1]
         lamRange = np.array([wave[0], wave[-1]])
         spec = np.zeros(oldspec.shape)
         espec = np.zeros(oldespec.shape)
+        
+
 
         # Rebin the cleaned spectra from log to lin
         printStatus.running("Rebinning the spectra from log to lin")
@@ -452,6 +474,21 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         printStatus.updateDone(
             "Rebinning the error spectra from log to lin", progressbar=False
         )
+
+        # ===== DIAGNOSTIC 2: Check S/N after rebinning =====
+        print("")
+        print("=" * 60)
+        print("DIAGNOSTIC: After Log-to-Linear Rebinning")
+        print("=" * 60)
+        sn_after_rebin = spec / espec
+        median_sn_after = np.median(sn_after_rebin[np.isfinite(sn_after_rebin)])
+        print(f"Median S/N after rebinning: {median_sn_after:.2f}")
+        print(f"S/N range: {np.nanmin(sn_after_rebin):.2f} to {np.nanmax(sn_after_rebin):.2f}")
+        print("")
+        print("NOTE: S/N should remain roughly similar after rebinning")
+        print("Large changes may indicate error propagation issues")
+        print("=" * 60)
+        print("")
 
         # Save cleaned, linear spectra
         saveCleanedLinearSpectra(spec, espec, wave, npix, config)
@@ -483,6 +520,22 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     redshift[:, 0] = np.array(ppxf_data.V[:]) / cvel  # Redshift
     redshift[:, 1] = np.array(ppxf_data.FORM_ERR_V[:]) / cvel  # Error on redshift
     veldisp_kin = np.array(ppxf_data.SIGMA[:])
+
+    # ===== DIAGNOSTIC 3: Check redshift uncertainties =====
+    print("")
+    print("=" * 60)
+    print("DIAGNOSTIC: Redshift/Velocity Uncertainties")
+    print("=" * 60)
+    velocity_errors_kms = redshift[:, 1] * cvel
+    print(f"Median velocity error: {np.median(velocity_errors_kms):.2f} km/s")
+    print(f"Velocity error range: {np.min(velocity_errors_kms):.2f} to {np.max(velocity_errors_kms):.2f} km/s")
+    print(f"Median velocity: {np.median(redshift[:, 0] * cvel):.2f} km/s")
+    print(f"Median velocity dispersion: {np.median(veldisp_kin):.2f} km/s")
+    print("")
+    print("Expected velocity errors: ~5-50 km/s (depends on S/N)")
+    print("Large velocity errors will increase index uncertainties")
+    print("=" * 60)
+    print("")
 
     # Read file defining the LS bands
     lickfile = os.path.join(config["GENERAL"]["CONFIG_DIR"], config["LS"]["LS_FILE"])
