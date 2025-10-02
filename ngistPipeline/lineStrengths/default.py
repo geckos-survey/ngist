@@ -195,6 +195,7 @@ def save_ls(
     lsHDU.name = "LS_DATA"
 
     # Extension 2: Table HDU with percentiles
+    percentilesHDU = None
     if MCMC == True:
         cols = []
         nparam = len(labels)
@@ -207,14 +208,39 @@ def save_ls(
                 )
             )
         percentilesHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-        percentilesHDU.anem = "PERCENTILES"
+        percentilesHDU.name = "PERCENTILES"
 
+    # Extension 3: Table HDU with MC chains
+    mcChainsHDU = None 
+    if mc_chains is not None:
+        cols_mc = []
+        ndim = len(names)
+        for i in range(ndim):
+            # Check if this index has valid mc_chains data
+            if not np.all(np.isnan(mc_chains[:, i, :])):
+                cols_mc.append(
+                    fits.Column(
+                        name=names[i] + "_MC",
+                        format=str(mc_chains.shape[2]) + "D",
+                        array=mc_chains[:, i, :]
+                    )
+                )
+        if len(cols_mc) > 0:
+            mcChainsHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols_mc))
+            mcChainsHDU.name = "MC_CHAINS"
+    
     # Create HDUList
     if MCMC == False:
-        HDUList = fits.HDUList([priHDU, lsHDU])
+        if mcChainsHDU is not None:
+            HDUList = fits.HDUList([priHDU, lsHDU, mcChainsHDU])
+        else:
+            HDUList = fits.HDUList([priHDU, lsHDU])
     elif MCMC == True:
-        HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU])
-
+        if mcChainsHDU is not None:
+            HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU, mcChainsHDU])
+        else:
+            HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU])
+    
     # Write HDU list to file
     HDUList.writeto(outfits, overwrite=True)
 
@@ -227,32 +253,6 @@ def save_ls(
             "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_adap_res.fits"
         )
     logging.info("Wrote: " + outfits)
-
-    # Extension 3: Table HDU with MC chains
-    if mc_chains is not None:
-        cols_mc = []
-        for i in range(len(names)):
-            cols_mc.append(
-                fits.Column(
-                    name=names[i] + "_MC_CHAINS",
-                    format=str(config["LS"]["MC_LS"]) + "D",
-                    array=mc_chains[:, i, :]
-                )
-            )
-        mcChainsHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols_mc))
-        mcChainsHDU.name = "MC_CHAINS"
-        
-        # Update HDUList creation
-        if MCMC == False:
-            HDUList = fits.HDUList([priHDU, lsHDU, mcChainsHDU])
-        elif MCMC == True:
-            HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU, mcChainsHDU])
-    else:
-        # existing HDUList creation
-        if MCMC == False:
-            HDUList = fits.HDUList([priHDU, lsHDU])
-        elif MCMC == True:
-            HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU])
 
 
 
