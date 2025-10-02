@@ -122,18 +122,20 @@ def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixels
     plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
     plt.close()
 
-def clip_outliers(galaxy, bestfit, mask):
+def clip_outliers(galaxy, bestfit, mask, config):
     """
     Repeat the fit after clipping bins deviants more than 3*sigma in relative
     error until the bad bins don't change any more. This function uses eq.(34)
     of Cappellari (2023) https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.3273C
     """
+    sigma_threshold = config["SFH"].get("SIGMA_THRESHOLD", 3)
+
     while True:
         scale = galaxy[mask] @ bestfit[mask]/np.sum(bestfit[mask]**2)
         resid = scale*bestfit[mask] - galaxy[mask]
         err = robust_sigma(resid, zero=1)
         ok_old = mask
-        mask = np.abs(bestfit - galaxy) < 3*err
+        mask = np.abs(bestfit - galaxy) < sigma_threshold * err
         if np.array_equal(mask, ok_old):
             break
             
@@ -402,7 +404,7 @@ def run_ppxf(
             
             if doclean == True:
                 # Now use new function to clip outliers
-                mask = clip_outliers(log_bin_data, pp_step1.bestfit, mask)
+                mask = clip_outliers(log_bin_data, pp_step1.bestfit, mask, config)
                 # Add clipped pixels to the original masked emission lines regions and repeat the fit
                 mask &= mask0
 
