@@ -72,10 +72,8 @@ def run_ls(
     MCMC (bool): Flag for using MCMC algorithm
 
     Returns:
-    tuple: A tuple of indices, errors, vals, and percentiles
+    tuple: A tuple of indices, errors, and optionally vals, percentiles, and mc_chains
     """
-    # Display progress bar
-    # printStatus.progressBar(i, nbins, barLength=50)
     nindex = len(index_names)
 
     try:
@@ -126,13 +124,15 @@ def run_ls(
             return (indices, errors, vals, percentiles, mc_chains)
 
         elif MCMC == False:
-            return (indices, errors)
+            # CHANGED: Now also return mc_chains when MCMC == False
+            return (indices, errors, mc_chains)
 
     except:
         if MCMC == True:
-            return (np.nan, np.nan, np.nan, np.nan)
+            return (np.nan, np.nan, np.nan, np.nan, np.nan)
         elif MCMC == False:
-            return (np.nan, np.nan)
+            # CHANGED: Return consistent number of values in exception case
+            return (np.nan, np.nan, np.nan)
 
 
 def save_ls(
@@ -145,6 +145,7 @@ def save_ls(
     MCMC,
     totalFWHM_flag,
     config,
+    mc_chains=None, 
     vals=None,
     percentile=None,
 ):
@@ -226,6 +227,33 @@ def save_ls(
             "Writing: " + config["GENERAL"]["RUN_ID"] + "_ls_adap_res.fits"
         )
     logging.info("Wrote: " + outfits)
+
+    # Extension 3: Table HDU with MC chains
+    if mc_chains is not None:
+        cols_mc = []
+        for i in range(len(names)):
+            cols_mc.append(
+                fits.Column(
+                    name=names[i] + "_MC_CHAINS",
+                    format=str(config["LS"]["MC_LS"]) + "D",
+                    array=mc_chains[:, i, :]
+                )
+            )
+        mcChainsHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols_mc))
+        mcChainsHDU.name = "MC_CHAINS"
+        
+        # Update HDUList creation
+        if MCMC == False:
+            HDUList = fits.HDUList([priHDU, lsHDU, mcChainsHDU])
+        elif MCMC == True:
+            HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU, mcChainsHDU])
+    else:
+        # existing HDUList creation
+        if MCMC == False:
+            HDUList = fits.HDUList([priHDU, lsHDU])
+        elif MCMC == True:
+            HDUList = fits.HDUList([priHDU, lsHDU, percentilesHDU])
+
 
 
 def saveCleanedLinearSpectra(spec, espec, wave, npix, config):
@@ -605,6 +633,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
     # Arrays to store results
     ls_indices = np.zeros((nbins, len(names)))
     ls_errors = np.zeros((nbins, len(names)))
+    mc_chains_all = np.zeros((nbins, len(names), config["LS"]["MC_LS"]))
     if MCMC == True:
         vals = np.zeros((nbins, len(labels) * 3 + 2))
         percentile = np.zeros((nbins, 101, len(labels)))
@@ -684,9 +713,10 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
 
         for i in range(0, nbins):
-            ls_indices[i, :], ls_errors[i, :], *extra = ppxf_tmp[i]
             if MCMC == True:
-                vals[i, :], percentile[i, :, :] = extra
+                ls_indices[i, :], ls_errors[i, :], vals[i, :], percentile[i, :, :], mc_chains_all[i, :, :] = ppxf_tmp[i]
+            else:
+                ls_indices[i, :], ls_errors[i, :], mc_chains_all[i, :, :] = ppxf_tmp[i]
 
         printStatus.updateDone(
             "Running lineStrengths in parallel mode", progressbar=False
@@ -703,6 +733,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                     ls_errors[i, :],
                     vals[i, :],
                     percentile[i, :, :],
+                    mc_chains_all[i, :, :],
                 ) = run_ls(
                     wave,
                     spec[i, :],
@@ -722,7 +753,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
                 )
         elif MCMC == False:
             for i in range(nbins):
-                ls_indices[i, :], ls_errors[i, :] = run_ls(
+                ls_indices[i, :], ls_errors[i, :], mc_chains_all[i, :, :] = run_ls(
                     wave,
                     spec[i, :],
                     espec[i, :],
@@ -781,6 +812,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             MCMC,
             totalFWHM_flag,
             config,
+            mc_chains=mc_chains_all,
             vals=vals,
             percentile=percentile,
         )
@@ -795,6 +827,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
             MCMC,
             totalFWHM_flag,
             config,
+            mc_chains=mc_chains_all,
         )
 
     # Repeat analysis with adapted spectral resolution
