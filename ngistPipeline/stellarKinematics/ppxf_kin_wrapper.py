@@ -1041,6 +1041,8 @@ def extractStellarKinematics(config):
                 snr_postfit[i],
                 red_chi2[i],
                 EBV[i],
+                apolys[i, :],
+                mpolys[i, :],
             ) = run_ppxf(
                 templates,
                 bin_data[:, i],
