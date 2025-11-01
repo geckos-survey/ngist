@@ -208,6 +208,13 @@ def generate_emission_lines_templates(emldb, LamRange, config, logLam, eml_fwhm_
     nlinesdb=len(emldb)
     ntpl = nlinesdb - np.sum(ignore_line) - np.sum(tied_all)
 
+    # ! REMOVE Temporary fix for kinematic groups for 4800-5400
+    primary_line = (emldb['mode'] == 'f') & np.invert(ignore_line)
+    unique_kinematic_group = np.unique(
+        [m for m, ignore in zip(emldb['mode'], ignore_line) if m.startswith('k') and not ignore]
+    )
+    ntpl = np.sum(primary_line) + len(unique_kinematic_group)
+
     # Initialize the components
     comp = np.zeros(ntpl, dtype=int)-1
     vgrp = np.zeros(ntpl, dtype=int)-1
