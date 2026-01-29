@@ -4,6 +4,8 @@
 **Date:** 2025-01-29.  
 **Reviewer:** Automated code review (rigorous pass).
 
+**Status:** All recommended fixes from this report have been implemented and committed (see git log for commits: bug fixes, docstrings/comments, dead code removal, bare except → Exception, EW/saveContLineCube robustness).
+
 ---
 
 ## Executive summary
