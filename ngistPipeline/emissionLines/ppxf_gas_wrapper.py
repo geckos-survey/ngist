@@ -82,13 +82,11 @@ def _load_kin_stellar_continuum(config, logLam_galaxy, nbins, currentLevel):
             "KIN bin count does not match table BIN_ID; using gas-fit continuum"
         )
         return None
-    stellar_cont_spaxel = np.zeros((n_spaxels, npix))
-    for s in range(n_spaxels):
-        bid = int(bin_id[s])
-        if bid >= 0:
-            stellar_cont_spaxel[s, :] = stellar_cont_bin[bid, :]
-        else:
-            stellar_cont_spaxel[s, :] = np.nan
+    stellar_cont_spaxel = np.full((n_spaxels, npix), np.nan)
+    valid = bin_id >= 0
+    stellar_cont_spaxel[valid] = stellar_cont_bin[
+        bin_id[valid].astype(int), :
+    ]
     logging.info("Using stellar continuum from KIN module for equivalent width")
     return stellar_cont_spaxel
 

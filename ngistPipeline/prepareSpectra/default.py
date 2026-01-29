@@ -263,27 +263,24 @@ def applySpatialBins(binNum, spec, espec, velscale, flag):
 
 
 def spatialBinning(binNum, spec, error):
-    """Spectra belonging to the same spatial bin are added."""
+    """Spectra belonging to the same spatial bin are added (vectorized per bin)."""
     ubins = np.unique(binNum)
     nbins = len(ubins)
     npix = spec.shape[0]
+    # Map each spaxel to bin index 0..nbins-1; use mask per bin (avoids repeated np.where)
+    bin_idx = np.searchsorted(ubins, binNum)
     bin_data = np.zeros([npix, nbins])
     bin_error = np.zeros([npix, nbins])
     bin_flux = np.zeros(nbins)
 
     for i in range(nbins):
-        k = np.where(binNum == ubins[i])[0]
-        valbin = len(k)
-        if valbin == 1:
-            av_spec = spec[:, k]
-            av_err_spec = np.sqrt(error[:, k])
-        else:
-            av_spec = np.nansum(spec[:, k], axis=1)
-            av_err_spec = np.sqrt(np.sum(error[:, k], axis=1))
-
+        k = bin_idx == i
+        av_spec = np.nansum(spec[:, k], axis=1)
+        # error is variance; sum then sqrt for combined sigma
+        av_err_spec = np.sqrt(np.sum(error[:, k], axis=1))
         bin_data[:, i] = np.ravel(av_spec)
         bin_error[:, i] = np.ravel(av_err_spec)
-        bin_flux[i] = np.mean(av_spec, axis=0)
+        bin_flux[i] = np.mean(av_spec)
         printStatus.progressBar(i + 1, nbins, barLength=50)
 
     return (bin_data, bin_error, bin_flux)
