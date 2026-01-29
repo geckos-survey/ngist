@@ -51,30 +51,6 @@ def handleUncaughtException(exceptionType, exceptionValue, exceptionTraceback):
     print("")
 
 
-def convertConfigDataType(value):
-    """
-    Convert the configuration parameters from MasterConfig to the most suitable data type.
-    """
-    if value.lower() == "true":
-        return True
-    elif value.lower() == "false":
-        return False
-    elif value.lower() == "none":
-        return None
-    try:
-        return int(value)
-    except:
-        pass
-    try:
-        return float(value)
-    except:
-        pass
-    try:
-        return str(value)
-    except:
-        pass
-
-
 def readMasterConfig(filename, galindex):
     """
     Read the MasterConfig file and return all parameters as a config dictionary.
@@ -166,7 +142,7 @@ def loadConfig(outdir):
     Load configurations from a saved CONFIG file in the output directory of the current run.
     """
     with open(os.path.join(outdir, "CONFIG"), "r") as file:
-        loadedConfig = yaml.load(file, Loader=yaml.FullLoader)
+        loadedConfig = yaml.safe_load(file)
     return loadedConfig
 
 

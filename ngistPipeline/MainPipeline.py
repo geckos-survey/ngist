@@ -16,15 +16,12 @@ os.environ["OMP_NUM_THREADS"] = "1"
 import warnings
 
 import numpy as np
-from astropy.io import ascii, fits
-from scipy.interpolate import interp1d
 
 warnings.filterwarnings("ignore")
 import importlib.util
 import logging
 import optparse
 import sys
-import time
 
 import matplotlib
 
@@ -52,17 +49,6 @@ def skipGalaxy(config):
     printStatus.module("The nGIST pipeline")
     printStatus.failed("Galaxy is skipped!")
     logging.critical("Galaxy is skipped!")
-
-
-def numberOfGalaxies(filename):
-    """
-    Returns the number of galaxies to be analysed, as stated in the config file.
-    """
-    i = 0
-    for line in open(filename):
-        if not line.startswith("#"):
-            i = i + 1
-    return i
 
 
 def runGIST(dirPath, galindex):
@@ -212,8 +198,8 @@ def main(args=None):
         printStatus.failed("Config file at " + dirPath.configFile + " not found. Exit!")
         exit(1)
 
-    # Iterate over galaxies in Config-file
-    ngalaxies = 1  # numberOfGalaxies(dirPath.configFile) - 2 # Amelia changed this because she changed the format of the config file. We can revisit should we ever need to run more than one galaxy per config file
+    # Single-galaxy YAML config (one run per config file)
+    ngalaxies = 1
     if ngalaxies <= 0:
         message = "The number of runs defined in the config file seems to be 0. Exit."
         printStatus.failed(message)
