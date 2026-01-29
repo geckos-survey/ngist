@@ -317,7 +317,7 @@ def compute_equivalent_width(
         EW = integral[(F_cont - F_lambda) / F_cont] d_lambda
     
     For emission lines fit by pPXF with Gaussian profiles:
-        EW = -F_line / f_cont(lambda_line)
+        EW = F_line / f_cont(lambda_line)
     
     where F_line is the integrated line flux and f_cont is the 
     continuum flux density at the line center. When stellar_continuum
@@ -325,9 +325,8 @@ def compute_equivalent_width(
     used for f_cont; otherwise the continuum is derived from
     (bestfit - gas_bestfit).
     
-    Convention: Negative EW for emission (flux above continuum),
-                Positive EW for absorption (flux below continuum).
-    This follows the standard astronomical convention.
+    Convention: Positive EW for emission (flux above continuum),
+                Negative EW for absorption (flux below continuum).
     
     Parameters
     ----------
@@ -351,7 +350,7 @@ def compute_equivalent_width(
     Returns
     -------
     ew : ndarray (nbins, nlines)
-        Equivalent width in Angstroms (negative for emission)
+        Equivalent width in Angstroms (positive for emission)
     ew_err : ndarray (nbins, nlines)
         EW uncertainty in Angstroms
     cont_at_line : ndarray (nbins, nlines)
@@ -398,13 +397,12 @@ def compute_equivalent_width(
         # Store continuum at line position
         cont_at_line[:, i_line] = f_cont
         
-        # Compute EW: EW = -F_line / f_cont
-        # Negative sign gives negative EW for emission lines
+        # Compute EW: EW = F_line / f_cont (positive for emission)
         # Handle division by zero or negative continuum
         with np.errstate(divide='ignore', invalid='ignore'):
             ew[:, i_line] = np.where(
                 f_cont > 0,
-                -gas_flux_in_units[:, i_line] / f_cont,
+                gas_flux_in_units[:, i_line] / f_cont,
                 np.nan
             )
         

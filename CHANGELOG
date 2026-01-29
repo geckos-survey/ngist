@@ -6,6 +6,13 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.4.1       2026-01-29 CHANGED: Equivalent Width (EW) sign convention so emission is positive.
+			 EW is now computed as: EW = F_line / f_cont(λ_line)
+			 Convention: Positive EW for emission lines (flux above continuum),
+			              Negative EW for absorption (flux below continuum).
+			 Output columns {LINE}_EW and {LINE}_EW_ERR are unchanged in name;
+			 only the sign of emission EWs is flipped from previous V7.4.0.
+
 V7.4.0       2026-01-29 ADDED: Equivalent Width (EW) computation for all emission lines
 			 in both pPXF and GandALF gas fitting methods.
 			 

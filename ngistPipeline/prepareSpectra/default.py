@@ -8,6 +8,23 @@ from ppxf.ppxf_util import log_rebin
 from printStatus import printStatus
 
 
+def get_input_bunit(config):
+    """
+    Read BUNIT from the input cube FITS if present (any of ext 0, 1, 2).
+    Used to propagate flux/data units to HDF5 metadata. Returns None if not found.
+    """
+    try:
+        with fits.open(config["GENERAL"]["INPUT"], memmap=True) as h:
+            for ext in (0, 1, 2):
+                if ext >= len(h):
+                    continue
+                if "BUNIT" in h[ext].header:
+                    return str(h[ext].header["BUNIT"]).strip()
+    except Exception:
+        pass
+    return None
+
+
 def prepSpectra(config, cube):
     """
     This function performs the following tasks:
@@ -48,6 +65,7 @@ def prepSpectra(config, cube):
         config["PREPARE_SPECTRA"]["VELSCALE"],
         cube["wave"],
         "lin",
+        bunit=cube.get("bunit"),
     )
 
     # Log-rebin spectra
@@ -57,8 +75,9 @@ def prepSpectra(config, cube):
     # Save all log-rebinned spectra only if running in full spaxel mode
     if config["GAS"]["LEVEL"] == "SPAXEL":
         saveAllSpectra(
-            config, log_spec, log_error, config["PREPARE_SPECTRA"]["VELSCALE"], logLam
-            )
+            config, log_spec, log_error, config["PREPARE_SPECTRA"]["VELSCALE"], logLam,
+            bunit=cube.get("bunit"),
+        )
 
     # Apply bins to log spectra
     bin_data, bin_error, bin_flux = applySpatialBins(
@@ -76,6 +95,7 @@ def prepSpectra(config, cube):
         config["PREPARE_SPECTRA"]["VELSCALE"],
         logLam,
         "log",
+        bunit=cube.get("bunit"),
     )
 
     return None
@@ -153,7 +173,7 @@ def run_log_rebinning(
     return (log_binned_data, log_lam)
 
 
-def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
+def saveAllSpectra(config, log_spec, log_error, velscale, logLam, bunit=None):
     """
     Save all logarithmically rebinned spectra to file.
 
@@ -163,10 +183,13 @@ def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
         log_error (numpy.ndarray): Logarithmically rebinned error spectra.
         velscale (float): Velocity scale.
         logLam (numpy.ndarray): Logarithmically rebinned wavelength array.
+        bunit (str, optional): Data unit from input cube (e.g. BUNIT); propagated to metadata.
 
     Returns:
         None
     """
+    if bunit is None:
+        bunit = get_input_bunit(config)
 
     outfn_spectra = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
@@ -194,6 +217,10 @@ def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
         f.attrs["CRPIX1"] = 1.0
         f.attrs["CRVAL1"] = logLam[0]
         f.attrs["CDELT1"] = logLam[1] - logLam[0]
+        if bunit is not None:
+            f.attrs["BUNIT"] = bunit
+            spec_dset.attrs["BUNIT"] = bunit
+            espec_dset.attrs["BUNIT"] = bunit
 
     printStatus.updateDone(
         "Writing: " + config["GENERAL"]["RUN_ID"] + "_AllSpectra.hdf5"
@@ -201,8 +228,11 @@ def saveAllSpectra(config, log_spec, log_error, velscale, logLam):
     logging.info("Wrote: " + outfn_spectra)
 
 
-def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag):
-    """Save spatially binned spectra and error spectra are saved to disk."""
+def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag, bunit=None):
+    """Save spatially binned spectra and error spectra to disk. Optionally set BUNIT metadata from input cube."""
+    if bunit is None:
+        bunit = get_input_bunit(config)
+
     outfile = os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
 
     if flag == "log":
@@ -236,6 +266,10 @@ def saveBinSpectra(config, log_spec, log_error, velscale, logLam, flag):
         f.attrs['CRPIX1'] = 1.0
         f.attrs['CRVAL1'] = logLam[0]
         f.attrs['CDELT1'] = logLam[1] - logLam[0]
+        if bunit is not None:
+            f.attrs["BUNIT"] = bunit
+            spec_dset.attrs["BUNIT"] = bunit
+            espec_dset.attrs["BUNIT"] = bunit
 
     if flag == "log":
         printStatus.updateDone(

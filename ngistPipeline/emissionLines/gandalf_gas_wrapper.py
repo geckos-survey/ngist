@@ -241,7 +241,7 @@ def compute_equivalent_width_gandalf(
     Compute equivalent width for emission lines from GandALF output.
     
     The equivalent width is defined as:
-        EW = -F_line / f_cont(lambda_line)
+        EW = F_line / f_cont(lambda_line)
     
     where F_line is the integrated line flux (GandALF sol column 0 for each line)
     and f_cont is the continuum flux density at the line center. When
@@ -249,8 +249,8 @@ def compute_equivalent_width_gandalf(
     it is used for f_cont; otherwise the continuum is derived from
     (bestfit - emissionSpectra).
     
-    Convention: Negative EW for emission (flux above continuum),
-                Positive EW for absorption.
+    Convention: Positive EW for emission (flux above continuum),
+                Negative EW for absorption.
     
     Parameters
     ----------
@@ -275,7 +275,7 @@ def compute_equivalent_width_gandalf(
     Returns
     -------
     ew : ndarray (nbins, nlines)
-        Equivalent width in Angstroms (negative for emission)
+        Equivalent width in Angstroms (positive for emission)
     ew_err : ndarray (nbins, nlines)
         EW uncertainty (simplified estimate)
     cont_at_line : ndarray (nbins, nlines)
@@ -319,12 +319,11 @@ def compute_equivalent_width_gandalf(
         # Store continuum at line position
         cont_at_line[:, i] = f_cont
         
-        # Compute EW: EW = -F_line / f_cont
-        # Negative sign gives negative EW for emission lines
+        # Compute EW: EW = F_line / f_cont (positive for emission)
         with np.errstate(divide='ignore', invalid='ignore'):
             ew[:, i] = np.where(
                 f_cont > 0,
-                -flux_line / f_cont,
+                flux_line / f_cont,
                 np.nan
             )
         

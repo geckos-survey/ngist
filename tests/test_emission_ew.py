@@ -16,7 +16,7 @@ from ngistPipeline.emissionLines.ppxf_gas_wrapper import (
 
 
 def test_compute_equivalent_width_without_kin_continuum():
-    """EW from gas-fit continuum (bestfit - gas_bestfit) gives negative EW for emission."""
+    """EW from gas-fit continuum (bestfit - gas_bestfit) gives positive EW for emission."""
     npix = 100
     nbins = 3
     nlines = 2
@@ -50,8 +50,8 @@ def test_compute_equivalent_width_without_kin_continuum():
     assert ew.shape == (nbins, nlines)
     assert ew_err.shape == (nbins, nlines)
     assert cont_at_line.shape == (nbins, nlines)
-    # Emission lines: EW should be negative (or NaN where f_cont <= 0)
-    assert np.all(ew[np.isfinite(ew)] <= 0) or np.any(np.isfinite(ew))
+    # Emission lines: EW should be positive (or NaN where f_cont <= 0)
+    assert np.all(ew[np.isfinite(ew)] >= 0) or np.any(np.isfinite(ew))
     assert np.all(np.isfinite(cont_at_line) | (cont_at_line == 0))
 
 
@@ -84,7 +84,7 @@ def test_compute_equivalent_width_with_kin_continuum():
 
     assert ew.shape == (nbins, nlines)
     assert np.any(np.isfinite(ew))
-    assert np.all(ew[np.isfinite(ew)] <= 0)
+    assert np.all(ew[np.isfinite(ew)] >= 0)
 
 
 def test_load_kin_stellar_continuum_missing_file():

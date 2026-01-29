@@ -436,6 +436,17 @@ def saveContLineCube(config):
     elif "NAXIS1" not in cubehdr:
         cubehdr = fits.getheader(config["GENERAL"]["INPUT"], ext=2)
 
+    # Propagate BUNIT and CUNIT3 from input if present (metadata only; no data conversion)
+    with fits.open(config["GENERAL"]["INPUT"], memmap=True) as inhdu:
+        for ext in (0, 1, 2):
+            if ext >= len(inhdu):
+                continue
+            h = inhdu[ext].header
+            if "BUNIT" in h and "BUNIT" not in cubehdr:
+                cubehdr["BUNIT"] = h["BUNIT"]
+            if "CUNIT3" in h and "CUNIT3" not in cubehdr:
+                cubehdr["CUNIT3"] = h["CUNIT3"]
+
     NX = cubehdr["NAXIS1"]
     NY = cubehdr["NAXIS2"]
 

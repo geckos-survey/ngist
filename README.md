@@ -13,6 +13,8 @@ Documentation
 For a detailed documentation of the nGIST pipeline, including instructions on installation and configuration, 
 please see [https://geckos-survey.github.io/gist-documentation/](https://geckos-survey.github.io/gist-documentation/)
 
+A description of all **data products** produced by the pipeline (file naming, format, structure, and units) for scientific reproducibility is given in [PRODUCTS.md](PRODUCTS.md).
+
 Usage 
 -------------
 

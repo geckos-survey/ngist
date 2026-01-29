@@ -165,6 +165,11 @@ def readCube(config):
         + "A."
     )
 
+    # Propagate data-unit metadata from input (BUNIT) for downstream FITS/HDF5 products
+    bunit = hdr.get("BUNIT")
+    if bunit is not None:
+        bunit = str(bunit).strip()
+
     # Storing everything into a structure
     cube = {
         "x": x,
@@ -177,6 +182,7 @@ def readCube(config):
         "noise": noise,
         "pixelsize": pixelsize,
         "wcshdr": wcshdr,
+        "bunit": bunit,
     }
 
     # Constrain cube to one central row if switch DEBUG is set
