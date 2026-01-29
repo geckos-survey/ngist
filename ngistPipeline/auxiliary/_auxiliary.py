@@ -19,9 +19,9 @@ module.
 
 def getLSF(config, module_used):
     """
-    Function to read the given LSF's from file.
-    Added option of module = 'KIN', 'CONT', 'GAS', 'SFH', or 'LS'
-    to account for differing template sets for the same run
+    Read the given LSF from file for the specified module.
+    module_used: 'KIN', 'CONT', 'GAS', 'SFH', 'LS', or 'UMOD'
+    to account for differing template sets for the same run.
     """
     # Read LSF of observation and templates and construct an interpolation function
     lsfDataFile = os.path.join(
@@ -181,7 +181,8 @@ def addGISTHeaderComment(config):
 
 def saveConfigToHeader(hdu, config):
     """
-    Save the used section of the MasterConfig file to the header of the output data.
+    Write each key-value pair of the given config subsection into the FITS header.
+    config should be a dict of header-compatible (scalar/string) values.
     """
     for i in config.keys():
         hdu.header[i] = config[i]

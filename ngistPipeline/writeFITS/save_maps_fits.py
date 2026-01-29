@@ -434,7 +434,7 @@ def saveContLineCube(config):
     spectra_all = spectra_all[idx_lam, :]
     linLam = linLam[idx_lam]
 
-    # get PPXF best fit continuum from kinematics module
+    # Get PPXF best-fit continuum from CONT (continuum) module
     ppxf_bestfit = fits.open(
         os.path.join(
             config["GENERAL"]["OUTPUT"],
@@ -443,7 +443,7 @@ def saveContLineCube(config):
     )[1].data.BESTFIT
     printStatus.running("Opening: -kin-bestfit-cont.fits")
     
-    # ABW get logLam from best fit (continuum/kinematics) module outputs ##:OLD:get logLam from Bin Spectra HDU
+    # Get logLam from CONT module best-fit output
     logLam = fits.open(
         os.path.join(
             config["GENERAL"]["OUTPUT"],

@@ -77,7 +77,8 @@ def convertConfigDataType(value):
 
 def readMasterConfig(filename, galindex):
     """
-    Read the MasterConfig file and stores all parameters in the configs dictionary.
+    Read the MasterConfig file and return all parameters as a config dictionary.
+    galindex is accepted for API compatibility but not used (single-galaxy YAML).
     """
     # Amelia edited this module to instead of reading in the old MasterConfig, to read in MasterConfig.yaml
     with open(filename, "r") as f:
@@ -88,7 +89,7 @@ def readMasterConfig(filename, galindex):
 
 def addPathsToConfig(
     config, dirPath
-):  # Amrlia - I *think* the input here is the dictionary...
+):  # Amelia: input is the config dictionary
     """
     Combine the configuration parameters from MasterConfig with the paths specified as command line arguments.
 

@@ -49,7 +49,7 @@ from ngistPipeline.userModules import _userModules
 
 def skipGalaxy(config):
     # _auxiliary.addGISTHeaderComment(config)
-    printStatus.module("The GIST pipeline")
+    printStatus.module("The nGIST pipeline")
     printStatus.failed("Galaxy is skipped!")
     logging.critical("Galaxy is skipped!")
 
