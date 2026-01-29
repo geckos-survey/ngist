@@ -53,17 +53,21 @@ def savefitsmaps(module_id, method_id, outdir=""):
     rootname = outdir.rstrip("/").split("/")[-1]
 
     # Read bintable
-    table_hdu = fits.open(os.path.join(outdir, rootname) + "_table.fits")
-    idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
-    X = np.array(table_hdu[1].data.X) * -1
-    Y = np.array(table_hdu[1].data.Y)
-    FLUX = np.array(table_hdu[1].data.FLUX)
-    XBIN = np.array(table_hdu[1].data.XBIN)
-    YBIN = np.array(table_hdu[1].data.YBIN)
-    binNum_long = np.array(table_hdu[1].data.BIN_ID)
-    ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
-    pixelsize = table_hdu[0].header["PIXSIZE"]
-    oldwcshdr = table_hdu[2].header.copy()
+    with fits.open(
+        os.path.join(outdir, rootname) + "_table.fits", memmap=True
+    ) as table_hdu:
+        idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
+        X = np.array(table_hdu[1].data.X) * -1
+        Y = np.array(table_hdu[1].data.Y)
+        FLUX = np.array(table_hdu[1].data.FLUX)
+        XBIN = np.array(table_hdu[1].data.XBIN)
+        YBIN = np.array(table_hdu[1].data.YBIN)
+        binNum_long = np.array(table_hdu[1].data.BIN_ID)
+        ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
+        pixelsize = table_hdu[0].header["PIXSIZE"]
+        oldwcshdr = table_hdu[2].header.copy()
+        SNR = np.array(table_hdu[1].data.SNR)
+        SNRBIN = np.array(table_hdu[1].data.SNRBIN)
 
     # update WCS
     wcs = WCS(oldwcshdr).celestial
@@ -82,10 +86,7 @@ def savefitsmaps(module_id, method_id, outdir=""):
 
     # Read Results
     if module_id == "SPATIAL_BINNING":
-        # Most table results are already read in; add SN
-        SNR          = np.array(table_hdu[1].data.SNR)
-        SNRBIN       = np.array(table_hdu[1].data.SNRBIN)
-
+        # Most table results already read from table_hdu above
         #define names
         names = ["BINID","FLUX","SNR","SNRBIN","XBIN","YBIN"]
 
@@ -99,32 +100,36 @@ def savefitsmaps(module_id, method_id, outdir=""):
 
     elif module_id == "KIN":
         # read results
-        hdu = fits.open(os.path.join(outdir, rootname) + "_kin.fits")
-        names = list(hdu[1].data.dtype.names)
-
-        result = np.zeros((len(ubins), len(names)))
-        for i, name in enumerate(names):
-            result[:, i] = np.array(hdu[1].data[name])
+        with fits.open(
+            os.path.join(outdir, rootname) + "_kin.fits", memmap=True
+        ) as hdu:
+            names = list(hdu[1].data.dtype.names)
+            result = np.zeros((len(ubins), len(names)))
+            for i, name in enumerate(names):
+                result[:, i] = np.array(hdu[1].data[name])
 
     elif module_id == "SFH":
         # Read results
-        sfh_hdu = fits.open(os.path.join(outdir, rootname) + "_sfh.fits")
-        names = list(sfh_hdu[1].data.dtype.names)
-
-        result = np.zeros((len(ubins), len(names)))
-        for i, name in enumerate(names):
-            result[:, i] = np.array(sfh_hdu[1].data[name])
+        with fits.open(
+            os.path.join(outdir, rootname) + "_sfh.fits", memmap=True
+        ) as sfh_hdu:
+            names = list(sfh_hdu[1].data.dtype.names)
+            result = np.zeros((len(ubins), len(names)))
+            for i, name in enumerate(names):
+                result[:, i] = np.array(sfh_hdu[1].data[name])
     
     elif module_id == "UMOD":
         if method_id == "twocomp_ppxf":
             # read results
             print(outdir, rootname)
-            hdu = fits.open(os.path.join(outdir, rootname) + "_twocomp_kin.fits")
-            names = list(hdu[1].data.dtype.names)
-
-            result = np.zeros((len(ubins), len(names)))
-            for i, name in enumerate(names):
-                result[:, i] = np.array(hdu[1].data[name])
+            with fits.open(
+                os.path.join(outdir, rootname) + "_twocomp_kin.fits",
+                memmap=True,
+            ) as hdu:
+                names = list(hdu[1].data.dtype.names)
+                result = np.zeros((len(ubins), len(names)))
+                for i, name in enumerate(names):
+                    result[:, i] = np.array(hdu[1].data[name])
         else:
             printStatus.warning(
             "UMOD Method not recognised for saving maps"
@@ -196,19 +201,24 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
     rootname = outdir.rstrip("/").split("/")[-1]
 
     # Construct a mask for defunct spaxels
-    mask = fits.open(os.path.join(outdir, rootname) + "_mask.fits")[1].data.MASK_DEFUNCT
+    with fits.open(
+        os.path.join(outdir, rootname) + "_mask.fits", memmap=True
+    ) as mhdu:
+        mask = mhdu[1].data.MASK_DEFUNCT
     maskedSpaxel = np.array(mask, dtype=bool)
 
     # Read bintable
-    table_hdu = fits.open(os.path.join(outdir, rootname) + "_table.fits")
-    idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
-    X = np.array(table_hdu[1].data.X) * -1
-    Y = np.array(table_hdu[1].data.Y)
-    FLUX = np.array(table_hdu[1].data.FLUX)
-    binNum_long = np.array(table_hdu[1].data.BIN_ID)
-    ubins = np.unique(np.abs(binNum_long))
-    pixelsize = table_hdu[0].header["PIXSIZE"]
-    oldwcshdr = table_hdu[2].header.copy()
+    with fits.open(
+        os.path.join(outdir, rootname) + "_table.fits", memmap=True
+    ) as table_hdu:
+        idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
+        X = np.array(table_hdu[1].data.X) * -1
+        Y = np.array(table_hdu[1].data.Y)
+        FLUX = np.array(table_hdu[1].data.FLUX)
+        binNum_long = np.array(table_hdu[1].data.BIN_ID)
+        ubins = np.unique(np.abs(binNum_long))
+        pixelsize = table_hdu[0].header["PIXSIZE"]
+        oldwcshdr = table_hdu[2].header.copy()
 
     # update WCS
     wcs = WCS(oldwcshdr).celestial
@@ -228,11 +238,15 @@ def savefitsmaps_GASmodule(module_id="GAS", outdir="", LEVEL="", AoNThreshold=4)
         )
 
     if LEVEL == "SPAXEL":
-        results = fits.open(os.path.join(outdir, rootname) + "_gas_SPAXEL.fits")[
-            1
-        ].data#[~maskedSpaxel]
+        gas_hdu = fits.open(
+            os.path.join(outdir, rootname) + "_gas_SPAXEL.fits", memmap=True
+        )
+        results = gas_hdu[1].data
     elif LEVEL == "BIN":
-        results = fits.open(os.path.join(outdir, rootname) + "_gas_BIN.fits")[1].data
+        gas_hdu = fits.open(
+            os.path.join(outdir, rootname) + "_gas_BIN.fits", memmap=True
+        )
+        results = gas_hdu[1].data
     elif LEVEL == None:
         print("LEVEL keyword not set!")
 
@@ -312,15 +326,17 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
     rootname = outdir.rstrip("/").split("/")[-1]
 
     # Read bintable
-    table_hdu = fits.open(os.path.join(outdir, rootname) + "_table.fits")
-    idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
-    X = np.array(table_hdu[1].data.X) * -1
-    Y = np.array(table_hdu[1].data.Y)
-    FLUX = np.array(table_hdu[1].data.FLUX)
-    binNum_long = np.array(table_hdu[1].data.BIN_ID)
-    ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
-    pixelsize = table_hdu[0].header["PIXSIZE"]
-    oldwcshdr = table_hdu[2].header.copy()
+    with fits.open(
+        os.path.join(outdir, rootname) + "_table.fits", memmap=True
+    ) as table_hdu:
+        idx_inside = np.where(table_hdu[1].data.BIN_ID >= 0)[0]
+        X = np.array(table_hdu[1].data.X) * -1
+        Y = np.array(table_hdu[1].data.Y)
+        FLUX = np.array(table_hdu[1].data.FLUX)
+        binNum_long = np.array(table_hdu[1].data.BIN_ID)
+        ubins = np.unique(np.abs(np.array(table_hdu[1].data.BIN_ID)))
+        pixelsize = table_hdu[0].header["PIXSIZE"]
+        oldwcshdr = table_hdu[2].header.copy()
 
     # update WCS
     wcs = WCS(oldwcshdr).celestial
@@ -339,15 +355,14 @@ def savefitsmaps_LSmodule(module_id="LS", outdir="", RESOLUTION=""):
 
     # Read results
     if RESOLUTION == "ORIGINAL":
-        hdu = fits.open(os.path.join(outdir, rootname) + "_ls_OrigRes.fits")
-    elif RESOLUTION == "ADAPTED":
-        hdu = fits.open(os.path.join(outdir, rootname) + "_ls_AdapRes.fits")
-
-    names = list(hdu[1].data.dtype.names)
-
-    result = np.zeros((len(ubins), len(names)))
-    for i, name in enumerate(names):
-        result[:, i] = np.array(hdu[1].data[name])
+        kin_path = os.path.join(outdir, rootname) + "_ls_OrigRes.fits"
+    else:
+        kin_path = os.path.join(outdir, rootname) + "_ls_AdapRes.fits"
+    with fits.open(kin_path, memmap=True) as hdu:
+        names = list(hdu[1].data.dtype.names)
+        result = np.zeros((len(ubins), len(names)))
+        for i, name in enumerate(names):
+            result[:, i] = np.array(hdu[1].data[name])
 
     # Convert results to long version
     result_long = np.zeros((len(binNum_long), result.shape[1]))
@@ -434,36 +449,29 @@ def saveContLineCube(config):
     spectra_all = spectra_all[idx_lam, :]
     linLam = linLam[idx_lam]
 
-    # Get PPXF best-fit continuum from CONT (continuum) module
-    ppxf_bestfit = fits.open(
-        os.path.join(
-            config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-    )[1].data.BESTFIT
+    # Get PPXF best-fit continuum and logLam from CONT module
+    cont_path = os.path.join(
+        config["GENERAL"]["OUTPUT"],
+        config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
+    )
     printStatus.running("Opening: -kin-bestfit-cont.fits")
-    
-    # Get logLam from CONT module best-fit output
-    logLam = fits.open(
-        os.path.join(
-            config["GENERAL"]["OUTPUT"],
-            config["GENERAL"]["RUN_ID"] + "_kin-bestfit-cont.fits",
-        )
-    )[2].data.LOGLAM
+    with fits.open(cont_path, memmap=True) as cont_hdu:
+        ppxf_bestfit = np.array(cont_hdu[1].data.BESTFIT)
+        logLam = np.array(cont_hdu[2].data.LOGLAM)
 
     # table HDU
-    tablehdu = fits.open(
+    with fits.open(
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_table.fits"
-    )
-
-    spaxID = np.array(tablehdu[1].data.ID)
-    binID = np.array(tablehdu[1].data.BIN_ID)
-    ubins = np.unique(np.abs(binID[binID >= 0]))
-    if len(ubins) == 0:
-        ubins = np.unique(np.abs(binID))
-    # Map BIN_ID -> row index in ppxf_bestfit (same order as CONT module / BinSpectra)
-    bin_id_to_idx = {int(b): i for i, b in enumerate(ubins)}
+        + "_table.fits",
+        memmap=True,
+    ) as tablehdu:
+        spaxID = np.array(tablehdu[1].data.ID)
+        binID = np.array(tablehdu[1].data.BIN_ID)
+        ubins = np.unique(np.abs(binID[binID >= 0]))
+        if len(ubins) == 0:
+            ubins = np.unique(np.abs(binID))
+        # Map BIN_ID -> row index in ppxf_bestfit (same order as CONT module / BinSpectra)
+        bin_id_to_idx = {int(b): i for i, b in enumerate(ubins)}
 
     contCube = np.full([len(linLam), NY * NX], np.nan)
     lineCube = np.full([len(linLam), NY * NX], np.nan)

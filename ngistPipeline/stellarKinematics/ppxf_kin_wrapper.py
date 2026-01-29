@@ -624,12 +624,14 @@ def extractStellarKinematics(config):
             + config["GENERAL"]["RUN_ID"]
             + "_kin-guess.fits' as initial guesses"
         )
-        guess = fits.open(
+        with fits.open(
             os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-            + "_kin-guess.fits"
-        )[1].data
-        start[:, 0] = guess.V
-        start[:, 1] = guess.SIGMA
+            + "_kin-guess.fits",
+            memmap=True,
+        ) as guess_hdu:
+            guess = guess_hdu[1].data
+            start[:, 0] = guess.V
+            start[:, 1] = guess.SIGMA
     else:
         # Use the same initial guess for all bins, as stated in MasterConfig
         printStatus.done(

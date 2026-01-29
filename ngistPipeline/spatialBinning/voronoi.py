@@ -66,7 +66,7 @@ def generateSpatialBins(config, cube):
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
         + "_mask.fits"
     )
-    mask = fits.open(maskfile)[1].data.MASK
+    mask = fits.open(maskfile, memmap=True)[1].data.MASK
     idxUnmasked = np.where(mask == 0)[0]
     idxMasked = np.where(mask == 1)[0]
 
