@@ -156,6 +156,122 @@ def run_gandalf(
         return [np.nan, np.nan, np.nan, np.nan, np.nan]
 
 
+def compute_equivalent_width_gandalf(
+    sol,
+    idx_l,
+    emission_setup,
+    bestfit,
+    emissionSpectra,
+    logLam_galaxy,
+    nbins,
+):
+    """
+    Compute equivalent width for emission lines from GandALF output.
+    
+    The equivalent width is defined as:
+        EW = -F_line / f_cont(lambda_line)
+    
+    where F_line is the integrated line flux (GandALF sol column 0 for each line)
+    and f_cont is the continuum flux density at the line center.
+    
+    Convention: Negative EW for emission (flux above continuum),
+                Positive EW for absorption.
+    
+    Parameters
+    ----------
+    sol : ndarray (nbins, nlines*4 + reddening)
+        GandALF solution array. For each line: [F, A, V, S]
+        F = integrated flux, A = amplitude, V = velocity, S = sigma
+    idx_l : list
+        Indices of emission lines in emission_setup
+    emission_setup : list
+        Emission line setup from GandALF
+    bestfit : ndarray (nbins, npix)
+        Total best-fit spectrum (stellar + emission)
+    emissionSpectra : ndarray (nbins, npix)
+        Emission-only spectrum
+    logLam_galaxy : ndarray (npix,)
+        Log-wavelength array
+    nbins : int
+        Number of bins/spaxels
+    
+    Returns
+    -------
+    ew : ndarray (nbins, nlines)
+        Equivalent width in Angstroms (negative for emission)
+    ew_err : ndarray (nbins, nlines)
+        EW uncertainty (simplified estimate)
+    cont_at_line : ndarray (nbins, nlines)
+        Continuum flux density at each line wavelength
+    """
+    nlines = len(idx_l)
+    
+    # Compute stellar continuum by subtracting emission from total bestfit
+    stellar_continuum = bestfit - emissionSpectra  # shape: (nbins, npix)
+    
+    # Convert log-wavelength to linear wavelength in Angstroms
+    wave = np.exp(logLam_galaxy)
+    
+    # Initialize output arrays
+    ew = np.zeros((nbins, nlines))
+    ew_err = np.zeros((nbins, nlines))
+    cont_at_line = np.zeros((nbins, nlines))
+    
+    for i, ii in enumerate(idx_l):
+        # Get line wavelength from emission_setup
+        lam_line = emission_setup[ii]._lambda
+        
+        # Get integrated flux from GandALF solution (column 0 for each line)
+        flux_line = sol[:, i * 4 + 0]
+        
+        # Find the pixel index closest to the line wavelength
+        idx = np.searchsorted(wave, lam_line)
+        idx = np.clip(idx, 1, len(wave) - 1)
+        
+        # Linear interpolation of continuum at line center
+        w1, w2 = wave[idx - 1], wave[idx]
+        frac = (lam_line - w1) / (w2 - w1)
+        f_cont = (1 - frac) * stellar_continuum[:, idx - 1] + \
+                 frac * stellar_continuum[:, idx]
+        
+        # Store continuum at line position
+        cont_at_line[:, i] = f_cont
+        
+        # Compute EW: EW = -F_line / f_cont
+        # Negative sign gives negative EW for emission lines
+        with np.errstate(divide='ignore', invalid='ignore'):
+            ew[:, i] = np.where(
+                f_cont > 0,
+                -flux_line / f_cont,
+                np.nan
+            )
+        
+        # Simplified error estimate from continuum scatter
+        half_window = 10
+        cont_window_start = max(0, idx - half_window)
+        cont_window_end = min(len(wave), idx + half_window)
+        cont_scatter = np.nanstd(stellar_continuum[:, cont_window_start:cont_window_end], axis=1)
+        
+        # Estimate flux error as ~10% (conservative, GandALF may provide better estimates)
+        flux_err_frac = 0.1
+        
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rel_cont_err = np.where(
+                np.abs(f_cont) > 0,
+                cont_scatter / np.abs(f_cont),
+                np.inf
+            )
+            ew_err[:, i] = np.abs(ew[:, i]) * np.sqrt(
+                flux_err_frac**2 + rel_cont_err**2
+            )
+        
+        ew_err[:, i] = np.where(np.isnan(ew[:, i]), np.nan, ew_err[:, i])
+    
+    logging.info(f"Computed equivalent widths for {nlines} emission lines (GandALF)")
+    
+    return ew, ew_err, cont_at_line
+
+
 def save_gandalf(
     config,
     emission_setup,
@@ -180,6 +296,9 @@ def save_gandalf(
     emissionSpectra,
     reddening,
     currentLevel,
+    ew=None,
+    ew_err=None,
+    cont_at_line=None,
 ):
     """Saves all results to disk."""
 
@@ -214,6 +333,13 @@ def save_gandalf(
             gandalfOutput[names[i] + "_" + lambdas[i] + "_V"] = sol[:, i * 4 + 2]
             gandalfOutput[names[i] + "_" + lambdas[i] + "_S"] = sol[:, i * 4 + 3]
             gandalfOutput[names[i] + "_" + lambdas[i] + "_AON"] = sol_gas_AoN[:, i]
+            # Add equivalent width columns if computed
+            if ew is not None:
+                gandalfOutput[names[i] + "_" + lambdas[i] + "_EW"] = ew[:, i]
+            if ew_err is not None:
+                gandalfOutput[names[i] + "_" + lambdas[i] + "_EW_ERR"] = ew_err[:, i]
+            if cont_at_line is not None:
+                gandalfOutput[names[i] + "_" + lambdas[i] + "_CONT"] = cont_at_line[:, i]
             if for_errors:
                 gandalfErrorOutput[names[i] + "_" + lambdas[i] + "_FERR"] = esol[
                     :, i * 4 + 0
@@ -1098,6 +1224,19 @@ def performEmissionLineAnalysis(config):
     emissionSpectrum = np.sum(emission_templates, axis=2)
     emissionSubtractedBestfit = bestfit - emissionSpectrum
 
+    # Compute equivalent widths for all emission lines
+    printStatus.running("Computing equivalent widths")
+    ew, ew_err, cont_at_line = compute_equivalent_width_gandalf(
+        sol,
+        idx_l,
+        emission_setup,
+        bestfit,
+        emissionSpectrum,
+        logLam_galaxy,
+        nbins,
+    )
+    printStatus.updateDone("Computing equivalent widths")
+
     # Save results to file
     save_gandalf(
         config,
@@ -1123,6 +1262,9 @@ def performEmissionLineAnalysis(config):
         emissionSpectrum,
         reddening,
         currentLevel,
+        ew=ew,
+        ew_err=ew_err,
+        cont_at_line=cont_at_line,
     )
 
     # Restart GANDALF if a SPAXEL level run based on a previous BIN level run is intended

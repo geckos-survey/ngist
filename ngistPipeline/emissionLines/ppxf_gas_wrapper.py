@@ -229,6 +229,136 @@ def tidy_up_fluxes_and_kinematics(
     )
 
 
+def compute_equivalent_width(
+    gas_flux_in_units,
+    gas_err_flux_in_units,
+    bestfit,
+    gas_bestfit,
+    logLam_galaxy,
+    line_wavelengths,
+    velscale,
+):
+    """
+    Compute equivalent width for emission lines.
+    
+    The equivalent width is defined as:
+        EW = integral[(F_cont - F_lambda) / F_cont] d_lambda
+    
+    For emission lines fit by pPXF with Gaussian profiles:
+        EW = -F_line / f_cont(lambda_line)
+    
+    where F_line is the integrated line flux and f_cont is the 
+    continuum flux density at the line center.
+    
+    Convention: Negative EW for emission (flux above continuum),
+                Positive EW for absorption (flux below continuum).
+    This follows the standard astronomical convention.
+    
+    Parameters
+    ----------
+    gas_flux_in_units : ndarray (nbins, nlines)
+        Integrated line flux in physical units (e.g., erg/s/cm^2)
+    gas_err_flux_in_units : ndarray (nbins, nlines)
+        Line flux uncertainties
+    bestfit : ndarray (nbins, npix)
+        Total best-fit spectrum (stellar + gas)
+    gas_bestfit : ndarray (nbins, npix)
+        Gas-only best-fit spectrum
+    logLam_galaxy : ndarray (npix,)
+        Log-wavelength array
+    line_wavelengths : ndarray (nlines,)
+        Rest wavelengths of emission lines in Angstroms
+    velscale : float
+        Velocity scale (km/s per pixel)
+    
+    Returns
+    -------
+    ew : ndarray (nbins, nlines)
+        Equivalent width in Angstroms (negative for emission)
+    ew_err : ndarray (nbins, nlines)
+        EW uncertainty in Angstroms
+    cont_at_line : ndarray (nbins, nlines)
+        Continuum flux density at each line wavelength
+        
+    References
+    ----------
+    - Kennicutt (1992, ApJ, 388, 310) - EW as SFR indicator
+    - Westfall et al. (2019, AJ, 158, 231) - MaNGA DAP methodology
+    - Cappellari (2017, MNRAS, 466, 798) - pPXF flux measurements
+    """
+    nbins = gas_flux_in_units.shape[0]
+    nlines = gas_flux_in_units.shape[1]
+    
+    # Compute stellar continuum by subtracting gas component from total bestfit
+    stellar_continuum = bestfit - gas_bestfit  # shape: (nbins, npix)
+    
+    # Convert log-wavelength to linear wavelength in Angstroms
+    wave = np.exp(logLam_galaxy)
+    
+    # Initialize output arrays
+    ew = np.zeros((nbins, nlines))
+    ew_err = np.zeros((nbins, nlines))
+    cont_at_line = np.zeros((nbins, nlines))
+    
+    for i_line, lam_line in enumerate(line_wavelengths):
+        # Find the pixel index closest to the line wavelength
+        idx = np.searchsorted(wave, lam_line)
+        
+        # Ensure we're within bounds
+        idx = np.clip(idx, 1, len(wave) - 1)
+        
+        # Linear interpolation of continuum at line center
+        w1, w2 = wave[idx - 1], wave[idx]
+        frac = (lam_line - w1) / (w2 - w1)
+        f_cont = (1 - frac) * stellar_continuum[:, idx - 1] + \
+                 frac * stellar_continuum[:, idx]
+        
+        # Store continuum at line position
+        cont_at_line[:, i_line] = f_cont
+        
+        # Compute EW: EW = -F_line / f_cont
+        # Negative sign gives negative EW for emission lines
+        # Handle division by zero or negative continuum
+        with np.errstate(divide='ignore', invalid='ignore'):
+            ew[:, i_line] = np.where(
+                f_cont > 0,
+                -gas_flux_in_units[:, i_line] / f_cont,
+                np.nan
+            )
+        
+        # Error propagation: sigma_EW^2 = EW^2 * [(sigma_F/F)^2 + (sigma_cont/f_cont)^2]
+        # Estimate continuum error from local scatter in a window around the line
+        half_window = 10  # pixels
+        cont_window_start = max(0, idx - half_window)
+        cont_window_end = min(len(wave), idx + half_window)
+        cont_scatter = np.nanstd(stellar_continuum[:, cont_window_start:cont_window_end], axis=1)
+        
+        # Relative errors
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rel_flux_err = np.where(
+                np.abs(gas_flux_in_units[:, i_line]) > 0,
+                gas_err_flux_in_units[:, i_line] / np.abs(gas_flux_in_units[:, i_line]),
+                np.inf
+            )
+            rel_cont_err = np.where(
+                np.abs(f_cont) > 0,
+                cont_scatter / np.abs(f_cont),
+                np.inf
+            )
+            
+            # Combined error
+            ew_err[:, i_line] = np.abs(ew[:, i_line]) * np.sqrt(
+                rel_flux_err**2 + rel_cont_err**2
+            )
+        
+        # Set error to NaN where EW is NaN
+        ew_err[:, i_line] = np.where(np.isnan(ew[:, i_line]), np.nan, ew_err[:, i_line])
+    
+    logging.info(f"Computed equivalent widths for {nlines} emission lines")
+    
+    return ew, ew_err, cont_at_line
+
+
 def save_ppxf_emlines(
     config,
     rootname,
@@ -253,6 +383,9 @@ def save_ppxf_emlines(
     ubins,
     npix,
     extra,
+    ew=None,
+    ew_err=None,
+    cont_at_line=None,
 ):
     # ========================
     # SAVE RESULTS
@@ -322,6 +455,28 @@ def save_ppxf_emlines(
         if (extra is not None) and ("h4" in extra.keys()):
             cols.append(
                 fits.Column(name=names[i] + "_H4", format="D", array=extra["h4"][:, i])
+            )
+        
+        # Add equivalent width columns if computed
+        if ew is not None:
+            cols.append(
+                fits.Column(
+                    name=names[i] + "_EW", format="D", array=ew[:, i],
+                    unit="Angstrom"
+                )
+            )
+        if ew_err is not None:
+            cols.append(
+                fits.Column(
+                    name=names[i] + "_EW_ERR", format="D", array=ew_err[:, i],
+                    unit="Angstrom"
+                )
+            )
+        if cont_at_line is not None:
+            cols.append(
+                fits.Column(
+                    name=names[i] + "_CONT", format="D", array=cont_at_line[:, i]
+                )
             )
 
     # Add in spatial BPT maps if all the lines are available 
@@ -1037,6 +1192,19 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
     # templates_sigma = np.zeros(sigma_final.shape)+templates_sigma
     sigma_final_measured = (sigma_final**2 + templates_sigma**2) ** (0.5)
 
+    # Compute equivalent widths for all emission lines
+    printStatus.running("Computing equivalent widths")
+    ew, ew_err, cont_at_line = compute_equivalent_width(
+        gas_flux_in_units,
+        gas_err_flux_in_units,
+        bestfit,
+        gas_bestfit,
+        logLam_galaxy,
+        np.array(linesfitted["lambda"]),
+        velscale,
+    )
+    printStatus.updateDone("Computing equivalent widths")
+
     # save results to file
     if config["GAS"]["LEVEL"] != "BOTH":
         save_ppxf_emlines(
@@ -1063,6 +1231,9 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
             ubins,
             npix,
             extra,
+            ew=ew,
+            ew_err=ew_err,
+            cont_at_line=cont_at_line,
         )
 
     if (
@@ -1092,6 +1263,9 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
             ubins,
             npix,
             extra,
+            ew=ew,
+            ew_err=ew_err,
+            cont_at_line=cont_at_line,
         )
 
         save_ppxf_emlines(
@@ -1118,6 +1292,9 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
             ubins,
             npix,
             extra,
+            ew=ew,
+            ew_err=ew_err,
+            cont_at_line=cont_at_line,
         )
 
     printStatus.updateDone("Emission line fitting done")

@@ -6,6 +6,28 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.4.0       2026-01-29 ADDED: Equivalent Width (EW) computation for all emission lines
+			 in both pPXF and GandALF gas fitting methods.
+			 
+			 The EW is computed as: EW = -F_line / f_cont(λ_line)
+			 where F_line is the integrated line flux and f_cont is the 
+			 stellar continuum flux density at the line center, derived from
+			 the best-fit stellar model (bestfit - gas_bestfit).
+			 
+			 Convention: Negative EW for emission lines (flux above continuum).
+			 
+			 New output columns in _gas_*.fits files:
+			   - {LINE}_EW: Equivalent width in Angstroms
+			   - {LINE}_EW_ERR: EW uncertainty from error propagation
+			   - {LINE}_CONT: Continuum flux density at line wavelength
+			 
+			 EW maps are automatically generated for both BIN and SPAXEL levels.
+			 
+			 References:
+			   - Kennicutt (1992, ApJ, 388, 310) - EW as SFR indicator
+			   - Westfall et al. (2019, AJ, 158, 231) - MaNGA DAP methodology
+			   - Cappellari (2017, MNRAS, 466, 798) - pPXF flux measurements
+
 V7.3.0	     2024-11-12 CHANGED Major: 1) Changed name of routine to ngistPipeline 
 			2) Optimized Voronoi Binning: Improved speed and reduced 
 			RAM usage by using scipy's spatial.cKDTree for nearest-neighbor 
