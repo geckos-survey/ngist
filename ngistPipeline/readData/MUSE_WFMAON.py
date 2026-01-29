@@ -66,9 +66,10 @@ def readCube(config):
         logging.info(
             "No error extension found. Estimating the error spectra with the der_snr algorithm"
         )
-        espec = np.zeros(spec.shape)
-        for i in range(0, spec.shape[1]):
-            espec[:, i] = der_snr.der_snr(spec[:, i])
+        noise_per_spaxel = der_snr.der_snr_2d(spec)
+        espec = np.broadcast_to(
+            noise_per_spaxel.reshape(1, -1), spec.shape
+        ).copy()
 
     # Getting the wavelength info
     wave = hdr["CRVAL3"] + (np.arange(s[0])) * hdr["CD3_3"]
