@@ -459,6 +459,11 @@ def saveContLineCube(config):
 
     spaxID = np.array(tablehdu[1].data.ID)
     binID = np.array(tablehdu[1].data.BIN_ID)
+    ubins = np.unique(np.abs(binID[binID >= 0]))
+    if len(ubins) == 0:
+        ubins = np.unique(np.abs(binID))
+    # Map BIN_ID -> row index in ppxf_bestfit (same order as CONT module / BinSpectra)
+    bin_id_to_idx = {int(b): i for i, b in enumerate(ubins)}
 
     contCube = np.full([len(linLam), NY * NX], np.nan)
     lineCube = np.full([len(linLam), NY * NX], np.nan)
@@ -471,26 +476,51 @@ def saveContLineCube(config):
         )
     )[0]
 
-    # loop over spaxels
+    # Per-bin scaling (not per-spaxel) so continuum maps match KIN/GAS: constant within
+    # each bin. Per-spaxel scaling (obsSignal(s)/fitSignal(bin)) caused shell-like
+    # artifacts: fitSignal is constant per bin, so the scaling jumped at bin boundaries
+    # and created concentric structure not present in KIN or other GAS maps.
+    n_bins = ppxf_bestfit.shape[0]
+    fitSignal_per_bin = np.zeros(n_bins)
+    obsSignal_median_per_bin = np.zeros(n_bins)
+    fitSpec_lin_per_bin = np.zeros((n_bins, len(linLam)))
+    for i, b in enumerate(ubins):
+        if i >= n_bins:
+            break
+        fitSpec = np.asarray(ppxf_bestfit[i, :])
+        fitSpec_func = CubicSpline(np.exp(logLam), fitSpec, extrapolate=False)
+        fitSpec_lin = fitSpec_func(linLam)
+        fitSignal_per_bin[i] = np.nanmedian(fitSpec_lin[idx_snr])
+        fitSpec_lin_per_bin[i, :] = fitSpec_lin
+        spax_in_bin = np.where(np.abs(binID) == b)[0]
+        obs_signals = [
+            np.nanmedian(spectra_all[:, s][idx_snr]) for s in spax_in_bin
+        ]
+        obsSignal_median_per_bin[i] = np.nanmedian(obs_signals)
+
+    scale_per_bin = np.where(
+        fitSignal_per_bin > 0,
+        obsSignal_median_per_bin / fitSignal_per_bin,
+        1.0,
+    )
+
     for s in spaxID:
-        # bin ID of spaxel s
         binID_spax = binID[s]
         obsSpec_lin = spectra_all[:, s]
-        obsSignal = np.nanmedian(obsSpec_lin[idx_snr])
 
         if binID_spax < 0:
-            fitSpec_lin = np.zeros(len(obsSpec_lin))
-        elif binID_spax >= 0:
-            fitSpec = ppxf_bestfit[binID_spax, :]
+            bin_idx = bin_id_to_idx.get(int(np.abs(binID_spax)), -1)
+            if bin_idx < 0:
+                fitSpec_lin = np.zeros(len(obsSpec_lin))
+            else:
+                fitSpec_lin = fitSpec_lin_per_bin[bin_idx, :] * scale_per_bin[bin_idx]
+        else:
+            bin_idx = bin_id_to_idx.get(int(binID_spax), -1)
+            if bin_idx < 0:
+                fitSpec_lin = np.zeros(len(obsSpec_lin))
+            else:
+                fitSpec_lin = fitSpec_lin_per_bin[bin_idx, :] * scale_per_bin[bin_idx]
 
-            fitSpec_func = CubicSpline(np.exp(logLam), fitSpec, extrapolate=False)
-
-            fitSpec_lin = fitSpec_func(linLam)
-            fitSignal = np.nanmedian(fitSpec_lin[idx_snr])
-
-            fitSpec_lin *= obsSignal / fitSignal
-
-        # assign continuum fits and emission lines (obs - cont) to cube
         contCube[:, s] = fitSpec_lin
         lineCube[:, s] = obsSpec_lin - fitSpec_lin
         origCube[:, s] = obsSpec_lin

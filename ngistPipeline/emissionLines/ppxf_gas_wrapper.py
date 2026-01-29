@@ -20,6 +20,76 @@ from ngistPipeline.prepareTemplates import (_prepareTemplates,
 C = 299792.458  # speed of light in km/s
 
 
+def _load_kin_stellar_continuum(config, logLam_galaxy, nbins, currentLevel):
+    """
+    Load stellar continuum from the stellar kinematics module (KIN) best-fit
+    for use in equivalent width calculation. Interpolates onto the gas
+    wavelength grid and expands to spaxels when currentLevel is SPAXEL.
+
+    Returns
+    -------
+    stellar_continuum : ndarray (n_spectra, npix) or None
+        Stellar continuum from _kin-bestfit.fits, or None if unavailable.
+    """
+    kin_path = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_kin-bestfit.fits"
+    )
+    if not os.path.isfile(kin_path):
+        logging.debug("KIN bestfit not found for EW continuum; using gas-fit continuum")
+        return None
+    try:
+        with fits.open(kin_path, mem_map=True) as hdu:
+            kin_bestfit = np.array(hdu[1].data.BESTFIT)
+            kin_logLam = np.array(hdu[2].data.LOGLAM)
+    except Exception as e:
+        logging.warning("Could not load KIN bestfit for EW: %s", e)
+        return None
+    npix = len(logLam_galaxy)
+    n_kin_bins = kin_bestfit.shape[0]
+    wave_gas = np.exp(logLam_galaxy)
+    wave_kin = np.exp(kin_logLam)
+    # Interpolate KIN bestfit onto gas wavelength grid
+    stellar_cont_bin = np.zeros((n_kin_bins, npix))
+    for b in range(n_kin_bins):
+        stellar_cont_bin[b, :] = np.interp(
+            wave_gas, wave_kin, kin_bestfit[b, :], left=np.nan, right=np.nan
+        )
+    if currentLevel == "BIN":
+        if n_kin_bins != nbins:
+            logging.debug(
+                "KIN bin count (%d) != gas bin count (%d); using gas-fit continuum",
+                n_kin_bins,
+                nbins,
+            )
+            return None
+        logging.info("Using stellar continuum from KIN module for equivalent width")
+        return stellar_cont_bin
+    # SPAXEL: expand bin-level continuum to spaxels via BIN_ID
+    table_path = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_table.fits"
+    )
+    if not os.path.isfile(table_path):
+        return None
+    bin_id = np.array(fits.open(table_path, mem_map=True)[1].data.BIN_ID)
+    n_spaxels = len(bin_id)
+    if n_kin_bins != np.max(bin_id) + 1:
+        logging.debug(
+            "KIN bin count does not match table BIN_ID; using gas-fit continuum"
+        )
+        return None
+    stellar_cont_spaxel = np.zeros((n_spaxels, npix))
+    for s in range(n_spaxels):
+        bid = int(bin_id[s])
+        if bid >= 0:
+            stellar_cont_spaxel[s, :] = stellar_cont_bin[bid, :]
+        else:
+            stellar_cont_spaxel[s, :] = np.nan
+    logging.info("Using stellar continuum from KIN module for equivalent width")
+    return stellar_cont_spaxel
+
+
 """
 PURPOSE:
   This module executes the emission-line analysis of the pipeline.
@@ -237,6 +307,7 @@ def compute_equivalent_width(
     logLam_galaxy,
     line_wavelengths,
     velscale,
+    stellar_continuum=None,
 ):
     """
     Compute equivalent width for emission lines.
@@ -248,7 +319,10 @@ def compute_equivalent_width(
         EW = -F_line / f_cont(lambda_line)
     
     where F_line is the integrated line flux and f_cont is the 
-    continuum flux density at the line center.
+    continuum flux density at the line center. When stellar_continuum
+    is provided (e.g. from the stellar kinematics KIN module), it is
+    used for f_cont; otherwise the continuum is derived from
+    (bestfit - gas_bestfit).
     
     Convention: Negative EW for emission (flux above continuum),
                 Positive EW for absorption (flux below continuum).
@@ -270,6 +344,8 @@ def compute_equivalent_width(
         Rest wavelengths of emission lines in Angstroms
     velscale : float
         Velocity scale (km/s per pixel)
+    stellar_continuum : ndarray (n_spectra, npix), optional
+        Stellar continuum from KIN module; if None, use bestfit - gas_bestfit.
     
     Returns
     -------
@@ -289,8 +365,11 @@ def compute_equivalent_width(
     nbins = gas_flux_in_units.shape[0]
     nlines = gas_flux_in_units.shape[1]
     
-    # Compute stellar continuum by subtracting gas component from total bestfit
-    stellar_continuum = bestfit - gas_bestfit  # shape: (nbins, npix)
+    # Use stellar continuum from KIN module when provided, else from gas fit
+    if stellar_continuum is not None and stellar_continuum.shape == (nbins, bestfit.shape[1]):
+        pass  # use stellar_continuum as is
+    else:
+        stellar_continuum = bestfit - gas_bestfit  # shape: (nbins, npix)
     
     # Convert log-wavelength to linear wavelength in Angstroms
     wave = np.exp(logLam_galaxy)
@@ -1192,8 +1271,11 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
     # templates_sigma = np.zeros(sigma_final.shape)+templates_sigma
     sigma_final_measured = (sigma_final**2 + templates_sigma**2) ** (0.5)
 
-    # Compute equivalent widths for all emission lines
+    # Compute equivalent widths for all emission lines (use KIN stellar continuum when available)
     printStatus.running("Computing equivalent widths")
+    stellar_continuum_kin = _load_kin_stellar_continuum(
+        config, logLam_galaxy, nbins, currentLevel
+    )
     ew, ew_err, cont_at_line = compute_equivalent_width(
         gas_flux_in_units,
         gas_err_flux_in_units,
@@ -1202,6 +1284,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         logLam_galaxy,
         np.array(linesfitted["lambda"]),
         velscale,
+        stellar_continuum=stellar_continuum_kin,
     )
     printStatus.updateDone("Computing equivalent widths")
 

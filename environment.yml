@@ -1,0 +1,14 @@
+# Conda environment for ngistPipeline development and testing.
+# Pipeline path used by dev runs: /arc/home/thbrown/mauve/dev/gist-geckos
+#
+# Create:    conda env create -f environment.yml
+# Activate:  conda activate ngist-dev
+# Install:   cd /arc/home/thbrown/mauve/dev/gist-geckos && pip install "numpy>=1.26,<2" astropy scipy matplotlib h5py joblib tqdm pytest spectral-cube extinction printstatus emcee ppxf && pip install -e .
+# Run tests: ./run_tests.sh   (from repo root; uses NGIST_PIPELINE_PATH and conda env)
+name: ngist-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
