@@ -15,6 +15,8 @@ please see [https://geckos-survey.github.io/gist-documentation/](https://geckos-
 
 A description of all **data products** produced by the pipeline (file naming, format, structure, and units) for scientific reproducibility is given in [PRODUCTS.md](PRODUCTS.md).
 
+A detailed description of **architecture and usage** (execution flow, modules, configuration, data flow) for developers and agentic AI is given in [ARCHITECTURE.md](ARCHITECTURE.md).
+
 Usage 
 -------------
 
