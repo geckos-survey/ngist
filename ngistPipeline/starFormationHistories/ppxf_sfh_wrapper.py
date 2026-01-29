@@ -103,11 +103,8 @@ def run_ppxf_firsttime(
 
     # Templates shape is currently [Wavelength, nAge, nMet, nAlpha]. Reshape to [Wavelength, ncomb] to create optimal template
     reshaped_templates = templates.reshape((templates.shape[0], ncomb))
-    normalized_weights = pp.weights / np.sum( pp.weights )
-    optimal_template   = np.zeros( reshaped_templates.shape[0] )
-    for j in range(0, reshaped_templates.shape[1]):
-        optimal_template = optimal_template + reshaped_templates[:,j]*normalized_weights[j]
-
+    normalized_weights = pp.weights / np.sum(pp.weights)
+    optimal_template = reshaped_templates @ normalized_weights
     return optimal_template
 
 def run_ppxf(
@@ -286,11 +283,8 @@ def run_ppxf(
 
         # Make the unconvolved optimal stellar template
         reshaped_templates = templates.reshape((templates.shape[0], ncomb)) #
-        normalized_weights = pp.weights / np.sum( pp.weights ) #
-        optimal_template   = np.zeros( reshaped_templates.shape[0] )
-
-        for j in range(0, reshaped_templates.shape[1]):
-            optimal_template = optimal_template + reshaped_templates[:,j]*normalized_weights[j]
+        normalized_weights = pp.weights / np.sum(pp.weights)
+        optimal_template = reshaped_templates @ normalized_weights
 
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)

@@ -234,11 +234,7 @@ def run_ppxf(
 
         # Make the unconvolved optimal stellar template
         normalized_weights = pp.weights / np.sum(pp.weights)
-        optimal_template = np.zeros(templates.shape[0])
-        for j in range(0, templates.shape[1]):
-            optimal_template = (
-                optimal_template + templates[:, j] * normalized_weights[j]
-            )
+        optimal_template = templates @ normalized_weights
 
         # Correct the formal errors assuming that the fit is good
         formal_error = pp.error * np.sqrt(pp.chi2)
