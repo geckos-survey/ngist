@@ -17,6 +17,8 @@ from tqdm import tqdm
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import _prepareTemplates
 
+robust_sigma = _auxiliary.robust_sigma
+
 # Physical constants
 C = 299792.458  # speed of light in km/s
 
@@ -29,27 +31,6 @@ PURPOSE:
   (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
-
-def robust_sigma(y, zero=False):
-     """
-     Biweight estimate of the scale (standard deviation).
-     Implements the approach described in
-     "Understanding Robust and Exploratory Data Analysis"
-     Hoaglin, Mosteller, Tukey ed., 1983, Chapter 12B, pg. 417
-     Added for sigma-clipping method
-     """
-     y = np.ravel(y)
-     d = y if zero else y - np.median(y)
-
-     mad = np.median(np.abs(d))
-     u2 = (d/(9.0*mad))**2  # c = 9
-     good = u2 < 1.0
-     u1 = 1.0 - u2[good]
-     num = y.size * ((d[good]*u1**2)**2).sum()
-     den = (u1*(1.0 - 5.0*u2[good])).sum()
-     sigma = np.sqrt(num/(den*(den - 1.0)))  # see note in above reference
-
-     return sigma
 
 def run_ppxf_firsttime(
     templates,
