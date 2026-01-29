@@ -101,6 +101,8 @@ def addPathsToConfig(
             if not line.startswith('#'):
                 line = line.split('=')
                 line = [x.strip() for x in line]
+                if len(line) < 2:
+                    continue
                 if os.path.isdir(line[1]) == True:
                     if line[0] == "inputDir":
                         config["GENERAL"]["INPUT"] = os.path.join(

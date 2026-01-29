@@ -47,7 +47,7 @@ def getLSF(config, module_used):
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["LS"]["LSF_TEMP"]
         )
-    if module_used == "UMOD":
+    elif module_used == "UMOD":
         lsfTempFile = os.path.join(
             config["GENERAL"]["CONFIG_DIR"], config["UMOD"]["LSF_TEMP"]
         )
