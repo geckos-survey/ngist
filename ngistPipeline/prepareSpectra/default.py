@@ -145,7 +145,7 @@ def run_log_rebinning(
                     wavelength_range, binned_data[:, j], velscale=velocity_scale
                 )
                 log_binned_data[:, j] = ssp_new
-            except:
+            except Exception:
                 # If an error occurs, set the log-rebinned data for the current bin to NaN
                 log_binned_data[:, j] = np.zeros(len(log_lam))
                 log_binned_data[:, j][:] = np.nan

@@ -291,7 +291,7 @@ def run_ppxf(
             snr_postfit,
         )
 
-    except:
+    except Exception:
         return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 

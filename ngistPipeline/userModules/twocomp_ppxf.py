@@ -430,7 +430,7 @@ def run_twocomp_ppxf(
             weights,
         )
 
-    except:
+    except Exception:
         return ([np.nan,np.nan], np.nan, np.nan, np.nan, np.nan, [np.nan,np.nan], [np.nan,np.nan],np.nan, np.nan, np.nan)
 
 

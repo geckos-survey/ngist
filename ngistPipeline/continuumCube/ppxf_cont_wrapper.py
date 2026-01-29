@@ -264,7 +264,7 @@ def run_ppxf(
             spectral_mask,
         )
 
-    except:
+    except Exception:
         return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 

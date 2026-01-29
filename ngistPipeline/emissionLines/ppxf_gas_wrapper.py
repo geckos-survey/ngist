@@ -26,6 +26,9 @@ def _load_kin_stellar_continuum(config, logLam_galaxy, nbins, currentLevel):
     for use in equivalent width calculation. Interpolates onto the gas
     wavelength grid and expands to spaxels when currentLevel is SPAXEL.
 
+    Assumes BIN_ID in _table.fits is 0-based and contiguous (0, 1, ..., n_bins-1)
+    as produced by the Voronoi binning.
+
     Returns
     -------
     stellar_continuum : ndarray (n_spectra, npix) or None
@@ -161,8 +164,8 @@ def run_ppxf(
             pp.error[0],
         )
 
-    except:
-        # raise exception
+    except Exception:
+        # Failed fit; caller handles NaN return
         printStatus.running("Emission line fit failed")
         logging.info("Emission line fit failed")
 
@@ -388,7 +391,9 @@ def compute_equivalent_width(
         
         # Linear interpolation of continuum at line center
         w1, w2 = wave[idx - 1], wave[idx]
-        frac = (lam_line - w1) / (w2 - w1)
+        frac = (lam_line - w1) / (w2 - w1) if (w2 - w1) != 0 else 0.0
+        # Clip to [0,1] to avoid extrapolation when line is outside wavelength range
+        frac = np.clip(frac, 0.0, 1.0)
         f_cont = (1 - frac) * stellar_continuum[:, idx - 1] + \
                  frac * stellar_continuum[:, idx]
         

@@ -481,6 +481,13 @@ def saveContLineCube(config):
     # artifacts: fitSignal is constant per bin, so the scaling jumped at bin boundaries
     # and created concentric structure not present in KIN or other GAS maps.
     n_bins = ppxf_bestfit.shape[0]
+    if len(ubins) > n_bins:
+        logging.warning(
+            "saveContLineCube: table has %d unique bins but _kin-bestfit-cont has %d rows; "
+            "some bins may get zero continuum.",
+            len(ubins),
+            n_bins,
+        )
     fitSignal_per_bin = np.zeros(n_bins)
     obsSignal_median_per_bin = np.zeros(n_bins)
     fitSpec_lin_per_bin = np.zeros((n_bins, len(linLam)))

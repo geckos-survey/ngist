@@ -127,7 +127,7 @@ def run_ls(
         elif MCMC == False:
             return (indices, errors)
 
-    except:
+    except Exception:
         if MCMC == True:
             return (np.nan, np.nan, np.nan, np.nan)
         elif MCMC == False:
