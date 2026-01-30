@@ -136,3 +136,18 @@ This plan should be updated as changes are implemented and re-profiled.
 Combined: **2 (flux+error) × 2 (float64 vs float32) ≈ 4×** raw data, plus HDF5 chunk/B-tree/metadata overhead and no compression, readily explains **3–5×** larger HDF5 files than a single FITS cube.
 
 **Optional future reduction:** Use `dtype=np.float32` and/or `compression="gzip"` (or `"lzf"`) when creating SPEC/ESPEC in prepareSpectra if float32 precision and smaller files are preferred.
+
+---
+
+### CONT/LINE/ORIG cube HDF5 (e.g. `{RUN_ID}_CONTcube.hdf5`)
+
+**This repo does not write `_CONTcube.hdf5`.** It only writes `_CONTcube.fits` (and `_LINEcube.fits`, `_ORIGcube.fits`) in `save_maps_fits.saveContLineCube()`. Any `*_CONTcube.hdf5` (e.g. in a sandbox: 17 G vs 4.8 G FITS) is produced by an **external** step (e.g. fits2idia or another FITS→HDF5 converter). See PRODUCTS.md §10 (“IDIA-HDF5 cubes”).
+
+**Why the converted HDF5 is ~3–4× larger than the FITS cube:**
+
+1. **Dtype** — FITS cubes are written as **float32**. If the converter uses **float64** (e.g. `h5py.create_dataset(..., data=array)` with a float64 array or no `dtype=`), that alone doubles the size.
+2. **Chunking** — HDF5’s default or small chunk sizes add B-tree and alignment overhead; for large 3D cubes this can add tens of percent or more.
+3. **No compression** — Uncompressed HDF5 with chunk metadata is larger than contiguous uncompressed FITS.
+4. **Appending** — If the conversion is run repeatedly in append mode (`'a'`) or writes the same cube under multiple keys, the file can grow (e.g. 3–5× from multiple copies). Check the converter: it should open in `'w'` (overwrite) or delete the target before writing.
+
+**To reduce the HDF5 size:** In the **converter** (not this repo), use `dtype=np.float32` when creating the cube dataset, and optionally `compression="gzip"` or `"lzf"` and a sensible `chunks=` (e.g. one slice or a small block in the spectral dimension) so size and read performance are acceptable.
