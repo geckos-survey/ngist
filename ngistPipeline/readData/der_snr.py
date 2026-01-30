@@ -53,6 +53,7 @@ def der_snr_2d(flux_2d):
 
     Each column is treated as one spectrum. Zeros are treated as missing (NaN)
     in the median. Returns one noise value per column.
+    Uses masked arrays to avoid a full copy of the input for zero-masking.
 
     Parameters
     ----------
@@ -68,15 +69,15 @@ def der_snr_2d(flux_2d):
     if flux.ndim == 1:
         return np.array([der_snr(flux)], dtype=float)
 
-    # Mask zeros so they are skipped in nanmedian
-    flux = np.where(flux == 0.0, np.nan, flux)
     n = flux.shape[0]
-
     if n <= 4:
         return np.zeros(flux.shape[1], dtype=float)
 
-    diff = 2.0 * flux[2:-2, :] - flux[:-4, :] - flux[4:, :]
-    noise = _DER_SNR_COEFF * np.nanmedian(np.abs(diff), axis=0)
+    # Use masked array so zeros are skipped without copying the full array
+    flux_ma = np.ma.masked_equal(flux, 0.0)
+    diff = 2.0 * flux_ma[2:-2, :] - flux_ma[:-4, :] - flux_ma[4:, :]
+    noise = _DER_SNR_COEFF * np.ma.median(np.ma.abs(diff), axis=0)
+    noise = np.asarray(noise.filled(0.0), dtype=float)
     noise = np.nan_to_num(noise, nan=0.0, posinf=0.0, neginf=0.0)
     return noise
 

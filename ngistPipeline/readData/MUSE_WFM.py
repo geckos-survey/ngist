@@ -48,7 +48,7 @@ def readCube(config):
     printStatus.running("Reading the MUSE-WFM cube")
     logging.info("Reading the MUSE-WFM cube: " + config["GENERAL"]["INPUT"])
 
-    # Reading the cube
+    # Get shape from header to trim wavelength before loading full cube (saves memory)
     with fits.open(config["GENERAL"]["INPUT"], memmap=True, lazy_load_hdus=True) as hdu:
         if len(hdu) == 1:
             ihdu = 0
@@ -57,18 +57,36 @@ def readCube(config):
             ihdu = 1
 
         hdr = hdu[ihdu].header
-        data = hdu[ihdu].data
-        s = np.shape(data)
-        spec = np.reshape(data, [s[0], s[1] * s[2]])
-
+        # Shape (nwave, ny, nx) from FITS NAXIS
+        s = (hdr["NAXIS3"], hdr["NAXIS2"], hdr["NAXIS1"])
         wcshdr = WCS(hdr).to_header()
 
-        # Read the variance spectra if available. Otherwise estimate the variance with the der_snr algorithm
+    # Compute wavelength and trim index before loading data
+    if "CD3_3" not in hdr.keys():
+        cdelt2 = hdr["CDELT3"]
+        cdelt3 = hdr["CDELT3"]
+    else:
+        cdelt2 = hdr["CD2_2"]
+        cdelt3 = hdr["CD3_3"]
+    wave_full = hdr["CRVAL3"] + (np.arange(s[0])) * cdelt3
+    wave_full = wave_full / (1 + config["GENERAL"]["REDSHIFT"])
+    lmin = config["READ_DATA"]["LMIN_TOT"]
+    lmax = config["READ_DATA"]["LMAX_TOT"]
+    idx = np.where(np.logical_and(wave_full >= lmin, wave_full <= lmax))[0]
+
+    # Read only the wavelength slice to avoid holding full cube in memory
+    with fits.open(config["GENERAL"]["INPUT"], memmap=True, lazy_load_hdus=True) as hdu:
+        data = hdu[ihdu].data
+        data_slice = np.asarray(data[idx, :, :], dtype=np.float64)
+        spec = np.reshape(data_slice, [len(idx), s[1] * s[2]])
+
+        # Read the variance spectra if available. Otherwise estimate with der_snr
         if len(hdu) >= 3:
             logging.info("Reading the error (variance) spectra from the cube")
             stat = hdu[2].data
-            espec = np.reshape(stat, [s[0], s[1] * s[2]])
-        elif len(hdu) <= 2:
+            stat_slice = np.asarray(stat[idx, :, :], dtype=np.float64)
+            espec = np.reshape(stat_slice, [len(idx), s[1] * s[2]])
+        else:
             logging.info(
                 "No error (variance) extension found. Estimating the variance spectra with the der_snr algorithm"
             )
@@ -77,16 +95,7 @@ def readCube(config):
                 noise_per_spaxel.reshape(1, -1), spec.shape
             ).copy()
 
-    # Getting the wavelength info
-    if "CD3_3" not in hdr.keys():
-        print("CD3_3 keyword not found in hdr. Trying CDELTN keywords instead.")
-        cdelt2 = hdr["CDELT3"]
-        cdelt3 = hdr["CDELT3"]
-    else:
-        cdelt2 = hdr["CD2_2"]
-        cdelt3 = hdr["CD3_3"]
-
-    wave = hdr["CRVAL3"] + (np.arange(s[0])) * cdelt3
+    wave = wave_full[idx]
 
     # Correct spectra for Galactic extinction (taken from PHANGS DAP)
     if config["READ_DATA"]["EBmV"] is not None:
@@ -96,12 +105,10 @@ def readCube(config):
         extinction_curve = extinction.apply(extinction.ccm89(wave, Av, Rv), ones)
         reshaped_extinction_curve = reshape_extintion_curve(
             extinction_curve, spec
-        )  # spec may need to be 'data'
-        spec = spec / reshaped_extinction_curve  # spec may need to be data
-        espec = espec / reshaped_extinction_curve
-    else:
-        spec = spec  # Don't do anything to the spectra if no dust value given
-        espec = espec
+        )
+        np.divide(spec, reshaped_extinction_curve, out=spec)
+        np.divide(espec, reshaped_extinction_curve, out=espec)
+    # else: spec and espec unchanged
 
     # Getting the spatial coordinates
     origin = [
@@ -125,20 +132,6 @@ def readCube(config):
         + str(pixelsize)
     )
 
-    # De-redshift spectra
-    wave = wave / (1 + config["GENERAL"]["REDSHIFT"])
-    logging.info(
-        "Shifting spectra to rest-frame, assuming a redshift of "
-        + str(config["GENERAL"]["REDSHIFT"])
-    )
-
-    # Shorten spectra to required wavelength range
-    lmin = config["READ_DATA"]["LMIN_TOT"]
-    lmax = config["READ_DATA"]["LMAX_TOT"]
-    idx = np.where(np.logical_and(wave >= lmin, wave <= lmax))[0]
-    spec = spec[idx, :]
-    espec = espec[idx, :]
-    wave = wave[idx]
     logging.info(
         "Shortening spectra to the wavelength range from "
         + str(config["READ_DATA"]["LMIN_TOT"])

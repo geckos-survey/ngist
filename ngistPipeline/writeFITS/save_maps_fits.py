@@ -6,6 +6,7 @@ import os
 import warnings
 
 import datetime
+import extinction
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -14,11 +15,45 @@ from astropy import units as u
 from astropy.wcs import WCS
 from printStatus import printStatus
 
-from ngistPipeline.readData.MUSE_WFM import readCube
 from ngistPipeline.utils.wcs_utils import (diagonal_wcs_to_cdelt,
                                           strip_wcs_from_header)
 
 warnings.filterwarnings("ignore")
+
+
+def _load_input_spectra_trimmed(config):
+    """
+    Load only the wavelength-trimmed spectra from the input cube (no variance,
+    no SNR). Used by saveContLineCube to avoid a full readCube() and reduce peak RAM.
+    Returns (spec_2d, wave_1d) in rest frame, trimmed to LMIN_TOT..LMAX_TOT.
+    """
+    with fits.open(config["GENERAL"]["INPUT"], memmap=True, lazy_load_hdus=True) as hdu:
+        ihdu = 0 if len(hdu) == 1 else 1
+        hdr = hdu[ihdu].header
+        s = (hdr["NAXIS3"], hdr["NAXIS2"], hdr["NAXIS1"])
+        if "CD3_3" not in hdr.keys():
+            cdelt3 = hdr["CDELT3"]
+        else:
+            cdelt3 = hdr["CD3_3"]
+        wave_full = hdr["CRVAL3"] + (np.arange(s[0])) * cdelt3
+        wave_full = wave_full / (1 + config["GENERAL"]["REDSHIFT"])
+        lmin = config["READ_DATA"]["LMIN_TOT"]
+        lmax = config["READ_DATA"]["LMAX_TOT"]
+        idx = np.where(np.logical_and(wave_full >= lmin, wave_full <= lmax))[0]
+
+        data = hdu[ihdu].data
+        data_slice = np.asarray(data[idx, :, :], dtype=np.float64)
+        spec = np.reshape(data_slice, [len(idx), s[1] * s[2]])
+
+    wave = wave_full[idx]
+    if config["READ_DATA"]["EBmV"] is not None:
+        Rv = 3.1
+        Av = Rv * config["READ_DATA"]["EBmV"]
+        ones = np.ones_like(wave)
+        extinction_curve = extinction.apply(extinction.ccm89(wave, Av, Rv), ones)
+        spec = spec / extinction_curve.reshape(-1, 1)
+    return spec, wave
+
 
 def write_fits_cube(hdulist, filename, overwrite=False,
                     include_origin_notes=True):
@@ -450,15 +485,13 @@ def saveContLineCube(config):
     NX = cubehdr["NAXIS1"]
     NY = cubehdr["NAXIS2"]
 
-    inputCube = readCube(config)
-    spectra_all = inputCube["spec"]
-    linLam = inputCube["wave"]
-
+    # Load only wavelength-trimmed spectra (avoids full readCube and reduces peak RAM)
+    spectra_all, linLam_full = _load_input_spectra_trimmed(config)
     idx_lam = np.where(
-        np.logical_and(linLam > config["CONT"]["LMIN"], linLam < config["CONT"]["LMAX"])
+        np.logical_and(linLam_full > config["CONT"]["LMIN"], linLam_full < config["CONT"]["LMAX"])
     )[0]
     spectra_all = spectra_all[idx_lam, :]
-    linLam = linLam[idx_lam]
+    linLam = linLam_full[idx_lam]
 
     # Get PPXF best-fit continuum and logLam from CONT module
     cont_path = os.path.join(
@@ -483,10 +516,6 @@ def saveContLineCube(config):
             ubins = np.unique(np.abs(binID))
         # Map BIN_ID -> row index in ppxf_bestfit (same order as CONT module / BinSpectra)
         bin_id_to_idx = {int(b): i for i, b in enumerate(ubins)}
-
-    contCube = np.full([len(linLam), NY * NX], np.nan)
-    lineCube = np.full([len(linLam), NY * NX], np.nan)
-    origCube = np.full([len(linLam), NY * NX], np.nan)
 
     idx_snr = np.where(
         np.logical_and(
@@ -530,27 +559,20 @@ def saveContLineCube(config):
         1.0,
     )
 
-    for s in spaxID:
-        binID_spax = binID[s]
-        obsSpec_lin = spectra_all[:, s]
-
+    # Build and write one cube at a time to reduce peak RAM (avoid holding all three)
+    def _fit_spec_lin_for_spaxel(binID_spax, obsSpec_lin):
         if binID_spax < 0:
             bin_idx = bin_id_to_idx.get(int(np.abs(binID_spax)), -1)
-            if bin_idx < 0:
-                fitSpec_lin = np.zeros(len(obsSpec_lin))
-            else:
-                fitSpec_lin = fitSpec_lin_per_bin[bin_idx, :] * scale_per_bin[bin_idx]
         else:
             bin_idx = bin_id_to_idx.get(int(binID_spax), -1)
-            if bin_idx < 0:
-                fitSpec_lin = np.zeros(len(obsSpec_lin))
-            else:
-                fitSpec_lin = fitSpec_lin_per_bin[bin_idx, :] * scale_per_bin[bin_idx]
+        if bin_idx < 0:
+            return np.zeros(len(obsSpec_lin))
+        return fitSpec_lin_per_bin[bin_idx, :] * scale_per_bin[bin_idx]
 
+    contCube = np.full([len(linLam), NY * NX], np.nan)
+    for s in spaxID:
+        fitSpec_lin = _fit_spec_lin_for_spaxel(binID[s], spectra_all[:, s])
         contCube[:, s] = fitSpec_lin
-        lineCube[:, s] = obsSpec_lin - fitSpec_lin
-        origCube[:, s] = obsSpec_lin
-
     # spectral axes in observed wavelength frame
     # (cube is de-redshifted during read in by MUSE_WFM.py)
     cubehdr["NAXIS3"] = len(linLam)
@@ -569,17 +591,50 @@ def saveContLineCube(config):
     # as cube is de-redshifted during read in by MUSE_WFM.py
     cubehdr["CD3_3"] = np.abs(np.diff(linLam * (1 + config["GENERAL"]["REDSHIFT"])))[0]
 
-    # save line and continuum cubes
-    # float32 preferred over float64 to save size and allow for conversion to hdf5
-    fn_suffix = ["CONT", "LINE", "ORIG"]
-    for cube, name in zip([contCube, lineCube, origCube], fn_suffix):
-
-        outfits = (
+    # Save CONT cube first, then free it before building LINE/ORIG (reduces peak RAM)
+    outfits_cont = (
         os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_{}cube.fits".format(name)
+        + "_CONTcube.fits"
+    )
+    cubehdul = [
+        fits.PrimaryHDU(
+            data=np.float32(contCube.reshape((len(linLam), NY, NX))),
+            header=cubehdr,
         )
+    ]
+    write_fits_cube(hdulist=cubehdul, filename=outfits_cont, overwrite=True)
+    del contCube
 
-        cubehdul = [fits.PrimaryHDU(data=np.float32(cube.reshape((len(linLam), NY, NX))),
-                         header=cubehdr)]
+    # Build and write LINE cube, then ORIG (one at a time to limit peak memory)
+    lineCube = np.full([len(linLam), NY * NX], np.nan)
+    for s in spaxID:
+        obsSpec_lin = spectra_all[:, s]
+        fitSpec_lin = _fit_spec_lin_for_spaxel(binID[s], obsSpec_lin)
+        lineCube[:, s] = obsSpec_lin - fitSpec_lin
+    outfits_line = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_LINEcube.fits"
+    )
+    cubehdul = [
+        fits.PrimaryHDU(
+            data=np.float32(lineCube.reshape((len(linLam), NY, NX))),
+            header=cubehdr,
+        )
+    ]
+    write_fits_cube(hdulist=cubehdul, filename=outfits_line, overwrite=True)
+    del lineCube
 
-        write_fits_cube(hdulist=cubehdul, filename=outfits, overwrite=True)
+    origCube = np.full([len(linLam), NY * NX], np.nan)
+    for s in spaxID:
+        origCube[:, s] = spectra_all[:, s]
+    outfits_orig = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_ORIGcube.fits"
+    )
+    cubehdul = [
+        fits.PrimaryHDU(
+            data=np.float32(origCube.reshape((len(linLam), NY, NX))),
+            header=cubehdr,
+        )
+    ]
+    write_fits_cube(hdulist=cubehdul, filename=outfits_orig, overwrite=True)
