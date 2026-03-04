@@ -530,6 +530,9 @@ def run_ppxf(
         # add normalisation factor back in main results
         pp.bestfit = pp.bestfit * median_log_bin_data
 
+        # Save multiplicative Legendre polynomials (pp.mpoly is None if mdeg=-1)
+        mpoly = pp.mpoly if pp.mpoly is not None else np.ones(len(log_bin_data))
+
         return(
             pp.sol[:],
             w_row,
@@ -541,6 +544,7 @@ def run_ppxf(
             snr_postfit,
             pp.chi2,
             EBV,
+            mpoly,
         )
 
     #except Exception as e:
@@ -555,7 +559,7 @@ def run_ppxf(
                 "mean_results_MC_mean":  np.nan,
                 "mean_results_MC_err":  np.nan
             }
-        return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan,np.nan)
+        return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
 def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
@@ -599,6 +603,7 @@ def save_sfh(
     snr_postfit,
     red_chi2,
     EBV,
+    mpoly,
 ):
     """ Save all results to disk. """
 
@@ -799,6 +804,50 @@ def save_sfh(
     )
     logging.info("Wrote: " + outfits_sfh)
 
+    # ========================
+    # SAVE SPECTRAL MASK
+    outfits_sfh = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_sfh_spectral_mask.fits"
+    )
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_spectral_mask.fits")
+
+    priHDU = fits.PrimaryHDU()
+
+    cols = [fits.Column(name="SPECTRAL_MASK", format=str(spectral_mask.shape[1]) + "D", array=spectral_mask)]
+    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    dataHDU.name = "SPECTRAL_MASK"
+
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
+    HDUList = fits.HDUList([priHDU, dataHDU])
+    HDUList.writeto(outfits_sfh, overwrite=True)
+
+    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_spectral_mask.fits")
+    logging.info("Wrote: " + outfits_sfh)
+
+    # ========================
+    # SAVE MULTIPLICATIVE LEGENDRE POLYNOMIALS
+    outfits_sfh = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_sfh_mpoly.fits"
+    )
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_mpoly.fits")
+
+    priHDU = fits.PrimaryHDU()
+
+    cols = [fits.Column(name="MPOLY", format=str(mpoly.shape[1]) + "D", array=mpoly)]
+    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    dataHDU.name = "MPOLY"
+
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
+    HDUList = fits.HDUList([priHDU, dataHDU])
+    HDUList.writeto(outfits_sfh, overwrite=True)
+
+    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_mpoly.fits")
+    logging.info("Wrote: " + outfits_sfh)
+
 
 def extractStarFormationHistories(config):
     """
@@ -983,6 +1032,7 @@ def extractStarFormationHistories(config):
     snr_postfit = np.zeros(nbins)
     red_chi2 = np.zeros(nbins)
     EBV = np.zeros(nbins)
+    mpoly = np.zeros((nbins, bin_data.shape[0]))
 
     # Define output arrays of MC realizations
     if nsims > 0:
@@ -1118,6 +1168,7 @@ def extractStarFormationHistories(config):
             snr_postfit[i] = ppxf_tmp[i][7]
             red_chi2[i] = ppxf_tmp[i][8]
             EBV[i] = ppxf_tmp[i][9]
+            mpoly[i,:] = ppxf_tmp[i][10]
 
         # Remove the memory-mapped files
         os.remove(templates_filename_memmap)
@@ -1150,6 +1201,7 @@ def extractStarFormationHistories(config):
                 snr_postfit[i],
                 red_chi2[i],
                 EBV[i],
+                mpoly[i,:],
             ) = run_ppxf(
                 templates,
                 bin_data[:,i],
@@ -1251,6 +1303,7 @@ def extractStarFormationHistories(config):
         snr_postfit,
         red_chi2,
         EBV,
+        mpoly,
     )
 
     # Return

@@ -480,6 +480,12 @@ def run_ppxf(
         # add normalisation factor back in main results
         pp.bestfit = pp.bestfit * median_log_bin_data
 
+        # Save multiplicative Legendre polynomials (pp.mpoly is None if mdeg=-1)
+        mpoly = pp.mpoly if pp.mpoly is not None else np.ones(len(log_bin_data))
+
+        # Save additive Legendre polynomials (pp.apoly is None if degree=-1)
+        apoly = pp.apoly if pp.apoly is not None else np.zeros(len(log_bin_data))
+
         return(
             pp.sol[:],
             pp.bestfit,
@@ -490,10 +496,12 @@ def run_ppxf(
             snr_postfit,
             pp.chi2,
             EBV,
+            mpoly,
+            apoly,
         )
 
     except:
-        return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+        return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
 def save_ppxf(
@@ -513,6 +521,8 @@ def save_ppxf(
     snr_postfit,
     red_chi2,
     EBV,
+    mpoly,
+    apoly,
 ):
     """Saves all results to disk."""
     # ========================
@@ -736,6 +746,50 @@ def save_ppxf(
     )
     logging.info("Wrote: " + outfits)
 
+    # ============================
+    # SAVE MULTIPLICATIVE LEGENDRE POLYNOMIALS
+    outfits = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_kin_mpoly.fits"
+    )
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_mpoly.fits")
+
+    priHDU = fits.PrimaryHDU()
+
+    cols = [fits.Column(name="MPOLY", format=str(mpoly.shape[1]) + "D", array=mpoly)]
+    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    dataHDU.name = "MPOLY"
+
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
+    HDUList = fits.HDUList([priHDU, dataHDU])
+    HDUList.writeto(outfits, overwrite=True)
+
+    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_mpoly.fits")
+    logging.info("Wrote: " + outfits)
+
+    # ============================
+    # SAVE ADDITIVE LEGENDRE POLYNOMIALS
+    outfits = (
+        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
+        + "_kin_apoly.fits"
+    )
+    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_apoly.fits")
+
+    priHDU = fits.PrimaryHDU()
+
+    cols = [fits.Column(name="APOLY", format=str(apoly.shape[1]) + "D", array=apoly)]
+    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    dataHDU.name = "APOLY"
+
+    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
+    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
+    HDUList = fits.HDUList([priHDU, dataHDU])
+    HDUList.writeto(outfits, overwrite=True)
+
+    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_apoly.fits")
+    logging.info("Wrote: " + outfits)
+
 
 def extractStellarKinematics(config):
     """
@@ -821,11 +875,14 @@ def extractStellarKinematics(config):
     #check what type of noise should be passed on:
     if config["KIN"]["NOISE"] == "variance": # use noise from cube 
         noise = bin_err  # already converted to noise, i.e. sqrt(variance)
+        print ('815', noise)
     elif config["KIN"]["NOISE"] == "constant": # use constant noise
         noise  = np.ones((npix,nbins))
         # while constant, the noise does need to be scaled to match the bin_err
         med_bin_err = np.nanmedian(bin_err, axis=0)
+        print (print ('819', med_bin_err))
         noise *= med_bin_err
+        print ('820', noise)
 
     nsims = config["KIN"]["MC_PPXF"]
 
@@ -887,6 +944,8 @@ def extractStellarKinematics(config):
     snr_postfit = np.zeros(nbins)
     red_chi2 = np.zeros(nbins)
     EBV = np.zeros(nbins)
+    mpoly = np.zeros((nbins, bin_data.shape[0]))
+    apoly = np.zeros((nbins, bin_data.shape[0]))
  
 # ====================
     # If OPT_TEMP keyword set to 'galaxy_single' or 'galaxy_set' then
@@ -943,6 +1002,7 @@ def extractStellarKinematics(config):
         noise_filename_memmap = memmap_folder + "/noise_memmap.tmp"
         dump(noise, noise_filename_memmap)
         noise = load(noise_filename_memmap, mmap_mode='r')
+        print('939', noise)
 
         # Define a function to encapsulate the work done in the loop
         def worker(chunk, templates):
@@ -997,6 +1057,12 @@ def extractStellarKinematics(config):
             snr_postfit[i] = ppxf_tmp[i][6]
             red_chi2[i] = ppxf_tmp[i][7]
             EBV[i] = ppxf_tmp[i][8]
+            mpoly[i, :] = ppxf_tmp[i][9]
+            apoly[i, :] = ppxf_tmp[i][10]
+
+        # Testing
+        formal_error[:, 0] = 0.0  # Velocity error (km/s)
+        formal_error[:, 1] = 0.0  # Sigma error (km/s)
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
@@ -1027,6 +1093,8 @@ def extractStellarKinematics(config):
                 snr_postfit[i],
                 red_chi2[i],
                 EBV[i],
+                mpoly[i, :],
+                apoly[i, :],
             ) = run_ppxf(
                 templates,
                 bin_data[:, i],
@@ -1103,6 +1171,8 @@ def extractStellarKinematics(config):
         snr_postfit,
         red_chi2,
         EBV,
+        mpoly,
+        apoly,
     )
 
     # Return
