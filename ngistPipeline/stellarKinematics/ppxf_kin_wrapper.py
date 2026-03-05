@@ -909,7 +909,6 @@ def extractStellarKinematics(config):
         noise_filename_memmap = memmap_folder + "/noise_memmap.tmp"
         dump(noise, noise_filename_memmap)
         noise = load(noise_filename_memmap, mmap_mode='r')
-        print('939', noise)
 
         # Define a function to encapsulate the work done in the loop
         def worker(chunk, templates):
