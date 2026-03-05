@@ -818,8 +818,8 @@ def save_sfh(
 
     # Table HDU with combined optimal template
     cols = []
-    optimal_template_comb_2d = optimal_template_comb.reshape((optimal_template_comb.shape[0], -1))
-    cols.append(fits.Column(name="OPTIMAL_TEMPLATE_ALL", format=str(optimal_template_comb_2d.shape[1]) + "D", array=optimal_template_comb_2d.T))
+    optimal_template_comb_2d = optimal_template_comb.reshape((optimal_template_comb.shape[0], -1)).T
+    cols.append(fits.Column(name="OPTIMAL_TEMPLATE_ALL", format=str(optimal_template_comb_2d.shape[1]) + "D", array=optimal_template_comb_2d))
     combHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     combHDU.name = "OPTIMAL_TEMPLATE_ALL"
 
