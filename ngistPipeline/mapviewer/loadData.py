@@ -142,12 +142,12 @@ def loadData(self):
             idxConvertShortToLong
         ]
         self.kinBestfit = fits.open(self.dirprefix + "_kin_bestfit.fits")[
-            1
+            "BESTFIT"
         ].data.BESTFIT
-        self.kinLambda = fits.open(self.dirprefix + "_kin_bestfit.fits")[2].data.LOGLAM
-        self.kinGoodpix = fits.open(self.dirprefix + "_kin_bestfit.fits")[
-            3
-        ].data.GOODPIX
+        self.kinLambda = fits.open(self.dirprefix + "_kin_bestfit.fits")["LOGLAM"].data.LOGLAM
+        self.kinGoodpixCln = fits.open(self.dirprefix + "_kin_bestfit.fits")[
+            "GOODPIX_CLN"
+        ].data.GOODPIX_CLN
 
         # following line does not work if your data is not symetric around centre
         #median_V_stellar = np.nanmedian(
@@ -158,7 +158,7 @@ def loadData(self):
         self.kinResults = None
         self.kinBestfit = None
         self.kinLambda = None
-        self.kinGoodpix = None
+        self.kinGoodpixCln = None
 
     # Read emissionLines results
     if self.GAS:
@@ -203,12 +203,12 @@ def loadData(self):
             idxConvertShortToLong
         ]
         self.sfhBestfit = fits.open(self.dirprefix + "_sfh_bestfit.fits")[
-            1
+            "BESTFIT"
         ].data.BESTFIT
-        self.sfhLambda = fits.open(self.dirprefix + "_sfh_bestfit.fits")[2].data.LOGLAM
-        self.sfhGoodpix = fits.open(self.dirprefix + "_sfh_bestfit.fits")[
-            3
-        ].data.GOODPIX
+        self.sfhLambda = fits.open(self.dirprefix + "_sfh_bestfit.fits")["LOGLAM"].data.LOGLAM
+        self.sfhGoodpixCln = fits.open(self.dirprefix + "_sfh_bestfit.fits")[
+            "GOODPIX_CLN"
+        ].data.GOODPIX_CLN
 
         # following line does not work if your data is not symetric around centre
         #if "V" in self.sfhResults.names:
@@ -232,7 +232,7 @@ def loadData(self):
         self.sfhResults = None
         self.sfhBestfit = None
         self.sfhLambda = None
-        self.sfhGoodpix = None
+        self.sfhGoodpixCln = None
         self.metals = None
         self.age = None
         self.Weights = None

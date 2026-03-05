@@ -211,7 +211,7 @@ def plotData(self):
         self.plotSpectraKIN(
             self.Spectra[self.idxBinShort],
             self.kinBestfit[self.idxBinShort],
-            self.kinGoodpix,
+            self.kinGoodpixCln[self.idxBinShort],
             1,
         )
         if (
@@ -279,7 +279,7 @@ def plotData(self):
         self.plotSpectraSFH(
             self.Spectra[self.idxBinShort],
             self.sfhBestfit[self.idxBinShort],
-            self.sfhGoodpix,
+            self.sfhGoodpixCln[self.idxBinShort],
             3,
         )
         self.axes[3].set_title(
@@ -392,14 +392,7 @@ def plotPlainSpectrum(self, spectra, snr, panel):
     self.axes[panel].xaxis.set_major_formatter(ticks)
 
 
-def plotSpectraKIN(self, spectra, bestfit, goodpix, panel):
-    # Compile information on masked regions
-    masked = np.flatnonzero(np.abs(np.diff(goodpix)) > 1)
-    vlines = []
-    for i in masked:
-        vlines.append(goodpix[i] + 1)
-        vlines.append(goodpix[i + 1] - 1)
-    vlines = np.array(vlines)
+def plotSpectraKIN(self, spectra, bestfit, goodpix_cln, panel):
 
     # Clear panels
     self.axes[panel].cla()
@@ -421,30 +414,30 @@ def plotSpectraKIN(self, spectra, bestfit, goodpix, panel):
         linewidth=2,
     )
 
-    # Highlight masked regions
-    i = 0
-    while i < len(vlines) - 1:
-        badpix = np.arange(vlines[i], vlines[i + 1] + 1)
-        i += 2
+    # Highlight sigma-clipped pixels
+    clipped_idx = np.where(goodpix_cln == 0)[0]
+    for idx in clipped_idx:
+        self.axes[panel].axvspan(
+            self.kinLambda[idx],
+            self.kinLambda[min(idx + 1, len(self.kinLambda) - 1)],
+            color="k",
+            alpha=0.1,
+            lw=0,
+        )
+
+    # Residual baseline
     self.axes[panel].plot(
         [self.Lambda[idxLam][0], self.Lambda[idxLam][-1]],
         [offset, offset],
         color="k",
         linewidth=0.5,
     )
-    for i in range(len(np.where(vlines != 0)[0])):
-        if i % 2 == 0:
-            self.axes[panel].axvspan(
-                self.Lambda[idxLam][vlines[i]],
-                self.Lambda[idxLam][vlines[i + 1]],
-                color="k",
-                alpha=0.1,
-                lw=0,
-            )
 
+    # Axis limits and labels
     self.axes[panel].set_xlim([self.Lambda[idxLam][0], self.Lambda[idxLam][-1]])
     self.axes[panel].set_ylabel("Flux")
 
+    # Exponential scale x-axis formatter
     ticks = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(np.exp(x)))
     self.axes[panel].xaxis.set_major_formatter(ticks)
 
@@ -521,15 +514,7 @@ def plotSpectraGAS(self, spectra, bestfit, goodpix, panel):
     self.axes[panel].xaxis.set_major_formatter(ticks)
 
 
-def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
-    # Compile information on masked regions
-    masked = np.flatnonzero(np.abs(np.diff(goodpix)) > 1)
-    vlines = []
-    for i in masked:
-        vlines.append(goodpix[i] + 1)
-        vlines.append(goodpix[i + 1] - 1)
-    vlines = np.array(vlines)
-
+def plotSpectraSFH(self, spectra, bestfit, goodpix_cln, panel):
     # Clear panels
     self.axes[panel].cla()
 
@@ -574,30 +559,30 @@ def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
     self.axes[panel].plot(self.Lambda[idxLam], spectra[idxLam], color="k", linewidth=2)
     self.axes[panel].plot(self.sfhLambda, bestfit[:], color="crimson", linewidth=2)
 
-    # Highlight masked regions
-    i = 0
-    while i < len(vlines) - 1:
-        badpix = np.arange(vlines[i], vlines[i + 1] + 1)
-        i += 2
+    # Highlight sigma-clipped pixels
+    clipped_idx = np.where(goodpix_cln == 0)[0]
+    for idx in clipped_idx:
+        self.axes[panel].axvspan(
+            self.sfhLambda[idx],
+            self.sfhLambda[min(idx + 1, len(self.sfhLambda) - 1)],
+            color="k",
+            alpha=0.1,
+            lw=0,
+        )
+
+    # Residual baseline
     self.axes[panel].plot(
         [self.Lambda[idxLam][0], self.Lambda[idxLam][-1]],
         [offset, offset],
         color="k",
         linewidth=0.5,
     )
-    for i in range(len(np.where(vlines != 0)[0])):
-        if i % 2 == 0:
-            self.axes[panel].axvspan(
-                self.Lambda[idxLam][vlines[i]],
-                self.Lambda[idxLam][vlines[i + 1]],
-                color="k",
-                alpha=0.1,
-                lw=0,
-            )
 
+    # Axis limits and labels
     self.axes[panel].set_xlim([self.Lambda[idxLam][0], self.Lambda[idxLam][-1]])
     self.axes[panel].set_ylabel("Flux")
 
+    # Exponential x-axis formatter
     ticks = ticker.FuncFormatter(lambda x, pos: "{0:g}".format(np.exp(x)))
     self.axes[panel].xaxis.set_major_formatter(ticks)
 
