@@ -27,7 +27,7 @@ output_files = ["CONFIG","LOGFILE",
 				"NGC0000Example_gas_bestfit_bin.fits",
 				"NGC0000Example_gas_cleaned_bin.fits",
 				"NGC0000Example_kin_bestfit.fits",
-				"NGC0000Example_kin_optimal_templates.fits",
+				# "NGC0000Example_kin_optimal_templates.fits", # merged into kin_bestfit.fits
 				"NGC0000Example_kin.fits",
 				"NGC0000Example_ls_adap_res.fits",
 				"NGC0000Example_ls_orig_res.fits",

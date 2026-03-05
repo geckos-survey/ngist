@@ -577,33 +577,36 @@ def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
 
 
 def save_sfh(
-    mean_result,
-    mean_result_MC_mean,
-    mean_result_MC_err,
+    config,
     ppxf_result,
-    w_row,
-    w_row_MC_iter,
     formal_error,
-    logAge_grid,
-    metal_grid,
-    alpha_grid,
     ppxf_bestfit,
     logLam,
     goodPixels,
+    optimal_template,
+    logLam_template,
+    npix,
+    spectral_mask,
+    optimal_template_comb,
+    bin_data,
+    snr_postfit,
+    red_chi2,
+    EBV,
+    mpoly,
+    mean_result,
+    mean_result_MC_mean,
+    mean_result_MC_err,
+    w_row,
+    w_row_MC_iter,
+    logAge_grid,
+    metal_grid,
+    alpha_grid,
     velscale,
     logLam1,
     ncomb,
     nAges,
     nMetal,
     nAlpha,
-    npix,
-    config,
-    spectral_mask,
-    optimal_template_comb,
-    snr_postfit,
-    red_chi2,
-    EBV,
-    mpoly,
 ):
     """ Save all results to disk. """
 
@@ -768,17 +771,26 @@ def save_sfh(
     # Table HDU with SFH bestfit
     cols = []
     cols.append( fits.Column(name='BESTFIT', format=str(npix)+'D', array=ppxf_bestfit ))
-
     dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     dataHDU.name = "BESTFIT"
 
     # Table HDU with SFH logLam
     cols = []
-
     cols.append( fits.Column(name='LOGLAM', format='D', array=logLam ))
-
     logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     logLamHDU.name = "LOGLAM"
+
+    # Table HDU with template wavelength grid
+    cols = []
+    cols.append(fits.Column(name="LOGLAM_TEMPLATE", format="D", array=logLam_template))
+    logLamTempHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    logLamTempHDU.name = "LOGLAM_TEMPLATE"
+
+    # Table HDU with observed spectra
+    cols = []
+    cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=bin_data.T))
+    specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    specHDU.name = "SPEC"
 
     # Table HDU with SFH goodpixels
     cols = []
@@ -786,12 +798,42 @@ def save_sfh(
     goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     goodpixHDU.name = "GOODPIX"
 
+    # Table HDU with 3 sigma clipped regions
+    cols = []
+    cols.append(fits.Column(name="GOODPIX_CLN", format=str(spectral_mask.shape[1]) + "D", array=spectral_mask))
+    goodpixClnHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    goodpixClnHDU.name = "GOODPIX_CLN"
+
+    # Table HDU with multiplicative Legendre polynomials
+    cols = []
+    cols.append(fits.Column(name="MPOLY", format=str(mpoly.shape[1]) + "D", array=mpoly))
+    mpolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    mpolyHDU.name = "MPOLY"
+
+    # Table HDU with per-bin optimal templates
+    cols = []
+    cols.append(fits.Column(name="OPTIMAL_TEMPLATES", format=str(optimal_template.shape[1]) + "D", array=optimal_template))
+    optHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    optHDU.name = "OPTIMAL_TEMPLATES"
+
+    # Table HDU with combined optimal template
+    cols = []
+    cols.append(fits.Column(name="OPTIMAL_TEMPLATE_ALL", format=str(optimal_template_comb.shape[1]) + "D", array=optimal_template_comb))
+    combHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    combHDU.name = "OPTIMAL_TEMPLATE_ALL"
+
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
     logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["SFH"])
+    logLamTempHDU = _auxiliary.saveConfigToHeader(logLamTempHDU, config["SFH"])
+    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["SFH"])
     goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU])
+    goodpixClnHDU = _auxiliary.saveConfigToHeader(goodpixClnHDU, config["SFH"])
+    mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["SFH"])
+    optHDU = _auxiliary.saveConfigToHeader(optHDU, config["SFH"])
+    combHDU = _auxiliary.saveConfigToHeader(combHDU, config["SFH"])
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, logLamTempHDU, specHDU, goodpixHDU, goodpixClnHDU, mpolyHDU, optHDU, combHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
     fits.setval(outfits_sfh, "VELSCALE", value=velscale)
@@ -804,49 +846,7 @@ def save_sfh(
     )
     logging.info("Wrote: " + outfits_sfh)
 
-    # ========================
-    # SAVE SPECTRAL MASK
-    outfits_sfh = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_sfh_spectral_mask.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_spectral_mask.fits")
 
-    priHDU = fits.PrimaryHDU()
-
-    cols = [fits.Column(name="SPECTRAL_MASK", format=str(spectral_mask.shape[1]) + "D", array=spectral_mask)]
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "SPECTRAL_MASK"
-
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits_sfh, overwrite=True)
-
-    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_spectral_mask.fits")
-    logging.info("Wrote: " + outfits_sfh)
-
-    # ========================
-    # SAVE MULTIPLICATIVE LEGENDRE POLYNOMIALS
-    outfits_sfh = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_sfh_mpoly.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_mpoly.fits")
-
-    priHDU = fits.PrimaryHDU()
-
-    cols = [fits.Column(name="MPOLY", format=str(mpoly.shape[1]) + "D", array=mpoly)]
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "MPOLY"
-
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits_sfh, overwrite=True)
-
-    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_sfh_mpoly.fits")
-    logging.info("Wrote: " + outfits_sfh)
 
 
 def extractStarFormationHistories(config):
@@ -1277,33 +1277,36 @@ def extractStarFormationHistories(config):
         config["SFH"]["DEBUG_BIN"] = str(config["SFH"]["DEBUG_BIN"])
 
     save_sfh(
-        mean_results,
-        mean_results_MC_mean,
-        mean_results_MC_err,
+        config,
         ppxf_result,
-        w_row,
-        w_row_MC_iter,
         formal_error,
-        logAge_grid,
-        metal_grid,
-        alpha_grid,
         ppxf_bestfit,
         logLam,
         goodPixels_sfh,
+        optimal_template,
+        logLam_template,
+        npix,
+        spectral_mask,
+        optimal_template_comb,
+        bin_data,
+        snr_postfit,
+        red_chi2,
+        EBV,
+        mpoly,
+        mean_results,
+        mean_results_MC_mean,
+        mean_results_MC_err,
+        w_row,
+        w_row_MC_iter,
+        logAge_grid,
+        metal_grid,
+        alpha_grid,
         velscale,
         logLam,
         ncomb,
         nAges,
         nMetal,
         nAlpha,
-        npix,
-        config,
-        spectral_mask,
-        optimal_template_comb,
-        snr_postfit,
-        red_chi2,
-        EBV,
-        mpoly,
     )
 
     # Return

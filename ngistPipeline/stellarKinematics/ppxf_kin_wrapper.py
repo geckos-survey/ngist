@@ -627,73 +627,51 @@ def save_ppxf(
     logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     logLamHDU.name = "LOGLAM"
 
+    # Table HDU with template wavelength grid
+    cols = []
+    cols.append(fits.Column(name="LOGLAM_TEMPLATE", format="D", array=logLam_template))
+    logLamTempHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    logLamTempHDU.name = "LOGLAM_TEMPLATE"
+
+    # Table HDU with observed spectra
+    cols = []
+    cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=bin_data.T))
+    specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    specHDU.name = "SPEC"
+
     # Table HDU with PPXF goodpixels
     cols = []
     cols.append(fits.Column(name="GOODPIX", format="J", array=goodPixels))
     goodpixHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     goodpixHDU.name = "GOODPIX"
 
-    # Table HDU with ??? --> unclear what this is?
+    # Table HDU with 3 sigma clipped regions
     cols = []
-    cols.append(fits.Column(name="SPEC", format=str(npix) + "D", array=bin_data.T))
-    specHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    specHDU.name = "SPEC"
+    cols.append(fits.Column(name="GOODPIX_CLN", format=str(spectral_mask.shape[1]) + "D", array=spectral_mask))
+    goodpixClnHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    goodpixClnHDU.name = "GOODPIX_CLN"
 
-    # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
-    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["KIN"])
-    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["KIN"])
-
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, goodpixHDU, specHDU])
-    HDUList.writeto(outfits_ppxf, overwrite=True)
-
-    printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_bestfit.fits"
-    )
-    logging.info("Wrote: " + outfits_ppxf)
-
-    # ============================
-    # SAVE OPTIMAL TEMPLATE RESULT
-    outfits = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin_optimal_templates.fits"
-    )
-    printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_optimal_templates.fits"
-    )
-
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
-
-    # Extension 1: Table HDU with optimal templates
+    # Table HDU with multiplicative Legendre polynomials
     cols = []
-    cols.append(
-        fits.Column(
-            name="OPTIMAL_TEMPLATES",
-            format=str(optimal_template.shape[1]) + "D",
-            array=optimal_template,
-        )
-    )
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "OPTIMAL_TEMPLATES"
+    cols.append(fits.Column(name="MPOLY", format=str(mpoly.shape[1]) + "D", array=mpoly))
+    mpolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    mpolyHDU.name = "MPOLY"
 
-    # Extension 2: Table HDU with logLam_templates
+    # Table HDU with additive Legendre polynomials
     cols = []
-    cols.append(fits.Column(name="LOGLAM_TEMPLATE", format="D", array=logLam_template))
-    logLamHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    logLamHDU.name = "LOGLAM_TEMPLATE"
+    cols.append(fits.Column(name="APOLY", format=str(apoly.shape[1]) + "D", array=apoly))
+    apolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    apolyHDU.name = "APOLY"
 
-    # Extension 2: Table HDU with logLam_templates
+    # Table HDU with per-bin optimal templates
     cols = []
-    cols.append(
-        fits.Column(
-            name="OPTIMAL_TEMPLATE_ALL", 
-            format=str(optimal_template_comb.shape[1]) + "D",
-            array=optimal_template_comb
-        )
-    )
+    cols.append(fits.Column(name="OPTIMAL_TEMPLATES", format=str(optimal_template.shape[1]) + "D", array=optimal_template))
+    optHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    optHDU.name = "OPTIMAL_TEMPLATES"
+
+    # Table HDU with combined optimal template
+    cols = []
+    cols.append(fits.Column(name="OPTIMAL_TEMPLATE_ALL", format=str(optimal_template_comb.shape[1]) + "D", array=optimal_template_comb))
     combHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     combHDU.name = "OPTIMAL_TEMPLATE_ALL"
 
@@ -701,94 +679,23 @@ def save_ppxf(
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
     logLamHDU = _auxiliary.saveConfigToHeader(logLamHDU, config["KIN"])
+    logLamTempHDU = _auxiliary.saveConfigToHeader(logLamTempHDU, config["KIN"])
+    specHDU = _auxiliary.saveConfigToHeader(specHDU, config["KIN"])
+    goodpixHDU = _auxiliary.saveConfigToHeader(goodpixHDU, config["KIN"])
+    goodpixClnHDU = _auxiliary.saveConfigToHeader(goodpixClnHDU, config["KIN"])
+    mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["KIN"])
+    apolyHDU = _auxiliary.saveConfigToHeader(apolyHDU, config["KIN"])
+    optHDU = _auxiliary.saveConfigToHeader(optHDU, config["KIN"])
     combHDU = _auxiliary.saveConfigToHeader(combHDU, config["KIN"])
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, combHDU])
-    HDUList.writeto(outfits, overwrite=True)
+
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, logLamTempHDU, specHDU, goodpixHDU, goodpixClnHDU, mpolyHDU, apolyHDU, optHDU, combHDU])
+    HDUList.writeto(outfits_ppxf, overwrite=True)
 
     printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_optimal_templates.fits"
+        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_bestfit.fits"
     )
-    logging.info("Wrote: " + outfits)
+    logging.info("Wrote: " + outfits_ppxf)
 
-    # ============================
-    # SAVE SPECTRAL MASK RESULT
-    outfits = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin_spectral_mask.fits"
-    )
-    printStatus.running(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_spectral_mask.fits"
-    )
-
-    # Primary HDU
-    priHDU = fits.PrimaryHDU()
-
-    # Extension 1: Table HDU with optimal templates
-    cols = []
-    cols.append(
-        fits.Column(
-            name="SPECTRAL_MASK",
-            format=str(spectral_mask.shape[1]) + "D",
-            array=spectral_mask,
-        )
-    )
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "SPECTRAL_MASK"
-
-    # Create HDU list and write to file
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits, overwrite=True)
-
-    printStatus.updateDone(
-        "Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_spectral_mask.fits"
-    )
-    logging.info("Wrote: " + outfits)
-
-    # ============================
-    # SAVE MULTIPLICATIVE LEGENDRE POLYNOMIALS
-    outfits = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin_mpoly.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_mpoly.fits")
-
-    priHDU = fits.PrimaryHDU()
-
-    cols = [fits.Column(name="MPOLY", format=str(mpoly.shape[1]) + "D", array=mpoly)]
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "MPOLY"
-
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits, overwrite=True)
-
-    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_mpoly.fits")
-    logging.info("Wrote: " + outfits)
-
-    # ============================
-    # SAVE ADDITIVE LEGENDRE POLYNOMIALS
-    outfits = (
-        os.path.join(config["GENERAL"]["OUTPUT"], config["GENERAL"]["RUN_ID"])
-        + "_kin_apoly.fits"
-    )
-    printStatus.running("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_apoly.fits")
-
-    priHDU = fits.PrimaryHDU()
-
-    cols = [fits.Column(name="APOLY", format=str(apoly.shape[1]) + "D", array=apoly)]
-    dataHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    dataHDU.name = "APOLY"
-
-    priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
-    dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
-    HDUList = fits.HDUList([priHDU, dataHDU])
-    HDUList.writeto(outfits, overwrite=True)
-
-    printStatus.updateDone("Writing: " + config["GENERAL"]["RUN_ID"] + "_kin_apoly.fits")
-    logging.info("Wrote: " + outfits)
 
 
 def extractStellarKinematics(config):
