@@ -29,7 +29,6 @@ def stellarKinematics_Module(config):
         config["GENERAL"]["OW_OUTPUT"] == False
         and os.path.isfile(outPrefix + "_kin.fits") == True
         and os.path.isfile(outPrefix + "_kin_bestfit.fits") == True
-        and os.path.isfile(outPrefix + "_kin_optimal_templates.fits") == True
     ):
         logging.info(
             "Results of the module are already in the output directory. Module is skipped."
