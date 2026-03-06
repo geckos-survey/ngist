@@ -587,7 +587,6 @@ def save_sfh(
     logLam_template,
     npix,
     spectral_mask,
-    optimal_template_comb,
     bin_data,
     snr_postfit,
     red_chi2,
@@ -816,13 +815,6 @@ def save_sfh(
     optHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     optHDU.name = "OPTIMAL_TEMPLATES"
 
-    # Table HDU with combined optimal template
-    cols = []
-    optimal_template_comb_2d = optimal_template_comb.reshape((optimal_template_comb.shape[0], -1)).T
-    cols.append(fits.Column(name="OPTIMAL_TEMPLATE_ALL", format=str(optimal_template_comb_2d.shape[1]) + "D", array=optimal_template_comb_2d))
-    combHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    combHDU.name = "OPTIMAL_TEMPLATE_ALL"
-
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["SFH"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["SFH"])
@@ -833,8 +825,7 @@ def save_sfh(
     goodpixClnHDU = _auxiliary.saveConfigToHeader(goodpixClnHDU, config["SFH"])
     mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["SFH"])
     optHDU = _auxiliary.saveConfigToHeader(optHDU, config["SFH"])
-    combHDU = _auxiliary.saveConfigToHeader(combHDU, config["SFH"])
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, logLamTempHDU, specHDU, goodpixHDU, goodpixClnHDU, mpolyHDU, optHDU, combHDU])
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, logLamTempHDU, specHDU, goodpixHDU, goodpixClnHDU, mpolyHDU, optHDU])
     HDUList.writeto(outfits_sfh, overwrite=True)
 
     fits.setval(outfits_sfh, "VELSCALE", value=velscale)
@@ -1288,7 +1279,6 @@ def extractStarFormationHistories(config):
         logLam_template,
         npix,
         spectral_mask,
-        optimal_template_comb,
         bin_data,
         snr_postfit,
         red_chi2,

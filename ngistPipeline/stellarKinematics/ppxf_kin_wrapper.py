@@ -516,7 +516,6 @@ def save_ppxf(
     logLam_template,
     npix,
     spectral_mask,
-    optimal_template_comb,
     bin_data,
     snr_postfit,
     red_chi2,
@@ -669,12 +668,6 @@ def save_ppxf(
     optHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     optHDU.name = "OPTIMAL_TEMPLATES"
 
-    # Table HDU with combined optimal template
-    cols = []
-    cols.append(fits.Column(name="OPTIMAL_TEMPLATE_ALL", format=str(optimal_template_comb.shape[1]) + "D", array=optimal_template_comb))
-    combHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
-    combHDU.name = "OPTIMAL_TEMPLATE_ALL"
-
     # Create HDU list and write to file
     priHDU = _auxiliary.saveConfigToHeader(priHDU, config["KIN"])
     dataHDU = _auxiliary.saveConfigToHeader(dataHDU, config["KIN"])
@@ -686,9 +679,8 @@ def save_ppxf(
     mpolyHDU = _auxiliary.saveConfigToHeader(mpolyHDU, config["KIN"])
     apolyHDU = _auxiliary.saveConfigToHeader(apolyHDU, config["KIN"])
     optHDU = _auxiliary.saveConfigToHeader(optHDU, config["KIN"])
-    combHDU = _auxiliary.saveConfigToHeader(combHDU, config["KIN"])
 
-    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, logLamTempHDU, specHDU, goodpixHDU, goodpixClnHDU, mpolyHDU, apolyHDU, optHDU, combHDU])
+    HDUList = fits.HDUList([priHDU, dataHDU, logLamHDU, logLamTempHDU, specHDU, goodpixHDU, goodpixClnHDU, mpolyHDU, apolyHDU, optHDU])
     HDUList.writeto(outfits_ppxf, overwrite=True)
 
     printStatus.updateDone(
@@ -782,14 +774,11 @@ def extractStellarKinematics(config):
     #check what type of noise should be passed on:
     if config["KIN"]["NOISE"] == "variance": # use noise from cube 
         noise = bin_err  # already converted to noise, i.e. sqrt(variance)
-        print ('815', noise)
     elif config["KIN"]["NOISE"] == "constant": # use constant noise
         noise  = np.ones((npix,nbins))
         # while constant, the noise does need to be scaled to match the bin_err
         med_bin_err = np.nanmedian(bin_err, axis=0)
-        print (print ('819', med_bin_err))
         noise *= med_bin_err
-        print ('820', noise)
 
     nsims = config["KIN"]["MC_PPXF"]
 
@@ -1072,7 +1061,6 @@ def extractStellarKinematics(config):
         logLam_template,
         npix,
         spectral_mask,
-        optimal_template_comb,
         bin_data,
         snr_postfit,
         red_chi2,
