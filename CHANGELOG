@@ -6,6 +6,9 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.10     2026-07-16 ADDED: new read in modules for miles stars and smiles stars that can 
+		    be used in the SFH module.
+
 V7.6.9      2026-03-06 ADDED: Updated kin_bestfit and sfh_bestfit to contain additional
 			extensions:
 			- LOGLAM_TEMPLATE - Log-rebinned wavelength grid of the templates
@@ -13,7 +16,8 @@ V7.6.9      2026-03-06 ADDED: Updated kin_bestfit and sfh_bestfit to contain add
 			- GOODPIX_CLN - Per-bin pixel mask after 3 sigma-clipping; 1=good, 0=clipped
 			- MPOLY - Multiplicative Legendre polynomial for each bin
 			- APOLY (kin only) - Additive Legendre polynomial for each bin
-			- OPTIMAL_TEMPLATES — Per-bin optimal template: weighted sum of SSP templates using - each bin's pPXF weights, on the template wavelength grid
+			- OPTIMAL_TEMPLATES — Per-bin optimal template: weighted sum of SSP templates 
+			  using - each bin's pPXF weights, on the template wavelength grid
 
 V7.6.8      2026-02-03 FIXED: Removed small debugging code in SFH
 

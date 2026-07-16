@@ -35,6 +35,7 @@ jobs:
       - name: Install ngist
         run: |
           pip install .
+          
       - name: Checking the pipeline runs NGC 0000 in Parallel
         run: ngistPipeline --config=./.github/workflows/tests/gistTutorial/configFiles/MasterConfig.yaml --default-dir=./.github/workflows/tests/gistTutorial/configFiles/defaultDir_ubuntu
       - name: Checking pipeline results
