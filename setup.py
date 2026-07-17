@@ -43,6 +43,7 @@ setup(name='ngistPipeline',
         'ppxf',
         'vorbin',
         'plotbin',
+        'powerbin',
       ],
       python_requires='>=3.6',
       entry_points={
