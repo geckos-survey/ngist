@@ -6,6 +6,9 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.11     2026-07-17 ADDED: implementation of the PowerBinning routine by Cappellari 
+                       (2025) as an alternative to Voronoi binning. 
+
 V7.6.10     2026-07-16 ADDED: new read in modules for miles stars and smiles stars that can 
 		    be used in the SFH module.
 
