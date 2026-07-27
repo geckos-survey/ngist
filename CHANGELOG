@@ -6,8 +6,15 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.12     2026-07-27 ADDED: new and updated masking routines. YAML file now takes 
+		    keyword THRESHOLD_METHOD:'isophote', 'isophote_gist' 'actual', 
+		    'isophote_smooth', 'actual_smooth'; The old version is isophote_gist. When 
+		    calling a smooth version, you can use the SMOOTH_SIGMA keyword to set the
+		    size of the Gaussian smoothing. Setting min_snr=0.0 results in all spaxels 
+		    being used.
+
 V7.6.11     2026-07-17 ADDED: implementation of the PowerBinning routine by Cappellari 
-                       (2025) as an alternative to Voronoi binning. 
+            (2025) as an alternative to Voronoi binning. 
 
 V7.6.10     2026-07-16 ADDED: new read in modules for miles stars and smiles stars that can 
 		    be used in the SFH module.
