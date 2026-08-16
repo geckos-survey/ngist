@@ -211,7 +211,7 @@ def plotData(self):
         self.plotSpectraKIN(
             self.Spectra[self.idxBinShort],
             self.kinBestfit[self.idxBinShort],
-            self.kinGoodpixCln[self.idxBinShort],
+            self.kinGoodpix[self.idxBinShort],
             1,
         )
         if (
@@ -279,7 +279,7 @@ def plotData(self):
         self.plotSpectraSFH(
             self.Spectra[self.idxBinShort],
             self.sfhBestfit[self.idxBinShort],
-            self.sfhGoodpixCln[self.idxBinShort],
+            self.sfhGoodpix[self.idxBinShort],
             3,
         )
         self.axes[3].set_title(
@@ -392,7 +392,7 @@ def plotPlainSpectrum(self, spectra, snr, panel):
     self.axes[panel].xaxis.set_major_formatter(ticks)
 
 
-def plotSpectraKIN(self, spectra, bestfit, goodpix_cln, panel):
+def plotSpectraKIN(self, spectra, bestfit, goodpix, panel):
 
     # Clear panels
     self.axes[panel].cla()
@@ -415,7 +415,7 @@ def plotSpectraKIN(self, spectra, bestfit, goodpix_cln, panel):
     )
 
     # Highlight sigma-clipped pixels
-    clipped_idx = np.where(goodpix_cln == 0)[0]
+    clipped_idx = np.where(goodpix == 0)[0]
     for idx in clipped_idx:
         self.axes[panel].axvspan(
             self.kinLambda[idx],
@@ -514,7 +514,7 @@ def plotSpectraGAS(self, spectra, bestfit, goodpix, panel):
     self.axes[panel].xaxis.set_major_formatter(ticks)
 
 
-def plotSpectraSFH(self, spectra, bestfit, goodpix_cln, panel):
+def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
     # Clear panels
     self.axes[panel].cla()
 
@@ -560,7 +560,7 @@ def plotSpectraSFH(self, spectra, bestfit, goodpix_cln, panel):
     self.axes[panel].plot(self.sfhLambda, bestfit[:], color="crimson", linewidth=2)
 
     # Highlight sigma-clipped pixels
-    clipped_idx = np.where(goodpix_cln == 0)[0]
+    clipped_idx = np.where(goodpix == 0)[0]
     for idx in clipped_idx:
         self.axes[panel].axvspan(
             self.sfhLambda[idx],

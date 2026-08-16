@@ -954,10 +954,6 @@ def extractStellarKinematics(config):
             EBV[i] = ppxf_tmp[i][8]
             mpoly[i, :] = ppxf_tmp[i][9]
             apoly[i, :] = ppxf_tmp[i][10]
-
-        # Testing
-        formal_error[:, 0] = 0.0  # Velocity error (km/s)
-        formal_error[:, 1] = 0.0  # Sigma error (km/s)
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
