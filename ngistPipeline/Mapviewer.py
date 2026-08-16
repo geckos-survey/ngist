@@ -56,14 +56,14 @@ class Mapviewer(pyqt.QMainWindow):
     def plotData(self):
         _plotData.plotData(self)
 
-    def plotSpectraKIN(self, spectra, bestfit, goodpix_cln, panel):
-        _plotData.plotSpectraKIN(self, spectra, bestfit, goodpix_cln, panel)
+    def plotSpectraKIN(self, spectra, bestfit, goodpix, panel):
+        _plotData.plotSpectraKIN(self, spectra, bestfit, goodpix, panel)
 
     def plotSpectraGAS(self, spectra, bestfit, goodpix, panel):
         _plotData.plotSpectraGAS(self, spectra, bestfit, goodpix, panel)
 
-    def plotSpectraSFH(self, spectra, bestfit, goodpix_cln, panel):
-        _plotData.plotSpectraSFH(self, spectra, bestfit, goodpix_cln, panel)
+    def plotSpectraSFH(self, spectra, bestfit, goodpix, panel):
+        _plotData.plotSpectraSFH(self, spectra, bestfit, goodpix, panel)
 
     def plotPlainSpectrum(self, spectra, snr, panel):
         _plotData.plotPlainSpectrum(self, spectra, snr, panel)
