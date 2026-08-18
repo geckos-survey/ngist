@@ -6,6 +6,9 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.14     2026-08-18 FIXED: bug in powerbin module that returned sqrt(SNR) rather 
+                    than SNR
+
 V7.6.13     2026-08-16 FIXED: bug in stellar kinematics module that had formal errors
 		    set to zero. Reverted mapviewer change from loading goodpixels_cln back to 
 		    goodpixels to maintain backwards compatibility. 
