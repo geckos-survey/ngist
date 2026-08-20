@@ -24,7 +24,7 @@ def fun_capacity(index, signal=None, noise=None, covar=0.00):
         sn = np.sum(signal[index]) / np.sqrt(np.sum(noise[index]**2))
         # Example for correlated noise (see full example file for details):
         sn /= 1 + covar * np.log10(len(index))
-        return sn
+        return sn**2
 
 
 def generateSpatialBins(config, cube):
@@ -60,7 +60,7 @@ def generateSpatialBins(config, cube):
 
     try:
         # Do the binning
-        pow = PowerBin(xy, capacity_spec_fun, config["SPATIAL_BINNING"]["TARGET_SNR"])
+        pow = PowerBin(xy, capacity_spec_fun, config["SPATIAL_BINNING"]["TARGET_SNR"]**2)
         binNum = pow.bin_num
         xNode = pow.xybin[:, 0]
         yNode = pow.xybin[:,1]
