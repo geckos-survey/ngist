@@ -6,8 +6,10 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.15     2026-08-20 FIXED: bug in gandalf module calling old magpiGandalf routine
+
 V7.6.14     2026-08-18 FIXED: bug in powerbin module that returned sqrt(SNR) rather 
-                    than SNR
+            than SNR
 
 V7.6.13     2026-08-16 FIXED: bug in stellar kinematics module that had formal errors
 		    set to zero. Reverted mapviewer change from loading goodpixels_cln back to 

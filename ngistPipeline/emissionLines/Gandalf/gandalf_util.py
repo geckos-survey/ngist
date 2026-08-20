@@ -20,7 +20,7 @@ from ppxf.ppxf import robust_sigma
 from scipy import fftpack, linalg, ndimage, optimize
 from scipy.interpolate import interp1d
 
-from ngistPipeline.emissionLines.magpiGandalf.cap_mpfit import mpfit
+from ngistPipeline.emissionLines.Gandalf.cap_mpfit import mpfit
 
 # ---------------------------------------------------------------------------- #
 # This version has been modified from the original to compute uncertainties on the
@@ -522,8 +522,8 @@ def set_constraints(
             parinfo[inndx]["fixed"] = 1
     # B) Second, set the limits
     # i) for V_gas and S_gas
-    vlimit = 6e2  # custom for MAGPI
-    slimit = 3e2  # custom for MAGPI
+    vlimit = 6e2  # 
+    slimit = 3e2  # 
 
     for i in range(0, nlines * 2, 2):
         parinfo[i]["limits"] = [
