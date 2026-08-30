@@ -5,7 +5,12 @@ import time
 import h5py
 import numpy as np
 import ppxf as ppxf_package
-import code
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import extinction
+import shutil
+import tempfile
 
 from astropy.io import fits
 from astropy.stats import biweight_location
@@ -14,9 +19,6 @@ from packaging import version
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-#import extinction
 
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import _prepareTemplates
@@ -36,90 +38,258 @@ PURPOSE:
   (ui.adsabs.harvard.edu/?#abs/2004PASP..116..138C;
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
-def plot_ppxf_sfh(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], 
-                  norm=False,mean_results=''):
-    #routine to plot first and final pPXF fit
-    fig = plt.figure(i, figsize=(13, 3.0))
+def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
+                  goodpixelsPre=[], norm=False, mean_results='', EBV=0,
+                  poly_type='mpoly'):
 
-    #plot second figure
-    ax2 = plt.subplot(111)
+    mpl.rcParams['path.simplify'] = False
+    mpl.rcParams['path.simplify_threshold'] = 0.0
+
+    fig, (ax2, axpoly, axdust) = plt.subplots(
+        3, 1, figsize=(13, 4.8), sharex=True,
+        gridspec_kw={'height_ratios': [3, 1, 1],
+                     'hspace': 0})
 
     if norm == True:
         median_norm = np.nanmedian(pp.galaxy[pp.goodpixels])
     else:
         median_norm = 1
 
-    stars_bestfit = pp.bestfit #/ median_norm
-    bestfit_shown = pp.bestfit #/ median_norm
-    galaxy = pp.galaxy #/ median_norm
+    stars_bestfit = pp.bestfit
+    galaxy = pp.galaxy
     resid = galaxy - stars_bestfit
     goodpixels = pp.goodpixels
-    
-    ll, rr = np.min(x), np.max(x)
-    
-    sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
-    bestfit_shown = bestfit_shown[goodpixels[0] : goodpixels[-1] + 1]
-    mx = 2.49
-    mn = -0.49
-    plt.plot(x, galaxy, 'black', linewidth=0.5)
-    plt.plot(x[goodpixels], resid[goodpixels], 'd',
-                color='LimeGreen', mec='LimeGreen', ms=1)
-    
-    if len(goodpixelsPre) > 0:
-        w = np.flatnonzero(np.diff(goodpixels) > 1)
-        for wj in w:
-            a, b = goodpixels[wj : wj + 2]
-            plt.axvspan(x[a], x[b], facecolor='lightpink')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5,alpha=0.5)
-        for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=0.5)
 
-        #repeat square lines with  pp_step1
-            w = np.flatnonzero(np.diff(goodpixelsPre) > 1)
-        for wj in w:
-            a, b = goodpixelsPre[wj : wj + 2]
-            plt.axvspan(x[a], x[b], facecolor='lightgray')
-        for k in goodpixelsPre[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
+    ll, rr = np.min(x), np.max(x)
+
+    sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
+
+    if np.nanmax(stars_bestfit) > 2.59:
+        mx = 3.49
     else:
-        w = np.flatnonzero(np.diff(goodpixels) > 1)
+        mx = 2.49
+    mn = -0.49
+
+    # Residuals on the full wavelength grid, excluding masked pixels
+    resid_plot = np.full(len(resid), np.nan, dtype=float)
+    resid_plot[goodpixels] = resid[goodpixels]
+
+    # Main spectrum panel
+    ax2.axhline(0.0, color='lightgray', linewidth=0.8,
+                antialiased=False, zorder=0)
+
+    resid_plot = np.full(len(resid), np.nan, dtype=float)
+    resid_plot[goodpixels] = resid[goodpixels]
+
+    # Stepped spectrum, residual, and best-fit model
+    ax2.plot(x, galaxy, color='black', linewidth=0.1,
+             drawstyle='steps-mid', antialiased=False,
+             solid_joinstyle='miter', solid_capstyle='butt',
+             zorder=2)
+
+    ax2.plot(x, resid_plot, color='LimeGreen', linewidth=0.1,
+             drawstyle='steps-mid', antialiased=False,
+             solid_joinstyle='miter', solid_capstyle='butt',
+             zorder=2)
+
+    ax2.plot(x, stars_bestfit, color='red', linewidth=0.1,
+             drawstyle='steps-mid', antialiased=False,
+             solid_joinstyle='miter', solid_capstyle='butt',
+             zorder=3)
+
+    if len(goodpixelsPre) > 0:
+
+        # Current masked regions: pink, with green residuals
+        padded = np.r_[-1, goodpixels, len(x)]
+        w = np.flatnonzero(np.diff(padded) > 1)
+
         for wj in w:
-            a, b = goodpixels[wj : wj + 2]
-            plt.axvspan(x[a], x[b], facecolor='lightgray')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5, alpha=0.5)
+            start = padded[wj] + 1
+            end = padded[wj + 1] - 1
+
+            left = max(start - 1, 0)
+            right = min(end + 1, len(x) - 1)
+
+            ax2.axvspan(x[left], x[right], facecolor='lightpink')
+
+            ax2.plot(x[left:right + 1], resid[left:right + 1],
+                     color='green', linewidth=0.1,
+                     drawstyle='steps-mid', alpha=0.5,
+                     antialiased=False,
+                     solid_joinstyle='miter',
+                     solid_capstyle='butt', zorder=2)
+
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
-    
-    plt.plot(x[goodpixels], goodpixels*0, '.k', ms=1)
-    plt.plot(x, stars_bestfit, 'red', linewidth=0.5)
-    ax2.set(xlabel='wavelength [Ang]', ylabel='Flux [normalised]')
-    ax2.set(ylim=(mn,mx))
-    ax2.tick_params(direction='in', which='both') 
+            ax2.plot(x[[k, k]], [mn, stars_bestfit[k]],
+                     color='lightpink', linewidth=0.5,
+                     antialiased=False)
+
+        # Previous masked regions: grey only
+        padded = np.r_[-1, goodpixelsPre, len(x)]
+        w = np.flatnonzero(np.diff(padded) > 1)
+
+        for wj in w:
+            start = padded[wj] + 1
+            end = padded[wj + 1] - 1
+
+            left = max(start - 1, 0)
+            right = min(end + 1, len(x) - 1)
+
+            ax2.axvspan(x[left], x[right], facecolor='lightgray')
+
+        for k in goodpixelsPre[[0, -1]]:
+            ax2.plot(x[[k, k]], [mn, stars_bestfit[k]],
+                     color='lightgray', linewidth=0.5,
+                     antialiased=False)
+
+    else:
+
+        # Current masked regions: grey, with green residuals
+        padded = np.r_[-1, goodpixels, len(x)]
+        w = np.flatnonzero(np.diff(padded) > 1)
+
+        for wj in w:
+            start = padded[wj] + 1
+            end = padded[wj + 1] - 1
+
+            left = max(start - 1, 0)
+            right = min(end + 1, len(x) - 1)
+
+            ax2.axvspan(x[left], x[right], facecolor='lightgray')
+
+            ax2.plot(x[left:right + 1], resid[left:right + 1],
+                     color='green', linewidth=0.1,
+                     drawstyle='steps-mid', alpha=0.5,
+                     antialiased=False,
+                     solid_joinstyle='miter',
+                     solid_capstyle='butt', zorder=2)
+
+        for k in goodpixels[[0, -1]]:
+            ax2.plot(x[[k, k]], [mn, stars_bestfit[k]],
+                     color='lightgray', linewidth=0.5,
+                     antialiased=False)
+
+    ax2.set_ylabel('Flux [normalised]')
+    ax2.set_ylim(mn, mx)
+    ax2.tick_params(direction='in', which='both')
     ax2.minorticks_on()
     ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
 
+    # Polynomial panel
+    if poly_type == 'mpoly':
+        polynomial = pp.mpoly
+        poly_min = 0.7
+        poly_max = 1.3
+        reference_value = 1.0
+        poly_label = 'm-poly'
+
+    elif poly_type == 'apoly':
+        polynomial = pp.apoly
+        poly_min = -0.55
+        poly_max = 0.55
+        reference_value = 0.0
+        poly_label = 'a-poly'
+
+    else:
+        raise ValueError("poly_type must be either 'mpoly' or 'apoly'")
+
+    # If no polynomial was fitted, use a constant reference curve
+    if polynomial is None or np.size(polynomial) == 0:
+        polynomial = np.full(len(x), reference_value, dtype=float)
+
+    if EBV == 0:
+        poly_min = np.nanmin(polynomial)
+        poly_max = np.nanmax(polynomial)
+        padding = 0.25 * max(poly_max - poly_min, 1.0)
+        poly_min -= padding
+        poly_max += padding
+
+    axpoly.plot(x, polynomial, color='orchid', linewidth=0.8,
+                antialiased=False)
+
+    axpoly.axhline(reference_value, color='black', linestyle='--',
+                   linewidth=0.7, antialiased=False, zorder=0)
+
+    axpoly.set_ylabel(poly_label)
+    axpoly.set_ylim(poly_min, poly_max)
+    axpoly.set_xlabel('wavelength [Ang]')
+    axpoly.tick_params(direction='in', which='both')
+    axpoly.minorticks_on()
+    axpoly.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
+
+    # Dust attenuation panel
+    if EBV is not None and np.isfinite(EBV) and EBV >= 0:
+
+        rv = 4.05
+        av = rv * float(EBV)
+
+        # extinction.calzetti00 returns A_lambda in magnitudes
+        a_lambda = extinction.calzetti00(x, av, rv)
+
+        # Multiplicative factor applied to the model flux
+        dust_factor = extinction.apply(
+            a_lambda, np.ones_like(x, dtype=float))
+
+        axdust.axhline(1.0, color='black', linestyle='--',
+                       linewidth=0.7, antialiased=False)
+
+        axdust.fill_between(x, dust_factor, 1.0,
+                            color='mistyrose', alpha=0.35)
+
+        axdust.plot(x, dust_factor, color='firebrick',
+                    linewidth=0.8, antialiased=False,
+                    label=r'Calzetti dust factor')
+
+        dust_min = np.nanmin(dust_factor)
+
+        #axdust.set_ylim(max(0.0, dust_min - 0.03), 1.03)
+        axdust.set_ylim(0., 1.15)
+    else:
+        axdust.set_ylim(0.95, 1.05)
+
+    axdust.set_ylabel('dust factor')
+    axdust.set_xlabel('wavelength [Ang]')
+    axdust.tick_params(direction='in', which='both')
+    axdust.minorticks_on()
+    axdust.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
+    axdust.legend(loc='best', fontsize=8, frameon=False)
+
+    # add print statements
     nmom = np.max(pp.moments)
 
     if nmom == 2:
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
-                    (f", S/N Residual = {snrResid:.1f}")
+        plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
+                    f"Sig = {pp.sol[1]:.0f}") + \
+                   (f", S/N_res = {snrResid:.1f}")
+
     if nmom == 4:
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
-                    (f", S/N Residual = {snrResid:.1f}")        
-    if nmom == 6:            
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
-                    (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
-                    (f", S/N Residual = {snrResid:.1f}")   
-    
+        plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
+                    f"Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, "
+                    f"h4 = {pp.sol[3]:.3f}") + \
+                   (f", S/N_res = {snrResid:.1f}")
+
+    if nmom == 6:
+        plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
+                    f"Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, "
+                    f"h4 = {pp.sol[3]:.3f}, h5 = {pp.sol[4]:.3f}, "
+                    f"h6 = {pp.sol[5]:.3f}") + \
+                   (f", S/N_resid = {snrResid:.1f}")
+
     if len(mean_results) > 0:
-        plotText += (f", Age [Gyr] = {mean_results[0][0]:.2f}, [M/H] = {mean_results[0][1]:.2f}")+\
-        (", [alpha/Fe] = ")+(f"{mean_results[0][2]:.2f}")
+        plotText += (f", Age [Gyr] = {mean_results[0][0]:.2f}, "
+                     f"[M/H] = {mean_results[0][1]:.2f}") + \
+                    (f", [alpha/Fe] = {mean_results[0][2]:.2f}") + \
+                    (f", E(B-V) = {EBV:.2f}")
+    else:
+        plotText += (f", E(B-V) = {EBV:.2f}")
 
-    #plt.plot(x,pp.mpoly,color='orchid',linewidth=1.0)
+    ax2.text(0.01, 0.95, plotText, fontsize=9, ha='left', va='top',
+             transform=ax2.transAxes, backgroundcolor='white')
 
-    plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes, backgroundcolor='white')
     plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
     plt.close()
+
+    
 
 def clip_outliers(galaxy, bestfit, mask):
     """
@@ -195,8 +365,8 @@ def run_ppxf_firsttime(
         plot=False,
         quiet=True,
         moments=nmoments,
-        degree=-1,
         vsyst=offset,
+        degree=degree,
         mdegree=mdeg,
         regul = regul,
         velscale_ratio=velscale_ratio,
@@ -227,7 +397,8 @@ def run_ppxf(
     log_bin_error,
     velscale,
     start,
-    goodPixels_step0,
+    goodPixels_premask,
+    goodPixels_dust,
     goodPixels,
     nmoments,
     offset,
@@ -271,68 +442,6 @@ def run_ppxf(
             # Calculate SNR before the fit from flux and flux_err
             snr_prefit = np.nanmedian(log_bin_data/log_bin_error)
 
-            # Here add in the extra, 0th step to estimate the dust and print out the E(B-V) map
-            # Call PPXF, using an extinction law, no polynomials.
-            # First define the dust law (from cappellari 2023):
-            component_step0 = [0] *  np.prod(optimal_template_in.shape[1:])
-            component_true_step0 = np.array(component_step0) == 0
-            dust = [{"start": [EBV_init], "bounds": [[0, 8]], "component": component_true_step0}]
-
-            pp_step0 = ppxf(optimal_template_in, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), 
-                            goodpixels=goodPixels_step0,degree=-1, mdegree=-1, vsyst=offset, 
-                            velscale_ratio=velscale_ratio,moments=nmoments, start=start, plot=False, 
-                            dust = dust, component = component_step0, regul=0, quiet=True)
-
-
-            # check which optimal template method is preferred. If default rederive optimal set from step 0
-            if config["SFH"]["OPT_TEMP"] == "default":
-
-                # first reshape templates so that we can apply the weights
-                reshaped_templates = templates.reshape((templates.shape[0], ncomb))
-                
-                # find non zero weights from step 0
-                normalized_weights_step0 = pp_step0.weights / np.sum( pp_step0.weights )
-                wNonzero_weights_step0 = np.where(normalized_weights_step0 > 0)[0] # where Nonzero
-                nNonzero_weights_step0 = np.shape(wNonzero_weights_step0)[0] # number of Nonzero templates
-
-                # prepare optimal template set
-                optimal_template_set_step0 = np.zeros( [reshaped_templates.shape[0], nNonzero_weights_step0])
-                # combine non-zero templates into set to pass on step 1 and step 2
-                for j in range(0, nNonzero_weights_step0):
-                        optimal_template_set_step0[:,j] = reshaped_templates[:,wNonzero_weights_step0[j]]
-
-                # replace optimal template with set from step zero
-                optimal_template_in = optimal_template_set_step0
-                
-            # Save dust values
-            Rv = 4.05
-            Av = pp_step0.dust[0]["sol"][0]
-            EBV = Av/Rv
-
-            # Define the components to be fit (True for all templates)
-            component_step12 = [0]*(np.shape(optimal_template_in)[1])
-            component_true_step12 = np.array(component_step12) == 0
-            component_step3 = [0]*ncomb
-            component_true_step3 = np.array(component_step3) == 0
-
-            # apply the dust correction if keyword is set:
-            if config["SFH"]["DUST_CORR"] == True:
-                # old approach --> remove extinction from spectra
-                #log_bin_data_save = log_bin_data
-                #log_bin_data_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)
-                #median_log_bin_data_tmp = np.median(log_bin_data_tmp) # save number for later
-                #log_bin_data = (log_bin_data_tmp/median_log_bin_data_tmp)
-                #log_bin_error_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)
-                #log_bin_error = (log_bin_error_tmp/np.median(log_bin_error_tmp))
-                dust_step12 = [{"start": [Av], "bounds": [[0, 8]], "component": component_true_step12, 
-                                          "fixed": [True]}]
-
-                dust_step3 = [{"start": [Av], "bounds": [[0, 8]], "component": component_true_step3, 
-                         "fixed":[True]}]
-            else:
-                dust_step12 = None
-                dust_step3 = None
-
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
             fake_noise=np.full_like(log_bin_data, 1.0)
@@ -343,28 +452,27 @@ def run_ppxf(
                 fake_noise,
                 velscale,
                 start,
-                goodpixels=goodPixels_step0,
+                goodpixels=goodPixels_premask,
                 plot=False,
                 quiet=True,
                 moments=nmoments,
-                degree=-1,
                 vsyst=offset,
+                degree=degree,
                 mdegree=mdeg,
+                regul=0,
                 fixed=fixed,
                 lam=np.exp(logLam),
-                velscale_ratio=velscale_ratio,
-                component=component_step12,
-                dust=dust_step12,                
+                velscale_ratio=velscale_ratio,  
             )
             
             goodPixels_preclip = goodPixels
             # Find a proper estimate of the noise
-            noise_orig = np.mean(log_bin_error[goodPixels_step0])
+            noise_orig = np.mean(log_bin_error[goodPixels_premask])
             noise_est = robust_sigma(
-                pp_step1.galaxy[goodPixels_step0]-pp_step1.bestfit[goodPixels_step0])
+                pp_step1.galaxy[goodPixels_premask]-pp_step1.bestfit[goodPixels_premask])
 
             # Calculate SNR postfit
-            snr_Resid1 = np.nanmedian(pp_step1.galaxy[goodPixels_step0]/noise_est)
+            snr_Resid1 = np.nanmedian(pp_step1.galaxy[goodPixels_premask]/noise_est)
             # Calculate the new noise, and the sigma of the distribution.
             noise_new = log_bin_error*(noise_est/noise_orig)
             noise_new_std = robust_sigma(noise_new)
@@ -372,15 +480,13 @@ def run_ppxf(
             # A temporary fix for the noise issue where a single high S/N spaxel causes clipping of the entire spectrum
             noise_new[np.where(noise_new <= noise_est-noise_new_std)] = noise_est
 
-
             ################ 2 ##################
             # Second step (formely done with pPXF CLEAN)
             # switch to mask instead of goodpixels
-            mask0 = logLam > 0
-            mask0[:] = False
+            mask0 = np.zeros(len(logLam), dtype=bool)
             mask0[goodPixels] = True
             mask = mask0.copy()
-            
+
             if doclean == True:
                 # Now use new function to clip outliers
                 mask = clip_outliers(log_bin_data, pp_step1.bestfit, mask)
@@ -388,7 +494,56 @@ def run_ppxf(
                 mask &= mask0
 
             ################ 3 ##################
-            # Third Call PPXF - use all templates, get best-fit
+            # Third step - Only fit dust, no polynomials allowed
+            #create a mask for dust specifically
+            mask_dust = np.zeros_like(mask, dtype=bool)
+            mask_dust[goodPixels_dust] = True
+            mask_dust &= mask # Keep only pixels good in both masks
+
+            # create the dust model
+            Rv = 4.05
+            Av_init = 4.05 * EBV_init            
+            component_step3 = [0] *  np.prod(optimal_template_in.shape[1:])
+            component_true_step3 = np.array(component_step3) == 0
+            dust = [{"start": [Av_init], "bounds": [[0, 8]], "component": component_true_step3}]
+
+            # fit only for dust
+            pp_step3 = ppxf(
+                optimal_template_in, 
+                log_bin_data, 
+                noise_new, 
+                velscale, 
+                lam=np.exp(logLam), 
+                mask=mask_dust,
+                degree=-1, 
+                mdegree=-1,
+                regul=0,
+                fixed=fixed,
+                vsyst=offset, 
+                velscale_ratio=velscale_ratio,
+                moments=nmoments, 
+                start=start, 
+                plot=False, 
+                dust = dust, 
+                component = component_step3, 
+                quiet=True,
+            )
+
+            # Save dust values
+            Av = pp_step3.dust[0]["sol"][0]
+            EBV = Av/Rv
+            component_step4 = [0]*ncomb
+            component_true_step4 = np.array(component_step4) == 0
+
+            # apply the dust correction if keyword is set:
+            if config["SFH"]["DUST_CORR"] == True:
+                dust_step4 = [{"start": [Av], "bounds": [[0, 8]], "component": component_true_step4, 
+                         "fixed":[True]}]
+            else:
+                dust_step4 = None
+            
+            ################ 4 ##################
+            # Fourth step: Last Call PPXF - use all templates, get best-fit
             pp = ppxf(
                 templates,
                 log_bin_data,
@@ -399,15 +554,15 @@ def run_ppxf(
                 plot=False,
                 quiet=True,
                 moments=nmoments,
-                degree=-1,
                 vsyst=offset,
+                degree=degree,
                 mdegree=mdeg,
                 regul = regul,
                 fixed=fixed,
                 lam=np.exp(logLam),
                 velscale_ratio=velscale_ratio,
-                component=component_step3,
-                dust=dust_step3,                
+                component=component_step4,
+                dust=dust_step4,                
             )
 
         #update goodpixels again
@@ -417,10 +572,15 @@ def run_ppxf(
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
 
-        # Calculate the true S/N from the residual
-        noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
-        snr_postfit = np.nanmean(pp.galaxy[goodPixels]/noise_est)
+        # define goodPixels over SNR range for final SNR
+        goodPixels_SNR_range = goodPixels[
+            (np.exp(logLam[goodPixels]) >= config["READ_DATA"]["LMIN_SNR"])
+            & (np.exp(logLam[goodPixels]) <= config["READ_DATA"]["LMAX_SNR"])]
 
+        # Calculate the true S/N from the residual over the SNR MIN MAX range
+        noise_est = robust_sigma(pp.galaxy[goodPixels_SNR_range] - pp.bestfit[goodPixels_SNR_range])
+        snr_postfit = np.nanmedian(pp.galaxy[goodPixels_SNR_range]/noise_est)
+        
         # Make the unconvolved optimal stellar template
         reshaped_templates = templates.reshape((templates.shape[0], ncomb)) #
         normalized_weights = pp.weights / np.sum( pp.weights ) #
@@ -439,9 +599,7 @@ def run_ppxf(
 
             # check if figure  folder exists, otherwise
             outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],"FigFit_SFH")
-            if os.path.exists(outfigDir) == False:
-                printStatus.running("Creating directory for pPXF figures:" + outfigDir)
-                os.mkdir(outfigDir)
+            os.makedirs(outfigDir, exist_ok=True)
             
             outfigFile_step1 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
@@ -449,19 +607,20 @@ def run_ppxf(
             outfigFile_step3 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
                                 + "_sfh_bin_"+str(i)+"_step3.pdf"))
+            outfigFile_step4 = (
+                os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
+                                + "_sfh_bin_"+str(i)+"_step4.pdf"))
 
             #calculate mean age, metallicity, and alpha step 1
-            mean_results_step3 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
-
-            #for plotting output
-            if fixed != None:
-                pp.sol[0:4] = start
+            mean_results_step4 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
             
             #produce plots
             tmp_plot1 = plot_ppxf_sfh(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,
-                                      snrResid=snr_Resid1)
-            tmp_plot3 = plot_ppxf_sfh(pp,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,snrResid=snr_postfit,\
-                             goodpixelsPre=goodPixels_preclip,mean_results=mean_results_step3)
+                                      snrResid=snr_Resid1,poly_type='mpoly')
+            tmp_plot3 = plot_ppxf_sfh(pp_step3,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,
+                                      snrResid=snr_Resid1,EBV=EBV,poly_type='mpoly')
+            tmp_plot4 = plot_ppxf_sfh(pp,np.exp(logLam),i,outfigFile_step4,snrCubevar=snr_prefit,snrResid=snr_postfit,\
+                             goodpixelsPre=goodPixels_preclip,mean_results=mean_results_step4,EBV=EBV,poly_type='mpoly')
 
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
         if nsims > 0:
@@ -483,15 +642,15 @@ def run_ppxf(
                     plot=False,
                     quiet=True,
                     moments=nmoments,
-                    degree=-1,
                     vsyst=offset,
+                    degree=degree,
                     mdegree=mdeg,
                     regul = 0,
                     fixed=fixed,
                     lam=np.exp(logLam),
                     velscale_ratio=velscale_ratio,
-                    component=component_step3,
-                    dust=dust_step3,
+                    component=component_step4,
+                    dust=dust_step4,
                 )
                 weights_mc_iter   = mc_iter.weights.reshape(templates.shape[1:])/mc_iter.weights.sum()
                 w_row_MC[o, :]    = np.reshape(weights_mc_iter, ncomb)
@@ -521,16 +680,12 @@ def run_ppxf(
                 "mean_results_MC_mean":  np.nan,
                 "mean_results_MC_err":  np.nan
             }
-
-        # apply the dust vector to bestfit if keyword set:
-        #if config["SFH"]["DUST_CORR"] == True:
-        #    pp.bestfit = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), pp.bestfit) * \
-        #                 median_log_bin_data_tmp
         
         # add normalisation factor back in main results
         pp.bestfit = pp.bestfit * median_log_bin_data
 
-        # Save multiplicative Legendre polynomials (pp.mpoly is None if mdeg=-1)
+        # Save additive & multiplicative Legendre polynomials (pp.a/mpoly is None if a/mdeg=-1)
+        apoly = pp.apoly if pp.apoly is not None else np.ones(len(log_bin_data))
         mpoly = pp.mpoly if pp.mpoly is not None else np.ones(len(log_bin_data))
 
         return(
@@ -545,12 +700,12 @@ def run_ppxf(
             pp.chi2,
             EBV,
             mpoly,
+            apoly,
         )
 
-    #except Exception as e:
-    except:
+    except Exception as e:
         # Handle any other type of exception
-        #print(f"An error occurred: {e}")
+        printStatus.warning(f"An error occurred: {e}")
         mc_results_nan = {
             "w_row_MC_iter": np.nan,
                 "w_row_MC_mean": np.nan,
@@ -559,7 +714,7 @@ def run_ppxf(
                 "mean_results_MC_mean":  np.nan,
                 "mean_results_MC_err":  np.nan
             }
-        return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+        return( np.nan, np.nan, np.nan, np.nan, mc_results_nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,np.nan)
 
 
 def mean_agemetalalpha(w_row, ageGrid, metalGrid, alphaGrid, nbins):
@@ -592,6 +747,7 @@ def save_sfh(
     red_chi2,
     EBV,
     mpoly,
+    apoly,
     mean_result,
     mean_result_MC_mean,
     mean_result_MC_err,
@@ -809,6 +965,12 @@ def save_sfh(
     mpolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
     mpolyHDU.name = "MPOLY"
 
+    # Table HDU with additive Legendre polynomials
+    cols = []
+    cols.append(fits.Column(name="APOLY", format=str(apoly.shape[1]) + "D", array=apoly))
+    apolyHDU = fits.BinTableHDU.from_columns(fits.ColDefs(cols))
+    apolyHDU.name = "APOLY"
+
     # Table HDU with per-bin optimal templates
     cols = []
     cols.append(fits.Column(name="OPTIMAL_TEMPLATES", format=str(optimal_template.shape[1]) + "D", array=optimal_template))
@@ -888,6 +1050,16 @@ def extractStarFormationHistories(config):
         sortInGrid=True,
     )
 
+    # Do Checks for template sizes
+    if templates.shape[1:] != logAge_grid.shape:
+        raise ValueError("Template and log-age grid shapes do not match")
+    if templates.shape[1:] != metal_grid.shape:
+        raise ValueError("Template and metallicity grid shapes do not match")
+    if templates.shape[1:] != alpha_grid.shape:
+        raise ValueError("Template and alpha grid shapes do not match")
+    if ncomb != np.prod(templates.shape[1:]):
+        raise ValueError("ncomb does not match the template-grid dimensions")
+
     # check that template wavelength is larger than requested fit range otherwise stop
     if (lamRange_temp[0] >= config["SFH"]["LMIN"]) or (lamRange_temp[1] <= config["SFH"]["LMAX"]):
         logging.info("Template wavelength range needs to be larger than fitting range, exiting")
@@ -939,7 +1111,6 @@ def extractStarFormationHistories(config):
     ubins = np.arange(nbins)
     dv = (np.log(lamRange_temp[0]) - logLam[0])*C
 
-
     # Last preparatory steps
     offset = (logLam_template[0] - logLam[0])*C
     
@@ -956,13 +1127,13 @@ def extractStarFormationHistories(config):
 
     # Implementation of switch FIXED
     # Do fix kinematics to those obtained previously
-    if config["SFH"]["FIXED"] == True:
-        logging.info("Stellar kinematics are FIXED to the results obtained before.")
-        #check if moments KIN == SFH
+    if config["SFH"]["FIXED"]:
         if config["SFH"]["MOM"] != config["KIN"]["MOM"]:
-            printStatus.running("Moments not the same in KIN and SFH module")
-            printStatus.running("Ignoring SFH MOMENTS, using KIN MOMENTS")
-        # Set fixed option to True
+            raise ValueError(
+                "With SFH.FIXED=True, SFH.MOM must equal KIN.MOM "
+                f"(got SFH.MOM={config['SFH']['MOM']} and "
+                f"KIN.MOM={config['KIN']['MOM']})."
+            )
         fixed = [True] * config["KIN"]["MOM"]
 
         # Read PPXF results
@@ -991,15 +1162,18 @@ def extractStarFormationHistories(config):
                 start[i, :] = np.array([0.0, config["KIN"]["SIGMA"],0.0,0.0,0.0,0.0])
 
     # Define goodpixels
-    #check if a premask for step zero has been defined
-    if 'SPEC_PREMASK' in config["SFH"]:
-        #yes, load this premask file
-        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_PREMASK"], logLam)
-    else:
-        #no, load this normal file
-        goodPixels_step0_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
-    
     goodPixels_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
+
+    # Check if a premask for the first step has been defined
+    if 'SPEC_PREMASK' in config["SFH"]:
+        goodPixels_premask_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_PREMASK"], logLam)
+    else:
+        goodPixels_premask_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
+    
+    if 'SPEC_DUSTMASK' in config["SFH"]:
+        goodPixels_dust_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_DUSTMASK"], logLam)
+    else:
+        goodPixels_dust_sfh = _auxiliary.spectralMasking(config, config["SFH"]["SPEC_MASK"], logLam)
     
     # Check if plot keyword is set:
     doplot = config["SFH"].get("PLOT", False)
@@ -1014,6 +1188,12 @@ def extractStarFormationHistories(config):
     else:
         raise KeyError("Either SFH.REGUL or SFH.REGUL_ERR must be set")
 
+    # check if ADEGREE is set, otherwise make it -1
+    if 'ADEG' in config["SFH"]:
+        degree = config["SFH"]["ADEG"]
+    else:
+        degree = -1
+
     # Define output arrays
     ppxf_result = np.zeros((nbins,6    ))
     w_row = np.zeros((nbins,ncomb))
@@ -1025,6 +1205,7 @@ def extractStarFormationHistories(config):
     red_chi2 = np.zeros(nbins)
     EBV = np.zeros(nbins)
     mpoly = np.zeros((nbins, bin_data.shape[0]))
+    apoly = np.zeros((nbins, bin_data.shape[0]))
 
     # Define output arrays of MC realizations
     if nsims > 0:
@@ -1050,10 +1231,10 @@ def extractStarFormationHistories(config):
             comb_espec,
             velscale,
             start[0,:],
-            goodPixels_step0_sfh,
+            goodPixels_premask_sfh,
             config["SFH"]["MOM"],
             offset,
-            -1,
+            degree,
             config["SFH"]["MDEG"],
             regul,
             velscale_ratio,
@@ -1079,21 +1260,27 @@ def extractStarFormationHistories(config):
         printStatus.running("Running pPXF in parallel mode")
         logging.info("Running pPXF in parallel mode")
 
-        # Prepare the folder where the memmap will be dumped
-        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
+        # Create a unique temporary directory for this run's memmaps
+        memmap_parent = ("/scratch"
+            if os.access("/scratch", os.W_OK)
+            else config["GENERAL"]["OUTPUT"])
 
-        # dump the arrays and load as memmap
-        templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
+        memmap_folder = tempfile.mkdtemp(
+            prefix=f"{config['GENERAL']['RUN_ID']}_kin_",
+            dir=memmap_parent,)
+
+        # Dump the arrays and reload them as read-only memmaps
+        templates_filename_memmap = os.path.join(memmap_folder, "templates_memmap.tmp")
         dump(templates, templates_filename_memmap)
-        templates = load(templates_filename_memmap, mmap_mode='r')
-        
-        bin_data_filename_memmap = memmap_folder + "/bin_data_memmap.tmp"
+        templates = load(templates_filename_memmap, mmap_mode="r")
+
+        bin_data_filename_memmap = os.path.join(memmap_folder, "bin_data_memmap.tmp")
         dump(bin_data, bin_data_filename_memmap)
-        bin_data = load(bin_data_filename_memmap, mmap_mode='r')
-        
-        noise_filename_memmap = memmap_folder + "/noise_memmap.tmp"
+        bin_data = load(bin_data_filename_memmap, mmap_mode="r")
+
+        noise_filename_memmap = os.path.join(memmap_folder, "noise_memmap.tmp")
         dump(noise, noise_filename_memmap)
-        noise = load(noise_filename_memmap, mmap_mode='r')
+        noise = load(noise_filename_memmap, mmap_mode="r")
 
         # Define a function to encapsulate the work done in the loop
         def worker(chunk, templates):
@@ -1105,11 +1292,12 @@ def extractStarFormationHistories(config):
                     noise[:,i],
                     velscale,
                     start[i,:],
-                    goodPixels_step0_sfh,
+                    goodPixels_premask_sfh,
+                    goodPixels_dust_sfh,
                     goodPixels_sfh,
                     config["SFH"]["MOM"],
                     offset,
-                    -1,
+                    degree,
                     config["SFH"]["MDEG"],
                     regul,
                     config["SFH"]["DOCLEAN"],
@@ -1161,23 +1349,22 @@ def extractStarFormationHistories(config):
             red_chi2[i] = ppxf_tmp[i][8]
             EBV[i] = ppxf_tmp[i][9]
             mpoly[i,:] = ppxf_tmp[i][10]
+            apoly[i,:] = ppxf_tmp[i][11]
 
         # Remove the memory-mapped files
-        os.remove(templates_filename_memmap)
-        os.remove(bin_data_filename_memmap)
-        os.remove(noise_filename_memmap)
+        shutil.rmtree(memmap_folder, ignore_errors=True)
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
         
-
     if config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
 
-        # check if we need to run all bins or only a subset
-        if 'DEBUG_BIN' in config["SFH"]:
-            runbin = config["SFH"]["DEBUG_BIN"]
-            printStatus.running("Running PPXF in Debug mode on bins: "+str(runbin))
+        # Check if we need to run all bins or only a subset
+        debug_bins = config["SFH"].get("DEBUG_BIN") or []
+        if debug_bins:
+            runbin = debug_bins
+            printStatus.running("Running PPXF in Debug mode on bins: " + str(runbin))
         else:
             runbin = np.arange(0, nbins)
 
@@ -1194,17 +1381,19 @@ def extractStarFormationHistories(config):
                 red_chi2[i],
                 EBV[i],
                 mpoly[i,:],
+                apoly[i,:],
             ) = run_ppxf(
                 templates,
                 bin_data[:,i],
                 noise[:,i],
                 velscale,
                 start[i,:],
-                goodPixels_step0_sfh,
+                goodPixels_premask_sfh,
+                goodPixels_dust_sfh,
                 goodPixels_sfh,
                 config["SFH"]["MOM"],
                 offset,
-                -1,
+                degree,
                 config["SFH"]["MDEG"],
                 regul,
                 config["SFH"]["DOCLEAN"],
@@ -1284,6 +1473,7 @@ def extractStarFormationHistories(config):
         red_chi2,
         EBV,
         mpoly,
+        apoly,
         mean_results,
         mean_results_MC_mean,
         mean_results_MC_err,

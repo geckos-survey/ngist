@@ -4,6 +4,34 @@ import os
 
 from printStatus import printStatus
 
+def _preparation_products_exist(config):
+
+    outputPrefix = os.path.join(config["GENERAL"]["OUTPUT"],
+                                config["GENERAL"]["RUN_ID"])
+
+    masking_done = (
+        config["SPATIAL_MASKING"]["METHOD"] == False
+        or os.path.isfile(outputPrefix + "_mask.fits"))
+
+    binning_done = (
+        config["SPATIAL_BINNING"]["METHOD"] == False
+        or os.path.isfile(outputPrefix + "_table.fits"))
+
+    spectra_done = (
+        config["PREPARE_SPECTRA"]["METHOD"] == False
+        or (
+            os.path.isfile(outputPrefix + "_bin_spectra.hdf5")
+            and os.path.isfile(outputPrefix + "_bin_spectra_linear.hdf5")
+            and (
+                config["GAS"]["LEVEL"] != "SPAXEL"
+                or os.path.isfile(outputPrefix + "_all_spectra.hdf5"))))
+
+    return (
+        config["GENERAL"]["OW_OUTPUT"] == False
+        and masking_done
+        and binning_done
+        and spectra_done
+    )
 
 def readData_Module(config):
     """
@@ -13,12 +41,19 @@ def readData_Module(config):
 
     # Check if module is turned off in MasterConfig
     if config["READ_DATA"]["METHOD"] == False:
-        # message = "The module was turned off. The nGIST cannot be executed without running the readData module."
-        # printStatus.failed(message)
-        # return "SKIP"
         message = "Read data module was turned off. Module is skipped but beware this can cause issues with the preparation modules."
         logging.warning(message)
         printStatus.warning(message)
+        return None
+
+    # Check whether all preparation products already exist
+    if _preparation_products_exist(config):
+        message = (
+            "Preparation products are already available. "
+            "The readData module is skipped.")
+        logging.info(message)
+        printStatus.done("Preparation products already available. "
+                         "Module is skipped.")
         return None
 
     # Import the chosen readData routine
