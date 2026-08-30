@@ -6,6 +6,15 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.15     2026-08-30 CHANGED: read-in module now checks whether the masking, binning,
+		    and spectra preperation is done before reading the cube. This speeds up 
+		    rerunning considerably. CHANGED: new order and number of fitting steps (1-4).
+		    The dust determination has been moved from step 0 to step 3. ADDED:  
+		    SPEC_DUSTMASK that defines the region over the dust (step 3) is determined. 
+		    Defaults to  SPEC_MASK if no dust mask is provided. Module creates an 
+		    additional plot to check CHANGED: final SNR calculation now uses the   
+		    "LMIN_SNR" and "LMAX_SNR" wavelength range. FIXED: bug in mapviewer.
+
 V7.6.15     2026-08-20 FIXED: bug in gandalf module calling old magpiGandalf routine
 
 V7.6.14     2026-08-18 FIXED: bug in powerbin module that returned sqrt(SNR) rather 

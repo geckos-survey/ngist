@@ -5,6 +5,13 @@ import time
 import h5py
 import numpy as np
 import ppxf as ppxf_package
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import extinction
+import shutil
+import tempfile
+
 from astropy.io import fits
 from astropy.stats import biweight_location
 from joblib import Parallel, delayed, dump, load
@@ -12,9 +19,6 @@ from packaging import version
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-#import extinction
 
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import _prepareTemplates
@@ -34,81 +38,249 @@ PURPOSE:
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
 
-def plot_ppxf_kin(pp ,x, i,outfig_ppxf, snrCubevar=-99, snrResid=-99, goodpixelsPre=[], norm=False):
-    
-    #routine to plot first and final pPXF fit
-    fig = plt.figure(i, figsize=(13, 3.0))
+def plot_ppxf_kin(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
+                  goodpixelsPre=[], norm=False, EBV=0,
+                  poly_type='apoly'):
 
-    ax2 = plt.subplot(111)
+    mpl.rcParams['path.simplify'] = False
+    mpl.rcParams['path.simplify_threshold'] = 0.0
+
+    fig, (ax2, axpoly, axdust) = plt.subplots(
+        3, 1, figsize=(13, 4.8), sharex=True,
+        gridspec_kw={'height_ratios': [3, 1, 1],
+                     'hspace': 0})
 
     if norm == True:
         median_norm = np.nanmedian(pp.galaxy[pp.goodpixels])
     else:
         median_norm = 1
 
-    stars_bestfit = pp.bestfit / median_norm
-    bestfit_shown = pp.bestfit / median_norm
-    galaxy = pp.galaxy / median_norm
+    stars_bestfit = pp.bestfit
+    galaxy = pp.galaxy
     resid = galaxy - stars_bestfit
     goodpixels = pp.goodpixels
-    
-    ll, rr = np.min(x), np.max(x)
-    
-    sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
-    bestfit_shown = bestfit_shown[goodpixels[0] : goodpixels[-1] + 1]
-    mx = 2.49
-    mn = -0.49
-    plt.plot(x, galaxy, 'black', linewidth=0.5)
-    plt.plot(x[goodpixels], resid[goodpixels], 'd',
-                color='LimeGreen', mec='LimeGreen', ms=1)
-    
-    if len(goodpixelsPre) > 0:
-        w = np.flatnonzero(np.diff(goodpixels) > 1)
-        for wj in w:
-            a, b = goodpixels[wj : wj + 2]
-            plt.axvspan(x[a], x[b], facecolor='lightpink')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5,alpha=0.5)
-        for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightpink', linewidth=0.5)
 
-        #repeat square lines with  pp_step1
-            w = np.flatnonzero(np.diff(goodpixelsPre) > 1)
-        for wj in w:
-            a, b = goodpixelsPre[wj : wj + 2]
-            plt.axvspan(x[a], x[b], facecolor='lightgray')
-        for k in goodpixelsPre[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
+    ll, rr = np.min(x), np.max(x)
+
+    sig3 = np.percentile(abs(resid[goodpixels]), 99.73)
+
+    if np.nanmax(stars_bestfit) > 2.59:
+        mx = 3.49
     else:
-        w = np.flatnonzero(np.diff(goodpixels) > 1)
+        mx = 2.49
+    mn = -0.49
+
+    # Residuals on the full wavelength grid, excluding masked pixels
+    resid_plot = np.full(len(resid), np.nan, dtype=float)
+    resid_plot[goodpixels] = resid[goodpixels]
+
+    # Main spectrum panel
+    ax2.axhline(0.0, color='lightgray', linewidth=0.8,
+                antialiased=False, zorder=0)
+
+    resid_plot = np.full(len(resid), np.nan, dtype=float)
+    resid_plot[goodpixels] = resid[goodpixels]
+
+    # Stepped spectrum, residual, and best-fit model
+    ax2.plot(x, galaxy, color='black', linewidth=0.1,
+             drawstyle='steps-mid', antialiased=False,
+             solid_joinstyle='miter', solid_capstyle='butt',
+             zorder=2)
+
+    ax2.plot(x, resid_plot, color='LimeGreen', linewidth=0.1,
+             drawstyle='steps-mid', antialiased=False,
+             solid_joinstyle='miter', solid_capstyle='butt',
+             zorder=2)
+
+    ax2.plot(x, stars_bestfit, color='red', linewidth=0.1,
+             drawstyle='steps-mid', antialiased=False,
+             solid_joinstyle='miter', solid_capstyle='butt',
+             zorder=3)
+
+    if len(goodpixelsPre) > 0:
+
+        # Current masked regions: pink, with green residuals
+        padded = np.r_[-1, goodpixels, len(x)]
+        w = np.flatnonzero(np.diff(padded) > 1)
+
         for wj in w:
-            a, b = goodpixels[wj : wj + 2]
-            plt.axvspan(x[a], x[b], facecolor='lightgray')
-            plt.plot(x[a : b + 1], resid[a : b + 1], 'green', linewidth=0.5, alpha=0.5)
+            start = padded[wj] + 1
+            end = padded[wj + 1] - 1
+
+            left = max(start - 1, 0)
+            right = min(end + 1, len(x) - 1)
+
+            ax2.axvspan(x[left], x[right], facecolor='lightpink')
+
+            ax2.plot(x[left:right + 1], resid[left:right + 1],
+                     color='green', linewidth=0.1,
+                     drawstyle='steps-mid', alpha=0.5,
+                     antialiased=False,
+                     solid_joinstyle='miter',
+                     solid_capstyle='butt', zorder=2)
+
         for k in goodpixels[[0, -1]]:
-            plt.plot(x[[k, k]], [mn, stars_bestfit[k]], 'lightgray', linewidth=0.5)
-    
-    plt.plot(x[goodpixels], goodpixels*0, '.k', ms=1)
-    plt.plot(x, stars_bestfit, 'red', linewidth=0.5)
-    ax2.set(xlabel='wavelength [Ang]', ylabel='Flux [normalised]')
-    ax2.set(ylim=(mn,mx))
-    ax2.tick_params(direction='in', which='both') 
+            ax2.plot(x[[k, k]], [mn, stars_bestfit[k]],
+                     color='lightpink', linewidth=0.5,
+                     antialiased=False)
+
+        # Previous masked regions: grey only
+        padded = np.r_[-1, goodpixelsPre, len(x)]
+        w = np.flatnonzero(np.diff(padded) > 1)
+
+        for wj in w:
+            start = padded[wj] + 1
+            end = padded[wj + 1] - 1
+
+            left = max(start - 1, 0)
+            right = min(end + 1, len(x) - 1)
+
+            ax2.axvspan(x[left], x[right], facecolor='lightgray')
+
+        for k in goodpixelsPre[[0, -1]]:
+            ax2.plot(x[[k, k]], [mn, stars_bestfit[k]],
+                     color='lightgray', linewidth=0.5,
+                     antialiased=False)
+
+    else:
+
+        # Current masked regions: grey, with green residuals
+        padded = np.r_[-1, goodpixels, len(x)]
+        w = np.flatnonzero(np.diff(padded) > 1)
+
+        for wj in w:
+            start = padded[wj] + 1
+            end = padded[wj + 1] - 1
+
+            left = max(start - 1, 0)
+            right = min(end + 1, len(x) - 1)
+
+            ax2.axvspan(x[left], x[right], facecolor='lightgray')
+
+            ax2.plot(x[left:right + 1], resid[left:right + 1],
+                     color='green', linewidth=0.1,
+                     drawstyle='steps-mid', alpha=0.5,
+                     antialiased=False,
+                     solid_joinstyle='miter',
+                     solid_capstyle='butt', zorder=2)
+
+        for k in goodpixels[[0, -1]]:
+            ax2.plot(x[[k, k]], [mn, stars_bestfit[k]],
+                     color='lightgray', linewidth=0.5,
+                     antialiased=False)
+
+    ax2.set_ylabel('Flux [normalised]')
+    ax2.set_ylim(mn, mx)
+    ax2.tick_params(direction='in', which='both')
     ax2.minorticks_on()
     ax2.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
 
+    # Polynomial panel
+    if poly_type == 'mpoly':
+        polynomial = pp.mpoly
+        poly_min = 0.7
+        poly_max = 1.3
+        reference_value = 1.0
+        poly_label = 'm-poly'
+
+    elif poly_type == 'apoly':
+        polynomial = pp.apoly
+        poly_min = -0.55
+        poly_max = 0.55
+        reference_value = 0.0
+        poly_label = 'a-poly'
+
+    else:
+        raise ValueError("poly_type must be either 'mpoly' or 'apoly'")
+
+    # If no polynomial was fitted, use a constant reference curve
+    if polynomial is None or np.size(polynomial) == 0:
+        polynomial = np.full(len(x), reference_value, dtype=float)
+
+    if EBV == 0:
+        poly_min = np.nanmin(polynomial)
+        poly_max = np.nanmax(polynomial)
+        padding = 0.25 * max(poly_max - poly_min, 1.0)
+        poly_min -= padding
+        poly_max += padding
+
+    axpoly.plot(x, polynomial, color='orchid', linewidth=0.8,
+                antialiased=False)
+
+    axpoly.axhline(reference_value, color='black', linestyle='--',
+                   linewidth=0.7, antialiased=False, zorder=0)
+
+    axpoly.set_ylabel(poly_label)
+    axpoly.set_ylim(poly_min, poly_max)
+    axpoly.set_xlabel('wavelength [Ang]')
+    axpoly.tick_params(direction='in', which='both')
+    axpoly.minorticks_on()
+    axpoly.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
+
+    # Dust attenuation panel
+    if EBV is not None and np.isfinite(EBV) and EBV >= 0:
+
+        rv = 4.05
+        av = rv * float(EBV)
+
+        # extinction.calzetti00 returns A_lambda in magnitudes
+        a_lambda = extinction.calzetti00(x, av, rv)
+
+        # Multiplicative factor applied to the model flux
+        dust_factor = extinction.apply(
+            a_lambda, np.ones_like(x, dtype=float))
+
+        axdust.axhline(1.0, color='black', linestyle='--',
+                       linewidth=0.7, antialiased=False)
+
+        axdust.fill_between(x, dust_factor, 1.0,
+                            color='mistyrose', alpha=0.35)
+
+        axdust.plot(x, dust_factor, color='firebrick',
+                    linewidth=0.8, antialiased=False,
+                    label=r'Calzetti dust factor')
+
+        dust_min = np.nanmin(dust_factor)
+
+        #axdust.set_ylim(max(0.0, dust_min - 0.03), 1.03)
+        axdust.set_ylim(0., 1.15)
+    else:
+        axdust.set_ylim(0.95, 1.05)
+
+    axdust.set_ylabel('dust factor')
+    axdust.set_xlabel('wavelength [Ang]')
+    axdust.tick_params(direction='in', which='both')
+    axdust.minorticks_on()
+    axdust.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
+    axdust.legend(loc='best', fontsize=8, frameon=False)
+
+    # add print statements
     nmom = np.max(pp.moments)
 
     if nmom == 2:
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}")+\
-                    (f", S/N Residual = {snrResid:.1f}")
+        plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
+                    f"Sig = {pp.sol[1]:.0f}") + \
+                   (f", S/N_res = {snrResid:.1f}") + \
+                   (f", E(B-V) = {EBV:.2f}")
+
     if nmom == 4:
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}")+\
-                    (f", S/N Residual = {snrResid:.1f}")        
-    if nmom == 6:            
-        plotText = (f"nGIST - Bin {i:10.0f}: Vel = {pp.sol[0]:.0f}, Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, h4 = {pp.sol[3]:.3f}, ")+\
-                    (f"h5 = {pp.sol[4]:.3f}, h6 = {pp.sol[5]:.3f}")+\
-                    (f", S/N Residual = {snrResid:.1f}")   
-            
-    plt.text(0.01,0.95, plotText, fontsize=10, ha='left', va='top',transform=ax2.transAxes, backgroundcolor='white')
+        plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
+                    f"Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, "
+                    f"h4 = {pp.sol[3]:.3f}") + \
+                   (f", S/N_res = {snrResid:.1f}") + \
+                   (f", E(B-V) = {EBV:.2f}")
+
+    if nmom == 6:
+        plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
+                    f"Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, "
+                    f"h4 = {pp.sol[3]:.3f}, h5 = {pp.sol[4]:.3f}, "
+                    f"h6 = {pp.sol[5]:.3f}") + \
+                   (f", S/N_res = {snrResid:.1f}") + \
+                   (f", E(B-V) = {EBV:.2f}")
+
+    ax2.text(0.01, 0.95, plotText, fontsize=9, ha='left', va='top',
+             transform=ax2.transAxes, backgroundcolor='white')
+
     plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
     plt.close()
 
@@ -184,8 +356,8 @@ def run_ppxf_firsttime(
         plot=False,
         quiet=True,
         moments=nmoments,
-        degree=adeg,
         vsyst=offset,
+        degree=adeg,
         mdegree=mdeg,
         velscale_ratio=velscale_ratio,
     )
@@ -213,7 +385,8 @@ def run_ppxf(
     velscale,
     start,
     bias,
-    goodPixels_step0,
+    goodPixels_premask,
+    goodPixels_dust,
     goodPixels,
     nmoments,
     adeg,
@@ -249,67 +422,6 @@ def run_ppxf(
             #calculate the snr before the fit (may be used for bias)
             snr_prefit = np.nanmedian(log_bin_data/log_bin_error)
             
-            # Here add in the extra, 0th step to estimate the dust and print out the E(B-V) map
-            # Call PPXF, using an extinction law, no polynomials.
-            # First define the dust law (from cappellari 2023):
-            component_step0 = [0] * np.prod(optimal_template_in.shape[1:])
-            component_true_step0 = np.array(component_step0) == 0
-            dust = [{"start": [EBV_init], "bounds": [[0, 8]], "component": component_true_step0}]
-
-            pp_step0 = ppxf(optimal_template_in, log_bin_data, log_bin_error, velscale, lam=np.exp(logLam), 
-                            goodpixels=goodPixels_step0,degree=-1, mdegree=-1, vsyst=offset, 
-                            velscale_ratio=velscale_ratio,moments=nmoments, start=start, plot=False, 
-                            dust = dust, component = component_step0, regul=0,quiet=True)
-
-            # check which optimal template method is preferred. If default rederive optimal set from step 0
-            if config["KIN"]["OPT_TEMP"] == 'default':
-
-                # find non zero weights from step 0
-                normalized_weights_step0 = pp_step0.weights / np.sum( pp_step0.weights )
-                wNonzero_weights_step0 = np.where(normalized_weights_step0 > 0)[0] # where Nonzero
-                nNonzero_weights_step0 = np.shape(wNonzero_weights_step0)[0] # number of Nonzero templates
-
-                # prepare optimal template set
-                optimal_template_set_step0 = np.zeros( [templates.shape[0], nNonzero_weights_step0])
-                # combine non-zero templates into set to pass on step 1 and step 2
-                for j in range(0, nNonzero_weights_step0):
-                        optimal_template_set_step0[:,j] = templates[:,wNonzero_weights_step0[j]]
-
-                # replace optimal template with set from step zero
-                optimal_template_in = optimal_template_set_step0
-                
-            # Save dust values
-            Rv = 4.05
-            Av = pp_step0.dust[0]["sol"][0]
-            EBV = Av/Rv
-
-            # Define the components to be fit (True for all templates)
-            component_step12 = [0]*(np.shape(optimal_template_in)[1])
-            component_true_step12 = np.array(component_step12) == 0
-            component_step3 = [0]*ntemplates
-            component_true_step3 = np.array(component_step3) == 0
-
-            # apply the dust correction if keyword is set:
-            if config["KIN"]["DUST_CORR"] == True:
-                # old approach --> remove extinction from spectra
-                #log_bin_data_save = log_bin_data
-                #log_bin_data_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_data)
-                #median_log_bin_data_tmp = np.median(log_bin_data_tmp) # save number for later
-                #log_bin_data = (log_bin_data_tmp/median_log_bin_data_tmp)
-                #log_bin_error_tmp = extinction.remove(extinction.calzetti00(np.exp(logLam), Av, Rv), log_bin_error)
-                #log_bin_error = (log_bin_error_tmp/np.median(log_bin_error_tmp))
-                
-                # new approach, fix dust in pPXF instead of normalising spectrum
-                # fix dust in pPXF to best fit from step 0
-                dust_step12 = [{"start": [Av], "bounds": [[0, 8]], "component": component_true_step12, 
-                                          "fixed": [True]}]
-
-                dust_step3 = [{"start": [Av], "bounds": [[0, 8]], "component": component_true_step3, 
-                         "fixed":[True]}]
-            else:
-                dust_step12 = None
-                dust_step3 = None
-
             # First Call PPXF - do fit and estimate noise
             # use fake noise for first iteration
             fake_noise = np.full_like(log_bin_data, 1.0)
@@ -320,7 +432,7 @@ def run_ppxf(
                 fake_noise,
                 velscale,
                 start,
-                goodpixels=goodPixels_step0,
+                goodpixels=goodPixels_premask,
                 plot=False,
                 quiet=True,
                 moments=nmoments,
@@ -329,18 +441,16 @@ def run_ppxf(
                 lam=np.exp(logLam),
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
-                component=component_step12,
-                dust=dust_step12,
             )
 
             goodPixels_preclip = goodPixels
             # Find a proper estimate of the noise
-            noise_orig = biweight_location(log_bin_error[goodPixels_step0])
+            noise_orig = biweight_location(log_bin_error[goodPixels_premask])
             noise_est = robust_sigma(
-                pp_step1.galaxy[goodPixels_step0] - pp_step1.bestfit[goodPixels_step0])
+                pp_step1.galaxy[goodPixels_premask] - pp_step1.bestfit[goodPixels_premask])
 
             # calculate SNR postfit step 1
-            snr_Resid1 = np.nanmedian(pp_step1.galaxy[goodPixels_step0]/noise_est)
+            snr_Resid1 = np.nanmedian(pp_step1.galaxy[goodPixels_premask]/noise_est)
             # Calculate the new noise, and the sigma of the distribution.
             noise_new = log_bin_error * (noise_est / noise_orig)
             noise_new_std = robust_sigma(noise_new)
@@ -363,8 +473,55 @@ def run_ppxf(
                 mask &= mask0
 
             ################ 3 ##################
-            # Third Call PPXF - use all templates, get best-fit
+            # Third step - Only fit dust, no polynomials allowed
+            #create a mask for dust specifically
+            mask_dust = np.zeros_like(mask, dtype=bool)
+            mask_dust[goodPixels_dust] = True
+            mask_dust &= mask # Keep only pixels good in both masks
 
+            # create the dust model
+            Rv = 4.05
+            Av_init = 4.05 * EBV_init            
+            component_step3 = [0] *  np.prod(optimal_template_in.shape[1:])
+            component_true_step3 = np.array(component_step3) == 0
+            dust = [{"start": [Av_init], "bounds": [[0, 8]], "component": component_true_step3}]
+
+            # fit only for dust
+            pp_step3 = ppxf(
+                optimal_template_in, 
+                log_bin_data, 
+                noise_new, 
+                velscale, 
+                lam=np.exp(logLam), 
+                mask=mask_dust,
+                degree=-1, 
+                mdegree=-1,
+                vsyst=offset, 
+                velscale_ratio=velscale_ratio,
+                moments=nmoments, 
+                start=start, 
+                plot=False, 
+                dust = dust, 
+                component = component_step3, 
+                regul=0, 
+                quiet=True,
+            )
+
+            # Save dust values
+            Av = pp_step3.dust[0]["sol"][0]
+            EBV = Av/Rv
+            component_step4 = [0]*ntemplates
+            component_true_step4 = np.array(component_step4) == 0
+
+            # apply the dust correction if keyword is set:
+            if config["KIN"]["DUST_CORR"] == True:
+                dust_step4 = [{"start": [Av], "bounds": [[0, 8]], "component": component_true_step4, 
+                         "fixed":[True]}]
+            else:
+                dust_step4 = None
+            
+            ################ 4 ##################
+            # Fourth step: Last Call PPXF - use all templates, get best-fit
             if bias == 'muse_snr_prefit':
                 bias = 0.01584469*snr_prefit**0.54639427 - 0.01687899
             elif bias == 'muse':
@@ -390,8 +547,8 @@ def run_ppxf(
                 lam=np.exp(logLam),
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
-                component=component_step3,
-                dust=dust_step3,                
+                component=component_step4,
+                dust=dust_step4,                
             )
 
         # update goodpixels again
@@ -400,10 +557,15 @@ def run_ppxf(
         # make spectral mask
         spectral_mask = np.full_like(log_bin_data, 0.0)
         spectral_mask[goodPixels] = 1.0
-        
-        # Calculate the true S/N from the residual the short version
-        noise_est = robust_sigma(pp.galaxy[goodPixels] - pp.bestfit[goodPixels])
-        snr_postfit = np.nanmedian(pp.galaxy[goodPixels]/noise_est)
+
+        # define goodPixels over SNR range for final SNR
+        goodPixels_SNR_range = goodPixels[
+            (np.exp(logLam[goodPixels]) >= config["READ_DATA"]["LMIN_SNR"])
+            & (np.exp(logLam[goodPixels]) <= config["READ_DATA"]["LMAX_SNR"])]
+
+        # Calculate the true S/N from the residual over the SNR MIN MAX range
+        noise_est = robust_sigma(pp.galaxy[goodPixels_SNR_range] - pp.bestfit[goodPixels_SNR_range])
+        snr_postfit = np.nanmedian(pp.galaxy[goodPixels_SNR_range]/noise_est)
 
         # Make the unconvolved optimal stellar template
         normalized_weights = pp.weights / np.sum(pp.weights)
@@ -421,23 +583,29 @@ def run_ppxf(
 
             # check if figure  folder exists, otherwise
             outfigDir = os.path.join(config["GENERAL"]["OUTPUT"],'FigFit_KIN')
-            if os.path.exists(outfigDir) == False:
-                printStatus.running('Creating directory for pPXF figures:' + outfigDir)
-                os.mkdir(outfigDir)
-                        
+            os.makedirs(outfigDir, exist_ok=True)
+                                    
             outfigFile_step1 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
                                 + "_kin_bin_"+str(i)+"_step1.pdf"))
             outfigFile_step3 = (
                 os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
                                 + "_kin_bin_"+str(i)+"_step3.pdf"))
+            outfigFile_step4 = (
+                os.path.join(outfigDir, config["GENERAL"]["RUN_ID"]
+                                + "_kin_bin_"+str(i)+"_step4.pdf"))
 
             #produce plots
             tmp_plot1 = plot_ppxf_kin(pp_step1,np.exp(logLam),i,outfigFile_step1,
-                                      snrCubevar=snr_prefit,snrResid=snr_Resid1)
-            tmp_plot3 = plot_ppxf_kin(pp,np.exp(logLam),i,outfigFile_step3,\
+                                      snrCubevar=snr_prefit,snrResid=snr_Resid1,
+                                      poly_type='apoly')
+            tmp_plot3 = plot_ppxf_kin(pp_step3,np.exp(logLam),i,outfigFile_step3,
+                                      snrCubevar=snr_prefit,snrResid=snr_Resid1, EBV=EBV,
+                                      poly_type='apoly')
+            tmp_plot3 = plot_ppxf_kin(pp,np.exp(logLam),i,outfigFile_step4,
                                       snrCubevar=snr_prefit,snrResid=snr_postfit,
-                                      goodpixelsPre=goodPixels_preclip)
+                                      goodpixelsPre=goodPixels_preclip, EBV=EBV,
+                                      poly_type='apoly')
 
 
         # Do MC-Simulations
@@ -466,26 +634,21 @@ def run_ppxf(
                 velscale_ratio=velscale_ratio,
                 vsyst=offset,
                 bias=0.0,
+                component=component_step4,
+                dust=dust_step4,  
             )
             sol_MC[o, :] = mc.sol[:]
 
         if nsims != 0:
             mc_results = np.nanstd(sol_MC, axis=0)
 
-        # apply the dust vector to bestfit if keyword set:
-        #if config["KIN"]["DUST_CORR"] == True:
-        #    pp.bestfit = extinction.apply(extinction.calzetti00(np.exp(logLam), Av, Rv), pp.bestfit) * \
-        #                 median_log_bin_data_tmp
-
         # add normalisation factor back in main results
         pp.bestfit = pp.bestfit * median_log_bin_data
 
-        # Save multiplicative Legendre polynomials (pp.mpoly is None if mdeg=-1)
-        mpoly = pp.mpoly if pp.mpoly is not None else np.ones(len(log_bin_data))
-
-        # Save additive Legendre polynomials (pp.apoly is None if degree=-1)
+        # Save additive & multiplicative Legendre polynomials (pp.a/mpoly is None if a/mdeg=-1)
         apoly = pp.apoly if pp.apoly is not None else np.zeros(len(log_bin_data))
-
+        mpoly = pp.mpoly if pp.mpoly is not None else np.ones(len(log_bin_data))
+        
         return(
             pp.sol[:],
             pp.bestfit,
@@ -500,7 +663,9 @@ def run_ppxf(
             apoly,
         )
 
-    except:
+    except Exception as e:
+        # Handle any other type of exception
+        printStatus.warning(f"An error occurred: {e}")
         return (np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
 
 
@@ -536,56 +701,46 @@ def save_ppxf(
     priHDU = fits.PrimaryHDU()
 
     # Table HDU with PPXF output data
+    mom = config["KIN"]["MOM"]
     cols = []
     cols.append(fits.Column(name="V", format="D", array=ppxf_result[:, 0]))
     cols.append(fits.Column(name="SIGMA", format="D", array=ppxf_result[:, 1]))
-    if np.any(ppxf_result[:, 2]) != 0:
+
+    if mom >= 4:
         cols.append(fits.Column(name="H3", format="D", array=ppxf_result[:, 2]))
-    if np.any(ppxf_result[:, 3]) != 0:
         cols.append(fits.Column(name="H4", format="D", array=ppxf_result[:, 3]))
-    if np.any(ppxf_result[:, 4]) != 0:
+
+    if mom >= 6:
         cols.append(fits.Column(name="H5", format="D", array=ppxf_result[:, 4]))
-    if np.any(ppxf_result[:, 5]) != 0:
         cols.append(fits.Column(name="H6", format="D", array=ppxf_result[:, 5]))
 
-    if np.any(mc_results[:, 0]) != 0:
+    if config["KIN"]["MC_PPXF"] > 0:
         cols.append(fits.Column(name="ERR_V", format="D", array=mc_results[:, 0]))
-    if np.any(mc_results[:, 1]) != 0:
         cols.append(fits.Column(name="ERR_SIGMA", format="D", array=mc_results[:, 1]))
-    if np.any(mc_results[:, 2]) != 0:
-        cols.append(fits.Column(name="ERR_H3", format="D", array=mc_results[:, 2]))
-    if np.any(mc_results[:, 3]) != 0:
-        cols.append(fits.Column(name="ERR_H4", format="D", array=mc_results[:, 3]))
-    if np.any(mc_results[:, 4]) != 0:
-        cols.append(fits.Column(name="ERR_H5", format="D", array=mc_results[:, 4]))
-    if np.any(mc_results[:, 5]) != 0:
-        cols.append(fits.Column(name="ERR_H6", format="D", array=mc_results[:, 5]))
+
+        if mom >= 4:
+            cols.append(fits.Column(name="ERR_H3", format="D", array=mc_results[:, 2]))
+            cols.append(fits.Column(name="ERR_H4", format="D", array=mc_results[:, 3]))
+
+        if mom >= 6:
+            cols.append(fits.Column(name="ERR_H5", format="D", array=mc_results[:, 4]))
+            cols.append(fits.Column(name="ERR_H6", format="D", array=mc_results[:, 5]))
 
     cols.append(fits.Column(name="FORM_ERR_V", format="D", array=formal_error[:, 0]))
-    cols.append(
-        fits.Column(name="FORM_ERR_SIGMA", format="D", array=formal_error[:, 1])
-    )
-    if np.any(formal_error[:, 2]) != 0:
-        cols.append(
-            fits.Column(name="FORM_ERR_H3", format="D", array=formal_error[:, 2])
-        )
-    if np.any(formal_error[:, 3]) != 0:
-        cols.append(
-            fits.Column(name="FORM_ERR_H4", format="D", array=formal_error[:, 3])
-        )
-    if np.any(formal_error[:, 4]) != 0:
-        cols.append(
-            fits.Column(name="FORM_ERR_H5", format="D", array=formal_error[:, 4])
-        )
-    if np.any(formal_error[:, 5]) != 0:
-        cols.append(
-            fits.Column(name="FORM_ERR_H6", format="D", array=formal_error[:, 5])
-        )
+    cols.append(fits.Column(name="FORM_ERR_SIGMA", format="D", array=formal_error[:, 1]))
+
+    if mom >= 4:
+        cols.append(fits.Column(name="FORM_ERR_H3", format="D", array=formal_error[:, 2]))
+        cols.append(fits.Column(name="FORM_ERR_H4", format="D", array=formal_error[:, 3]))
+
+    if mom >= 6:
+        cols.append(fits.Column(name="FORM_ERR_H5", format="D", array=formal_error[:, 4]))
+        cols.append(fits.Column(name="FORM_ERR_H6", format="D", array=formal_error[:, 5]))
 
     # Add True SNR calculated from residual
     cols.append(fits.Column(name="SNR_POSTFIT", format="D", array=snr_postfit[:]))
 
-    # Add E(B-V) derived from pPXF 0th step with reddening but no polynomials
+    # Add chi2 derived from pPXF 0th step with reddening but no polynomials
     cols.append(fits.Column(name="RED_CHI2", format="D", array=red_chi2[:]))
 
     # Add E(B-V) derived from pPXF 0th step with reddening but no polynomials
@@ -817,16 +972,19 @@ def extractStellarKinematics(config):
         start[:, 1] = config["KIN"]["SIGMA"]
 
     # Define goodpixels
-    #check if a premask for step zero has been defined
-    if 'SPEC_PREMASK' in config["KIN"]:
-        #yes, load this premask file
-        goodPixels_step0_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_PREMASK"], logLam)
-    else:
-        #no, load this normal file
-        goodPixels_step0_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
-    
     goodPixels_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
 
+    # Check if a premask for the first step has been defined
+    if 'SPEC_PREMASK' in config["KIN"]:
+        goodPixels_premask_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_PREMASK"], logLam)
+    else:
+        goodPixels_premask_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
+    
+    if 'SPEC_DUSTMASK' in config["KIN"]:
+        goodPixels_dust_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_DUSTMASK"], logLam)
+    else:
+        goodPixels_dust_kin = _auxiliary.spectralMasking(config, config["KIN"]["SPEC_MASK"], logLam)
+    
     # Check if plot keyword is set:
     doplot = config["KIN"].get("PLOT", False)
 
@@ -857,7 +1015,7 @@ def extractStellarKinematics(config):
             comb_espec,
             velscale,
             start[0,:],
-            goodPixels_step0_kin,
+            goodPixels_premask_kin,
             config["KIN"]["MOM"],
             offset,
             config["KIN"]["ADEG"],
@@ -883,21 +1041,27 @@ def extractStellarKinematics(config):
         printStatus.running("Running PPXF in parallel mode")
         logging.info("Running PPXF in parallel mode")
         
-        # Prepare the folder where the memmap will be dumped
-        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
+        # Create a unique temporary directory for this run's memmaps
+        memmap_parent = ("/scratch"
+            if os.access("/scratch", os.W_OK)
+            else config["GENERAL"]["OUTPUT"])
 
-        # dump the arrays and load as memmap
-        templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
+        memmap_folder = tempfile.mkdtemp(
+            prefix=f"{config['GENERAL']['RUN_ID']}_kin_",
+            dir=memmap_parent,)
+
+        # Dump the arrays and reload them as read-only memmaps
+        templates_filename_memmap = os.path.join(memmap_folder, "templates_memmap.tmp")
         dump(templates, templates_filename_memmap)
-        templates = load(templates_filename_memmap, mmap_mode='r')
-        
-        bin_data_filename_memmap = memmap_folder + "/bin_data_memmap.tmp"
+        templates = load(templates_filename_memmap, mmap_mode="r")
+
+        bin_data_filename_memmap = os.path.join(memmap_folder, "bin_data_memmap.tmp")
         dump(bin_data, bin_data_filename_memmap)
-        bin_data = load(bin_data_filename_memmap, mmap_mode='r')
-        
-        noise_filename_memmap = memmap_folder + "/noise_memmap.tmp"
+        bin_data = load(bin_data_filename_memmap, mmap_mode="r")
+
+        noise_filename_memmap = os.path.join(memmap_folder, "noise_memmap.tmp")
         dump(noise, noise_filename_memmap)
-        noise = load(noise_filename_memmap, mmap_mode='r')
+        noise = load(noise_filename_memmap, mmap_mode="r")
 
         # Define a function to encapsulate the work done in the loop
         def worker(chunk, templates):
@@ -910,7 +1074,8 @@ def extractStellarKinematics(config):
                     velscale,
                     start[i, :],
                     bias,
-                    goodPixels_step0_kin,
+                    goodPixels_premask_kin,
+                    goodPixels_dust_kin,
                     goodPixels_kin,
                     config["KIN"]["MOM"],
                     config["KIN"]["ADEG"],
@@ -958,18 +1123,17 @@ def extractStellarKinematics(config):
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
         # Remove the memory-mapped files
-        os.remove(templates_filename_memmap)
-        os.remove(bin_data_filename_memmap)
-        os.remove(noise_filename_memmap)
+        shutil.rmtree(memmap_folder, ignore_errors=True)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
         
-        # check if we need to run all bins or only a subset
-        if 'DEBUG_BIN' in config["KIN"]:
-            runbin = np.array(config["KIN"]["DEBUG_BIN"])
-            printStatus.running("Running PPXF in Debug mode on bins: "+str(runbin))
+        # Check if we need to run all bins or only a subset
+        debug_bins = config["KIN"].get("DEBUG_BIN") or []
+        if debug_bins:
+            runbin = debug_bins
+            printStatus.running("Running PPXF in Debug mode on bins: " + str(runbin))
         else:
             runbin = np.arange(0, nbins)
         
@@ -993,7 +1157,8 @@ def extractStellarKinematics(config):
                 velscale,
                 start[i, :],
                 bias,
-                goodPixels_step0_kin,
+                goodPixels_premask_kin,
+                goodPixels_dust_kin,
                 goodPixels_kin,
                 config["KIN"]["MOM"],
                 config["KIN"]["ADEG"],
