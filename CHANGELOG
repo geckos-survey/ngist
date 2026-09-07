@@ -8,8 +8,7 @@ VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
 V7.6.17     2026-09-07 CHANGED: directory where the memory maps are saved and function  
 		    calling to make sure numpy finishes operations before directory is removed.
-		    ADDED: dust mask and calling sequence in continuum module. ADDED: plotting
-		    option for papers.
+		    ADDED: dust mask and calling sequence in continuum module.
 
 V7.6.16     2026-08-30 CHANGED: read-in module now checks whether the masking, binning,
 		    and spectra preperation is done before reading the cube. This speeds up 
