@@ -6,7 +6,11 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
-V7.6.15     2026-08-30 CHANGED: read-in module now checks whether the masking, binning,
+V7.6.17     2026-09-07 CHANGED: directory where the memory maps are saved and function  
+		    calling to make sure numpy finishes operations before directory is removed.
+		    ADDED: dust mask and calling sequence in continuum module.
+
+V7.6.16     2026-08-30 CHANGED: read-in module now checks whether the masking, binning,
 		    and spectra preperation is done before reading the cube. This speeds up 
 		    rerunning considerably. CHANGED: new order and number of fitting steps (1-4).
 		    The dust determination has been moved from step 0 to step 3. ADDED:  

@@ -4,10 +4,17 @@ import time
 
 import h5py
 import numpy as np
-from astropy import table
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import shutil
+import tempfile
+
 from astropy.io import fits
+from astropy import table
+from astropy.stats import biweight_location
 from joblib import Parallel, delayed, dump, load
-# Then use system installed version instead
+from packaging import version
 from ppxf.ppxf import ppxf
 from printStatus import printStatus
 from tqdm import tqdm
@@ -15,6 +22,9 @@ from tqdm import tqdm
 from ngistPipeline.auxiliary import _auxiliary
 from ngistPipeline.prepareTemplates import (_prepareTemplates,
                                            prepare_gas_templates)
+
+import warnings
+warnings.filterwarnings("ignore")
 
 # Physical constants
 C = 299792.458  # speed of light in km/s
@@ -189,17 +199,6 @@ def tidy_up_fluxes_and_kinematics(
         # otherwise you would get zerro errors because line is tied
         component_vx = np.min(v_x)
         component_sx = np.min(sigma_x)
-
-        # components tied which have therefore zero errors
-        # THESE LINES causes ENDLESS problems because of the ==0 conditions
-        # tied_vel  = np.arange(ngascomp)[kinematics_all_err[0, :, 0]==0]
-        # tied_sigma  = np.arange(ngascomp)[kinematics_all_err[0, :, 1]==0]
-
-        #
-        # if component_x in tied_vel:
-        #     component_vx = v_x[np.array([i not in tied_vel for i in v_x])][0]
-        # if component_x in tied_sigma:
-        #     component_sx = sigma_x[np.array([i not in tied_sigma for i in sigma_x])][0]
 
         for kk in range(len(templates_x)):
             vel_final[:, templates_x[kk]] = gas_kinematics[:, component_x, 0]
@@ -514,33 +513,8 @@ def save_ppxf_emlines(
 
 
 def performEmissionLineAnalysis(config):  # This is your main emission line fitting loop
-    # print("")
-    # print("\033[0;37m"+" - - - - - Running Emission Lines Fitting - - - - - "+"\033[0;39m")
+
     logging.info(" - - - Running Emission Lines Fitting - - - ")
-
-    # #--> some bookkeeping - all commented out for now Amelia
-    # # if there is only one spectrum to fit, make sure to reformat it
-    # if log_spec.ndim==1:
-    #     log_error= np.expand_dims(log_error, axis=1)
-    #     log_spec= np.expand_dims(log_spec, axis=1)
-    # nbins    = log_spec.shape[1]
-    # ubins    = np.arange(0, nbins)
-    # npix_in     = log_spec.shape[0]
-    # n_spaxels_per_bin = np.zeros(nbins)
-    # if bin_id is None:
-    #     bin_id = ubins
-    # # number of spaxels per bin
-    # for i in range(nbins):
-    #     windx = (bin_id ==i)
-    #     n_spaxels_per_bin[i]=np.sum(windx)
-    # velscale_ratio = 1
-    # # check if wavelength is in vacuum
-    # if 'WAV_VACUUM' in configs:
-    #     wav_in_vacuum = configs['WAV_VACUUM']
-    # else:
-    #     wav_in_vacuum = False
-
-    # for now the number of gas moments is fixed to 2 (i.e. v and sigma, no h3 and h4 etc for gas)
 
     ## --------------------- ##
     # For output filenames
@@ -740,7 +714,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         format="ascii",
     )  # Now using the PHANGS emission line config file. NB change '/configFiles' to dirPath or something like that
 
-    # if wav_in_vacuum: # I dunno if we need this - will it ever be in a vaccumm?
+    # if wav_in_vacuum: 
     #     emldb['lambda'] = air_to_vac(emldb['lambda'])
     eml_fwhm_angstr = LSF_Templates(emldb["lambda"])
     # note that while the stellar templates are expanded in wavelength to cover +/- 150 Angstrom around the observed spectra (buffer)
@@ -840,12 +814,11 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
                 ppxf_data_spaxels[windx, :] = ppxf_data[i]
             ppxf_data = ppxf_data_spaxels
 
-        # start = [[np.zeros((nbins, config['KIN']['MOM']))]] # old
+        
         start, fixed = [], []
         for i in range(
             0, np.max(ubins) + 1
-        ):  #
-            # start[i,:] = np.array( ppxf_data[i][:config['KIN']['MOM']] ) # old one (needs to be an array?)
+        ): 
             s = [
                 ppxf_data[i][: config["KIN"]["MOM"]],
                 [ppxf_data[i][0], 50],
@@ -871,7 +844,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         start = np.zeros((nbins, 2))
         start, fixed = [], []
         for i in range(0, np.max(ubins) + 1):
-            # start[i,:] = np.array( [0.0, config['SFH']['SIGMA']] ) # old
             s = [
                 [0, config["KIN"]["SIGMA"]],
                 [0, 50],
@@ -917,21 +889,27 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         printStatus.running("Running PPXF for emission lines analysis in parallel mode")
         logging.info("Running PPXF for emission lines analysis in parallel mode")
 
-        # Prepare the folder where the memmap will be dumped
-        memmap_folder = "/scratch" if os.access("/scratch", os.W_OK) else config["GENERAL"]["OUTPUT"]
+        # Create a unique temporary directory for this run's memmaps
+        memmap_parent = ("/scratch"
+            if os.access("/scratch", os.W_OK)
+            else config["GENERAL"]["OUTPUT"])
 
-        # dump the arrays and load as memmap
-        templates_filename_memmap = memmap_folder + "/templates_memmap.tmp"
+        memmap_folder = tempfile.mkdtemp(
+            prefix=f"{config['GENERAL']['RUN_ID']}_gas_",
+            dir=memmap_parent)
+
+        # Dump the arrays and reload them as read-only memmaps
+        templates_filename_memmap = os.path.join(memmap_folder, "templates_memmap.tmp")
         dump(templates, templates_filename_memmap)
-        templates = load(templates_filename_memmap, mmap_mode='r')
-        
-        spectra_filename_memmap = memmap_folder + "/spectra_memmap.tmp"
+        templates = load(templates_filename_memmap, mmap_mode="r")
+
+        spectra_filename_memmap = os.path.join(memmap_folder, "spectra_memmap.tmp")
         dump(spectra, spectra_filename_memmap)
-        spectra = load(spectra_filename_memmap, mmap_mode='r')
-        
-        error_filename_memmap = memmap_folder + "/error_memmap.tmp"
+        spectra = load(spectra_filename_memmap, mmap_mode="r")
+
+        error_filename_memmap = os.path.join(memmap_folder, "error_memmap.tmp")
         dump(error, error_filename_memmap)
-        error = load(error_filename_memmap, mmap_mode='r')
+        error = load(error_filename_memmap, mmap_mode="r")
 
         # Define a function to encapsulate the work done in the loop
         def worker(chunk, templates):
@@ -965,8 +943,16 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
         parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
-        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
-                        total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
+
+        #ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
+        #                total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
+
+        with Parallel(**parallel_configs) as parallel:
+            ppxf_tmp = list(tqdm(
+                parallel(delayed(worker)(chunk, templates) for chunk in chunks),
+                total=len(chunks), desc="Processing chunks",
+                ascii=" #", unit="chunk"
+            ))
 
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
@@ -985,9 +971,7 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
         # Remove the memory-mapped files
-        os.remove(templates_filename_memmap)
-        os.remove(spectra_filename_memmap)
-        os.remove(error_filename_memmap)
+        shutil.rmtree(memmap_folder)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
@@ -1040,13 +1024,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         % (nbins, time.time() - start_time, config["GENERAL"]["NCPU"])
     )
 
-    # Check if there was a problem with a spectra: NOT DONE
-
-    # # add back the part of the spectrum that was truncated because of lack of templates - needed?
-    # bestfit_1 = np.zeros((nbins,npix_in))
-    # gas_bestfit_1 = np.zeros((nbins,npix_in))
-    # bestfit_1[:, wav_cov_templates]=bestfit
-    # gas_bestfit_1[:, wav_cov_templates]=gas_bestfit
 
     # tidy up the ppXF output so it matches the order to the original line-list
     (
@@ -1120,61 +1097,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         npix,
         extra,
     )
-
- #   if (
- #       config["GAS"]["LEVEL"] == "BOTH"
- #   ):  # Special case when wanting the gas in bin and spaxel modes
- #       save_ppxf_emlines(
- #           config,
- #           config["GENERAL"]["OUTPUT"],
- #           config["GENERAL"]["RUN_ID"],
- #           "BIN",
- #           linesfitted,
- #           gas_flux_in_units,
- #           gas_err_flux_in_units,
- #           vel_final,
- #           vel_err_final,
- #           sigma_final_measured,
- #           sigma_err_final,
- #           chi2,
- #           templates_sigma,
- #           bestfit,
- #           gas_bestfit,
- #           stkin,
- #           spectra,
- #           error,
- #           goodPixels_gas,
- #           logLam_galaxy,
- #           ubins,
- #           npix,
- #           extra,
- #       )
-#
- #       save_ppxf_emlines(
- #           config,
- #           config["GENERAL"]["OUTPUT"],
- #           config["GENERAL"]["RUN_ID"],
- #           "SPAXEL",
- #           linesfitted,
- #           gas_flux_in_units,
- #           gas_err_flux_in_units,
- #           vel_final,
- #           vel_err_final,
- #           sigma_final_measured,
- #           sigma_err_final,
- #           chi2,
- #           templates_sigma,
- #           bestfit,
- #           gas_bestfit,
- #           stkin,
- #           spectra,
- #           error,
- #           goodPixels_gas,
- #           logLam_galaxy,
- #           ubins,
- #           npix,
- #           extra,
- #       )
 
     # Restart pPPXF if a SPAXEL level run based on a previous BIN level run is intended
     if config["GAS"]["LEVEL"] == "BOTH" and currentLevel == "BIN":
