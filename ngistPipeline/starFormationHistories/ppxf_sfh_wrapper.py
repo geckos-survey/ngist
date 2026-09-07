@@ -1380,9 +1380,6 @@ def extractStarFormationHistories(config):
             mpoly[i,:] = ppxf_tmp[i][10]
             apoly[i,:] = ppxf_tmp[i][11]
 
-        # Remove the memory-mapped files
-        shutil.rmtree(memmap_folder)
-        
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
         
     if config["GENERAL"]["PARALLEL"] == False:
@@ -1518,6 +1515,16 @@ def extractStarFormationHistories(config):
         nMetal,
         nAlpha,
     )
+
+    if config["GENERAL"]["PARALLEL"] == True:
+        templates._mmap.close()
+        bin_data._mmap.close()
+        noise._mmap.close()
+
+        if config["SFH"]["OPT_TEMP"] != "default":
+            optimal_template_comb._mmap.close()
+
+        shutil.rmtree(memmap_folder)
 
     # Return
     return None

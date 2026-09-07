@@ -882,7 +882,7 @@ def createContinuumCube(config):
             )
             dump(optimal_template_comb, opt_temp_file)
             optimal_template_comb = load(opt_temp_file, mmap_mode="r")
-            
+
         bin_data_filename_memmap = os.path.join(memmap_folder, "bin_data_memmap.tmp")
         dump(bin_data, bin_data_filename_memmap)
         bin_data = load(bin_data_filename_memmap, mmap_mode="r")
@@ -957,9 +957,6 @@ def createContinuumCube(config):
             EBV[i] = ppxf_tmp[i][7]
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
-
-        # Remove the memory-mapped files
-        shutil.rmtree(memmap_folder)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
@@ -1049,6 +1046,16 @@ def createContinuumCube(config):
         goodPixels_cont,
         bin_data,
     )
+
+    if config["GENERAL"]["PARALLEL"] == True:
+        templates._mmap.close()
+        bin_data._mmap.close()
+        noise._mmap.close()
+
+        if config["CONT"]["OPT_TEMP"] != "default":
+            optimal_template_comb._mmap.close()
+
+        shutil.rmtree(memmap_folder)
     
     # Return
     return None
