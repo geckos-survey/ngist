@@ -876,7 +876,13 @@ def createContinuumCube(config):
 
         if config["CONT"]["OPT_TEMP"] == "default":
             optimal_template_comb = templates
-
+        else:
+            opt_temp_file = os.path.join(
+                memmap_folder, "optimal_template_memmap.tmp"
+            )
+            dump(optimal_template_comb, opt_temp_file)
+            optimal_template_comb = load(opt_temp_file, mmap_mode="r")
+            
         bin_data_filename_memmap = os.path.join(memmap_folder, "bin_data_memmap.tmp")
         dump(bin_data, bin_data_filename_memmap)
         bin_data = load(bin_data_filename_memmap, mmap_mode="r")
@@ -921,7 +927,11 @@ def createContinuumCube(config):
         max_nbytes = "1M" # max array size before memory mapping is triggered
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
-        parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
+        parallel_configs = {
+            "n_jobs": config["GENERAL"]["NCPU"],
+            "max_nbytes": None,
+            "return_as": "generator",
+        }
 
         #ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
         #                total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
