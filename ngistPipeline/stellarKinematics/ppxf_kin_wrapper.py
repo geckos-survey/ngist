@@ -4,7 +4,6 @@ import time
 
 import h5py
 import numpy as np
-import ppxf as ppxf_package
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -39,7 +38,7 @@ PURPOSE:
 """
 
 def plot_ppxf_kin(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
-                  goodpixelsPre=[], norm=False, EBV=0,
+                  goodpixelsPre=[], norm=False, EBV=None,
                   poly_type='apoly'):
 
     mpl.rcParams['path.simplify'] = False
@@ -252,7 +251,8 @@ def plot_ppxf_kin(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     axdust.tick_params(direction='in', which='both')
     axdust.minorticks_on()
     axdust.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
-    axdust.legend(loc='best', fontsize=8, frameon=False)
+    if EBV is not None:
+        axdust.legend(loc='best', fontsize=8, frameon=False)
 
     # add print statements
     nmom = np.max(pp.moments)
@@ -260,23 +260,28 @@ def plot_ppxf_kin(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     if nmom == 2:
         plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
                     f"Sig = {pp.sol[1]:.0f}") + \
-                   (f", S/N_res = {snrResid:.1f}") + \
-                   (f", E(B-V) = {EBV:.2f}")
+                   (f", S/N_res = {snrResid:.1f}")
+        if EBV is not None:
+            plotText += f", E(B-V) = {EBV:.2f}"
 
     if nmom == 4:
         plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
                     f"Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, "
                     f"h4 = {pp.sol[3]:.3f}") + \
-                   (f", S/N_res = {snrResid:.1f}") + \
-                   (f", E(B-V) = {EBV:.2f}")
+                   (f", S/N_res = {snrResid:.1f}")
+        if EBV is not None:
+            plotText += f", E(B-V) = {EBV:.2f}"
+
 
     if nmom == 6:
         plotText = (f"nGIST - Bin {i:5.0f}: Vel = {pp.sol[0]:.0f}, "
                     f"Sig = {pp.sol[1]:.0f}, h3 = {pp.sol[2]:.3f}, "
                     f"h4 = {pp.sol[3]:.3f}, h5 = {pp.sol[4]:.3f}, "
                     f"h6 = {pp.sol[5]:.3f}") + \
-                   (f", S/N_res = {snrResid:.1f}") + \
-                   (f", E(B-V) = {EBV:.2f}")
+                   (f", S/N_res = {snrResid:.1f}")
+        if EBV is not None:
+            plotText += f", E(B-V) = {EBV:.2f}"
+
 
     ax2.text(0.01, 0.95, plotText, fontsize=9, ha='left', va='top',
              transform=ax2.transAxes, backgroundcolor='white')
@@ -1048,12 +1053,15 @@ def extractStellarKinematics(config):
 
         memmap_folder = tempfile.mkdtemp(
             prefix=f"{config['GENERAL']['RUN_ID']}_kin_",
-            dir=memmap_parent,)
+            dir=memmap_parent)
 
         # Dump the arrays and reload them as read-only memmaps
         templates_filename_memmap = os.path.join(memmap_folder, "templates_memmap.tmp")
         dump(templates, templates_filename_memmap)
         templates = load(templates_filename_memmap, mmap_mode="r")
+
+        if config["KIN"]["OPT_TEMP"] == "default":
+            optimal_template_comb = templates
 
         bin_data_filename_memmap = os.path.join(memmap_folder, "bin_data_memmap.tmp")
         dump(bin_data, bin_data_filename_memmap)
@@ -1101,8 +1109,17 @@ def extractStellarKinematics(config):
         chunk_size = max(1, nbins // ((config["GENERAL"]["NCPU"]) * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
         parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
-        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
-                        total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
+
+        #ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
+        #                total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
+
+        with Parallel(**parallel_configs) as parallel:
+            ppxf_tmp = list(tqdm(
+                parallel(delayed(worker)(chunk, templates) for chunk in chunks),
+                total=len(chunks), desc="Processing chunks",
+                ascii=" #", unit="chunk"
+            ))
+        
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
 
@@ -1123,7 +1140,7 @@ def extractStellarKinematics(config):
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
         # Remove the memory-mapped files
-        shutil.rmtree(memmap_folder, ignore_errors=True)
+        shutil.rmtree(memmap_folder)
 
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")

@@ -4,7 +4,6 @@ import time
 
 import h5py
 import numpy as np
-import ppxf as ppxf_package
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -39,7 +38,7 @@ PURPOSE:
   ui.adsabs.harvard.edu/?#abs/2017MNRAS.466..798C).
 """
 def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
-                  goodpixelsPre=[], norm=False, mean_results='', EBV=0,
+                  goodpixelsPre=[], norm=False, mean_results='', EBV=None,
                   poly_type='mpoly'):
 
     mpl.rcParams['path.simplify'] = False
@@ -197,12 +196,15 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     if polynomial is None or np.size(polynomial) == 0:
         polynomial = np.full(len(x), reference_value, dtype=float)
 
-    if EBV == 0:
+    if EBV == None:
         poly_min = np.nanmin(polynomial)
         poly_max = np.nanmax(polynomial)
         padding = 0.25 * max(poly_max - poly_min, 1.0)
         poly_min -= padding
         poly_max += padding
+        EBVstring = 0.0
+    else:
+        EBVstring = 0.0
 
     axpoly.plot(x, polynomial, color='orchid', linewidth=0.8,
                 antialiased=False)
@@ -247,12 +249,14 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     else:
         axdust.set_ylim(0.95, 1.05)
 
+    
     axdust.set_ylabel('dust factor')
     axdust.set_xlabel('wavelength [Ang]')
     axdust.tick_params(direction='in', which='both')
     axdust.minorticks_on()
     axdust.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
-    axdust.legend(loc='best', fontsize=8, frameon=False)
+    if EBV is not None:
+        axdust.legend(loc='best', fontsize=8, frameon=False)
 
     # add print statements
     nmom = np.max(pp.moments)
@@ -278,10 +282,12 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     if len(mean_results) > 0:
         plotText += (f", Age [Gyr] = {mean_results[0][0]:.2f}, "
                      f"[M/H] = {mean_results[0][1]:.2f}") + \
-                    (f", [alpha/Fe] = {mean_results[0][2]:.2f}") + \
-                    (f", E(B-V) = {EBV:.2f}")
+                    (f", [alpha/Fe] = {mean_results[0][2]:.2f}")
+        if EBV is not None:
+            plotText += f", E(B-V) = {EBV:.2f}"
     else:
-        plotText += (f", E(B-V) = {EBV:.2f}")
+        if EBV is not None:
+            plotText += f", E(B-V) = {EBV:.2f}"
 
     ax2.text(0.01, 0.95, plotText, fontsize=9, ha='left', va='top',
              transform=ax2.transAxes, backgroundcolor='white')
@@ -1266,13 +1272,18 @@ def extractStarFormationHistories(config):
             else config["GENERAL"]["OUTPUT"])
 
         memmap_folder = tempfile.mkdtemp(
-            prefix=f"{config['GENERAL']['RUN_ID']}_kin_",
-            dir=memmap_parent,)
+            prefix=f"{config['GENERAL']['RUN_ID']}_sfh_",
+            dir=memmap_parent)
 
         # Dump the arrays and reload them as read-only memmaps
-        templates_filename_memmap = os.path.join(memmap_folder, "templates_memmap.tmp")
+        templates_filename_memmap = os.path.join(
+            memmap_folder, "templates_memmap.tmp"
+        )
         dump(templates, templates_filename_memmap)
         templates = load(templates_filename_memmap, mmap_mode="r")
+
+        if config["SFH"]["OPT_TEMP"] == "default":
+            optimal_template_comb = templates
 
         bin_data_filename_memmap = os.path.join(memmap_folder, "bin_data_memmap.tmp")
         dump(bin_data, bin_data_filename_memmap)
@@ -1325,8 +1336,16 @@ def extractStarFormationHistories(config):
         chunk_size = max(1, nbins // (config["GENERAL"]["NCPU"] * 10))
         chunks = [range(i, min(i + chunk_size, nbins)) for i in range(0, nbins, chunk_size)]
         parallel_configs = {"n_jobs": config["GENERAL"]["NCPU"], "max_nbytes": max_nbytes, "temp_folder": memmap_folder, "mmap_mode": "c", "return_as":"generator"}
-        ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
-                        total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
+
+        #ppxf_tmp = list(tqdm(Parallel(**parallel_configs)(delayed(worker)(chunk, templates) for chunk in chunks),
+        #                total=len(chunks), desc="Processing chunks", ascii=" #", unit="chunk"))
+
+        with Parallel(**parallel_configs) as parallel:
+            ppxf_tmp = list(tqdm(
+                parallel(delayed(worker)(chunk, templates) for chunk in chunks),
+                total=len(chunks), desc="Processing chunks",
+                ascii=" #", unit="chunk"
+            ))
 
         # Flatten the results
         ppxf_tmp = [result for chunk_results in ppxf_tmp for result in chunk_results]
@@ -1352,7 +1371,7 @@ def extractStarFormationHistories(config):
             apoly[i,:] = ppxf_tmp[i][11]
 
         # Remove the memory-mapped files
-        shutil.rmtree(memmap_folder, ignore_errors=True)
+        shutil.rmtree(memmap_folder)
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
         
