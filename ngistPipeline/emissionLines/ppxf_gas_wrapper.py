@@ -976,9 +976,6 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
 
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
-        # Remove the memory-mapped files
-        shutil.rmtree(memmap_folder)
-
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
@@ -1103,6 +1100,13 @@ def performEmissionLineAnalysis(config):  # This is your main emission line fitt
         npix,
         extra,
     )
+
+    if config["GENERAL"]["PARALLEL"] == True:
+        templates._mmap.close()
+        spectra._mmap.close()
+        error._mmap.close()
+
+        shutil.rmtree(memmap_folder)
 
     # Restart pPPXF if a SPAXEL level run based on a previous BIN level run is intended
     if config["GAS"]["LEVEL"] == "BOTH" and currentLevel == "BIN":

@@ -1148,9 +1148,6 @@ def extractStellarKinematics(config):
         
         printStatus.updateDone("Running PPXF in parallel mode", progressbar=False)
 
-        # Remove the memory-mapped files
-        shutil.rmtree(memmap_folder)
-
     elif config["GENERAL"]["PARALLEL"] == False:
         printStatus.running("Running PPXF in serial mode")
         logging.info("Running PPXF in serial mode")
@@ -1256,6 +1253,15 @@ def extractStellarKinematics(config):
         apoly,
     )
 
-    # Return
+    if config["GENERAL"]["PARALLEL"] == True:
+        templates._mmap.close()
+        bin_data._mmap.close()
+        noise._mmap.close()
 
+        if config["KIN"]["OPT_TEMP"] != "default":
+            optimal_template_comb._mmap.close()
+
+        shutil.rmtree(memmap_folder)
+
+    # Return
     return None
