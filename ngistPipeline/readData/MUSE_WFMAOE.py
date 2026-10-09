@@ -136,7 +136,7 @@ def readCube(config):
                 wave >= config["READ_DATA"]["LMIN_SNR"],
                 wave <= config["READ_DATA"]["LMAX_SNR"],
                 np.logical_or(
-                    wave < 5760 / (1 + config["GENERAL"]["REDSHIFT"]),
+                    wave < 5770 / (1 + config["GENERAL"]["REDSHIFT"]),
                     wave > 6010 / (1 + config["GENERAL"]["REDSHIFT"]),
                 ),
             ]
@@ -159,14 +159,14 @@ def readCube(config):
     # Replacing the np.nan in the laser region by the median of the spectrum
     idx_laser = np.where(
         np.logical_and(
-            wave > 5760 / (1 + config["GENERAL"]["REDSHIFT"]),
+            wave > 5770 / (1 + config["GENERAL"]["REDSHIFT"]),
             wave < 6010 / (1 + config["GENERAL"]["REDSHIFT"]),
         )
     )[0]
     spec[idx_laser, :] = signal
     espec[idx_laser, :] = noise
     logging.info(
-        "Replacing the spectral region affected by the LGS (5760A-6010A) with the median signal of the spectra."
+        "Replacing the spectral region affected by the LGS (5770-6010A) with the median signal of the spectra."
     )
 
     # Storing everything into a structure

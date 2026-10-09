@@ -6,6 +6,16 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.18     2026-09-07 FIXED: bug in MUSE_WFMAON where the 1/(1+z) correction was not 
+		    applied to the laser mask. As spectrum is in rest-frame wavelength, a 
+		    redshift correctionneeds to be applied. Updated Na-Laser suppression region to 
+		    5770-6010A.	Minor changes to plotting scripts in KIN, CONT, and SFH.
+		    Changed alphaMC default filename to be:
+		    'ssp_final_mistv2.5_c3kv2.3vt10allfal_nGIST.fits'. Changed printing statement
+		    in PowerBin. Added option in SPATIAL_MASKING, where MASK_NAN (default True)
+		    can be called with 'median_replace' to avoid aggressive clipping when only
+		    a few NaN exist in the spectrum.
+
 V7.6.17     2026-09-07 CHANGED: directory where the memory maps are saved and function  
 		    calling to make sure numpy finishes operations before directory is removed.
 		    ADDED: dust mask and calling sequence in continuum module.

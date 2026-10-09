@@ -211,7 +211,7 @@ def plot_ppxf_cont(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
 
     axpoly.set_ylabel(poly_label)
     axpoly.set_ylim(poly_min, poly_max)
-    axpoly.set_xlabel('wavelength [Ang]')
+    axpoly.set_xlabel('rest-frame wavelength [Ang]')
     axpoly.tick_params(direction='in', which='both')
     axpoly.minorticks_on()
     axpoly.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
@@ -480,41 +480,46 @@ def run_ppxf(
             ################ 3 ##################
             # Third step - Only fit dust, no polynomials allowed
             #create a mask for dust specifically
-            mask_dust = np.zeros_like(mask, dtype=bool)
-            mask_dust[goodPixels_dust] = True
-            mask_dust &= mask # Keep only pixels good in both masks
+            EBV = np.nan
 
-            # create the dust model
-            Rv = 4.05
-            Av_init = 4.05 * EBV_init            
-            component_step3 = [0] *  np.prod(optimal_template_in.shape[1:])
-            component_true_step3 = np.array(component_step3) == 0
-            dust = [{"start": [Av_init], "bounds": [[0, 8]], "component": component_true_step3}]
+            if config["SFH"]["DUST_CORR"]:
+                mask_dust = np.zeros_like(mask, dtype=bool)
+                mask_dust[goodPixels_dust] = True
+                mask_dust &= mask # Keep only pixels good in both masks
 
-            # fit only for dust
-            pp_step3 = ppxf(
-                optimal_template_in, 
-                log_bin_data, 
-                noise_new, 
-                velscale, 
-                lam=np.exp(logLam), 
-                mask=mask_dust,
-                degree=-1, 
-                mdegree=-1,
-                vsyst=offset, 
-                velscale_ratio=velscale_ratio,
-                moments=nmoments, 
-                start=start, 
-                plot=False, 
-                dust = dust, 
-                component = component_step3, 
-                regul=0, 
-                quiet=True,
-            )
+                # create the dust model
+                Rv = 4.05
+                Av_init = 4.05 * EBV_init            
+                component_step3 = [0] *  np.prod(optimal_template_in.shape[1:])
+                component_true_step3 = np.array(component_step3) == 0
+                dust = [{"start": [Av_init], "bounds": [[0, 8]], "component": component_true_step3}]
 
-            # Save dust values
-            Av = pp_step3.dust[0]["sol"][0]
-            EBV = Av/Rv
+                # fit only for dust
+                pp_step3 = ppxf(
+                    optimal_template_in, 
+                    log_bin_data, 
+                    noise_new, 
+                    velscale, 
+                    lam=np.exp(logLam), 
+                    mask=mask_dust,
+                    degree=-1, 
+                    mdegree=-1,
+                    vsyst=offset, 
+                    velscale_ratio=velscale_ratio,
+                    moments=nmoments, 
+                    start=start, 
+                    plot=False, 
+                    dust = dust, 
+                    component = component_step3, 
+                    regul=0, 
+                    quiet=True,
+                )
+
+                # Save dust values
+                Av = pp_step3.dust[0]["sol"][0]
+                EBV = Av/Rv
+
+            # prepare for step 4    
             component_step4 = [0]*ntemplates
             component_true_step4 = np.array(component_step4) == 0
 
@@ -595,14 +600,19 @@ def run_ppxf(
             tmp_plot1 = plot_ppxf_cont(pp_step1,np.exp(logLam),i,outfigFile_step1,
                                       snrCubevar=snr_prefit,snrResid=snr_Resid1,
                                       poly_type='mpoly')
-            tmp_plot3 = plot_ppxf_cont(pp_step3,np.exp(logLam),i,outfigFile_step3,
-                                      snrCubevar=snr_prefit,snrResid=snr_Resid1, EBV=EBV,
-                                      poly_type='mpoly')
-            tmp_plot3 = plot_ppxf_cont(pp,np.exp(logLam),i,outfigFile_step4,
-                                      snrCubevar=snr_prefit,snrResid=snr_postfit,
-                                      goodpixelsPre=goodPixels_preclip, EBV=EBV,
-                                      poly_type='mpoly')
 
+            if config["SFH"]["DUST_CORR"]:
+                tmp_plot3 = plot_ppxf_cont(pp_step3,np.exp(logLam),i,outfigFile_step3,
+                                          snrCubevar=snr_prefit,snrResid=snr_Resid1, EBV=EBV,
+                                          poly_type='mpoly')
+
+            EBV_plot = None
+            if config["SFH"]["DUST_CORR"]:
+                EBV_plot = EBV    
+            tmp_plot4 = plot_ppxf_cont(pp,np.exp(logLam),i,outfigFile_step4,
+                                      snrCubevar=snr_prefit,snrResid=snr_postfit,
+                                      goodpixelsPre=goodPixels_preclip, EBV=EBV_plot,
+                                      poly_type='mpoly')
 
         # Do MC-Simulations
         sol_MC = np.zeros((nsims, nmoments))

@@ -60,29 +60,29 @@ def generateSpatialBins(config, cube):
 
     try:
         # Do the binning
-        pow = PowerBin(xy, capacity_spec_fun, config["SPATIAL_BINNING"]["TARGET_SNR"]**2)
+        pow = PowerBin(xy, capacity_spec_fun, config["SPATIAL_BINNING"]["TARGET_SNR"]**2, verbose=0)
         binNum = pow.bin_num
         xNode = pow.xybin[:, 0]
         yNode = pow.xybin[:,1]
         sn = np.sqrt(pow.bin_capacity)
         nPixels = pow.npix
 
-        printStatus.updateDone("Defining the bins")
-        print("             " + str(np.max(binNum) + 1) + " bins generated!")
-        logging.info(str(np.max(binNum) + 1) + " Power bins generated!")
+        printStatus.updateDone("Defining the PowerBins")
+        printStatus.updateDone("Powerbin gegnerated: " + str(np.max(binNum) + 1) + " bins!")
+        logging.info("Powerbin gegnerated: " + str(np.max(binNum) + 1) + " bins!")
 
     # Handle common exceptions
     except ValueError as e:
         # Sufficient SNR and no binning needed
         if str(e) == "All pixels have enough S/N and binning is not needed":
             printStatus.updateWarning("Defining the Power bins")
-            print(
+            printStatus.updateWarning(
                 "             "
                 + "The PowerBinning routine of Cappellari (2025) returned the following error:"
             )
-            print("             " + str(e))
+            printStatus.updateWarning("             " + str(e))
             printStatus.warning("Analysis will continue without PowerBinning!")
-            print(
+            printStatus.updateWarning(
                 "             "
                 + str(len(idxUnmasked))
                 + " spaxels will be treated as PowerBins."
@@ -106,7 +106,7 @@ def generateSpatialBins(config, cube):
         # Any uncaught exceptions, causing the galaxy to be skipped
         else:
             printStatus.updateFailed("Defining the Power bins")
-            print(
+            printStatus.updateWarning(
                 "The PowerBinning routine of Cappellari(2025) returned the following error: \n"
                 + str(e)
             )
