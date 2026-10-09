@@ -196,15 +196,15 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     if polynomial is None or np.size(polynomial) == 0:
         polynomial = np.full(len(x), reference_value, dtype=float)
 
-    if EBV == None:
-        poly_min = np.nanmin(polynomial)
-        poly_max = np.nanmax(polynomial)
-        padding = 0.25 * max(poly_max - poly_min, 1.0)
-        poly_min -= padding
-        poly_max += padding
-        EBVstring = 0.0
-    else:
-        EBVstring = 0.0
+    #if EBV == None:
+    #    poly_min = np.nanmin(polynomial)
+    #    poly_max = np.nanmax(polynomial)
+    #    padding = 0.25 * max(poly_max - poly_min, 1.0)
+    #    poly_min -= padding
+    #    poly_max += padding
+    #    EBVstring = 0.0
+    #else:
+    #    EBVstring = 0.0
 
     axpoly.plot(x, polynomial, color='orchid', linewidth=0.8,
                 antialiased=False)
@@ -251,7 +251,7 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
 
     
     axdust.set_ylabel('dust factor')
-    axdust.set_xlabel('wavelength [Ang]')
+    axpoly.set_xlabel('rest-frame wavelength [Ang]')
     axdust.tick_params(direction='in', which='both')
     axdust.minorticks_on()
     axdust.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
@@ -499,45 +499,53 @@ def run_ppxf(
                 # Add clipped pixels to the original masked emission lines regions and repeat the fit
                 mask &= mask0
 
+            
+            
             ################ 3 ##################
             # Third step - Only fit dust, no polynomials allowed
             #create a mask for dust specifically
-            mask_dust = np.zeros_like(mask, dtype=bool)
-            mask_dust[goodPixels_dust] = True
-            mask_dust &= mask # Keep only pixels good in both masks
+            EBV = np.nan
 
-            # create the dust model
-            Rv = 4.05
-            Av_init = 4.05 * EBV_init            
-            component_step3 = [0] *  np.prod(optimal_template_in.shape[1:])
-            component_true_step3 = np.array(component_step3) == 0
-            dust = [{"start": [Av_init], "bounds": [[0, 8]], "component": component_true_step3}]
+            if config["SFH"]["DUST_CORR"]:
+                
+                mask_dust = np.zeros_like(mask, dtype=bool)
+                mask_dust[goodPixels_dust] = True
+                mask_dust &= mask # Keep only pixels good in both masks
 
-            # fit only for dust
-            pp_step3 = ppxf(
-                optimal_template_in, 
-                log_bin_data, 
-                noise_new, 
-                velscale, 
-                lam=np.exp(logLam), 
-                mask=mask_dust,
-                degree=-1, 
-                mdegree=-1,
-                regul=0,
-                fixed=fixed,
-                vsyst=offset, 
-                velscale_ratio=velscale_ratio,
-                moments=nmoments, 
-                start=start, 
-                plot=False, 
-                dust = dust, 
-                component = component_step3, 
-                quiet=True,
-            )
+                # create the dust model
+                Rv = 4.05
+                Av_init = 4.05 * EBV_init            
+                component_step3 = [0] *  np.prod(optimal_template_in.shape[1:])
+                component_true_step3 = np.array(component_step3) == 0
+                dust = [{"start": [Av_init], "bounds": [[0, 8]], "component": component_true_step3}]
 
-            # Save dust values
-            Av = pp_step3.dust[0]["sol"][0]
-            EBV = Av/Rv
+                # fit only for dust
+                pp_step3 = ppxf(
+                    optimal_template_in, 
+                    log_bin_data, 
+                    noise_new, 
+                    velscale, 
+                    lam=np.exp(logLam), 
+                    mask=mask_dust,
+                    degree=-1, 
+                    mdegree=-1,
+                    regul=0,
+                    fixed=fixed,
+                    vsyst=offset, 
+                    velscale_ratio=velscale_ratio,
+                    moments=nmoments, 
+                    start=start, 
+                    plot=False, 
+                    dust = dust, 
+                    component = component_step3, 
+                    quiet=True,
+                )
+
+                # Save dust values
+                Av = pp_step3.dust[0]["sol"][0]
+                EBV = Av/Rv
+
+            # prepare for step 4
             component_step4 = [0]*ncomb
             component_true_step4 = np.array(component_step4) == 0
 
@@ -561,7 +569,7 @@ def run_ppxf(
                 quiet=True,
                 moments=nmoments,
                 vsyst=offset,
-                degree=degree,
+                degree=-1,
                 mdegree=mdeg,
                 regul = regul,
                 fixed=fixed,
@@ -623,10 +631,16 @@ def run_ppxf(
             #produce plots
             tmp_plot1 = plot_ppxf_sfh(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,
                                       snrResid=snr_Resid1,poly_type='mpoly')
-            tmp_plot3 = plot_ppxf_sfh(pp_step3,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,
+            
+            if config["SFH"]["DUST_CORR"]:
+                tmp_plot3 = plot_ppxf_sfh(pp_step3,np.exp(logLam),i,outfigFile_step3,snrCubevar=snr_prefit,
                                       snrResid=snr_Resid1,EBV=EBV,poly_type='mpoly')
-            tmp_plot4 = plot_ppxf_sfh(pp,np.exp(logLam),i,outfigFile_step4,snrCubevar=snr_prefit,snrResid=snr_postfit,\
-                             goodpixelsPre=goodPixels_preclip,mean_results=mean_results_step4,EBV=EBV,poly_type='mpoly')
+
+            EBV_plot = None
+            if config["SFH"]["DUST_CORR"]:
+                EBV_plot = EBV
+            tmp_plot4 = plot_ppxf_sfh(pp,np.exp(logLam),i,outfigFile_step4,snrCubevar=snr_prefit,snrResid=snr_postfit,
+                             goodpixelsPre=goodPixels_preclip,mean_results=mean_results_step4,EBV=EBV_plot,poly_type='mpoly')
 
         # Currently only apply MC described by Pessa et al. 2023 (https://ui.adsabs.harvard.edu/abs/2023A%26A...673A.147P/abstract)
         if nsims > 0:

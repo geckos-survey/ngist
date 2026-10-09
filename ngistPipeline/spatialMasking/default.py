@@ -57,8 +57,43 @@ def maskDefunctSpaxels(cube, mask_nan=True,mask_negative_median=True):
     Mask spaxels containing NaNs and/or spaxels with non-positive median flux.
     """
     spec = cube["spec"]
+    error = cube["error"]
 
-    bad_nan = np.any(np.isnan(spec), axis=0) if mask_nan else np.zeros(spec.shape[1], dtype=bool)
+    if mask_nan is True:
+        # Identify spaxels containing NaNs
+        bad_nan = np.any(np.isnan(spec), axis=0)
+        printStatus.warning(f"NaN spaxels that resulted in clipped spatial pixels: {np.sum(bad_nan)}")
+        print("hello:")
+        
+    elif mask_nan == "median_replace":
+        # Identify spaxels containing NaNs before replacement
+        bad_nan = np.any(np.isnan(spec), axis=0)
+        printStatus.warning(f"NaN spaxels replaced: {np.sum(bad_nan)}")
+
+        if np.any(bad_nan):
+            # Only process bins/spaxels that contain NaNs
+            for b in np.where(bad_nan)[0]:
+                nan_indices = np.where(np.isnan(spec[:, b]))[0]
+
+                for s in nan_indices:
+                    left = max(0, s - 10)
+                    right = min(spec.shape[0], s + 11)
+
+                    surrounding = spec[left:right, b]
+                    # replace the spectrum with the median
+                    spec[s, b] = np.nanmedian(surrounding)
+                    # replace the espec with a large value so that isn't used by pPXF
+                    error[s, b] = 1e9
+
+            # Recalculate after replacement
+            bad_nan = np.any(np.isnan(spec), axis=0)
+
+    else:
+        # Covers mask_nan=False
+        bad_nan = np.zeros(spec.shape[1], dtype=bool)
+
+   
+    # apply the bad median mask
     bad_median = np.nanmedian(spec, axis=0) <= 0.0 if mask_negative_median else np.zeros(spec.shape[1], dtype=bool)
 
     logging.info(f"NaN spaxels: {np.sum(bad_nan)}")

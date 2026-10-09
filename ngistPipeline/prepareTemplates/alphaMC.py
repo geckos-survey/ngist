@@ -93,8 +93,7 @@ def prepareSpectralTemplateLibrary(config, lmin, lmax, velscale, LSF_Data, LSF_T
 
     # SSP model library
     sp_models = glob.glob(os.path.join(config['GENERAL']['TEMPLATE_DIR'],config[module_used]["LIBRARY"]) + \
-#                          'ssp_final_mistv2.5_c3kv2.3vt10allfal_250722.fits')
-                           'ssp_final_mistv2.5_c3kv2.3vt10allfal_250722_nGIST_geckos.fits')
+                           'ssp_final_mistv2.5_c3kv2.3vt10allfal_nGIST.fits')
 
     ssp_conroy = fits.open(sp_models[0])
     wave = ssp_conroy[0].data
