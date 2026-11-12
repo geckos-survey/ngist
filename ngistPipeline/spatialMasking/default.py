@@ -21,18 +21,19 @@ def generateSpatialMask(config, cube):
         mask_negative_median=config["SPATIAL_MASKING"].get("MASK_NEGATIVE_MEDIAN", True),
     )
 
+    # Mask spaxels according to spatial mask file
+    maskedMask = applyMaskFile(config, cube)
+
     # Mask spaxels with SNR below threshold
     maskedSNR = applySNRThreshold(
         cube,
-        cube["snr"], 
-        cube["signal"], 
-        config["SPATIAL_MASKING"]["MIN_SNR"], 
-        config["SPATIAL_MASKING"].get("THRESHOLD_METHOD", "isophote"), 
+        cube["snr"],
+        cube["signal"],
+        config["SPATIAL_MASKING"]["MIN_SNR"],
+        config["SPATIAL_MASKING"].get("THRESHOLD_METHOD", "isophote"),
         config["SPATIAL_MASKING"].get("SMOOTH_SIGMA", 5.0),
+        excluded=maskedMask | maskedDefunct,
     )
-
-    # Mask spaxels according to spatial mask file
-    maskedMask = applyMaskFile(config, cube)
 
     # Create combined mask
     combinedMaskIdx = np.where(
@@ -63,7 +64,6 @@ def maskDefunctSpaxels(cube, mask_nan=True,mask_negative_median=True):
         # Identify spaxels containing NaNs
         bad_nan = np.any(np.isnan(spec), axis=0)
         printStatus.warning(f"NaN spaxels that resulted in clipped spatial pixels: {np.sum(bad_nan)}")
-        print("hello:")
         
     elif mask_nan == "median_replace":
         # Identify spaxels containing NaNs before replacement
@@ -138,11 +138,14 @@ def values_to_2d(values, x_vals, y_vals, ix, iy, fill_value=np.nan):
     arr_2d[iy, ix] = values
     return arr_2d
 
-def applySNRThreshold(cube, snr, signal, min_snr, threshold_method, smooth_sigma):
+def applySNRThreshold(cube, snr, signal, min_snr, threshold_method, smooth_sigma,excluded=None):
     """
     Mask those spaxels that are above the isophote level with a mean
     signal-to-noise ratio of MIN_SNR.
     """
+    if excluded is None:
+        excluded = np.zeros(len(snr), dtype=bool)
+
     if threshold_method == "isophote_gist":
         # this is the old gist way of creating a mask, but does not work with low S/N
         idx_snr = np.where(np.abs(snr - min_snr) < 2.0)[0]
@@ -183,7 +186,7 @@ def applySNRThreshold(cube, snr, signal, min_snr, threshold_method, smooth_sigma
 
         else:
             # Use only valid spaxels to estimate the flux corresponding to the requested S/N.
-            valid_1d = np.isfinite(signal) & np.isfinite(snr)
+            valid_1d = np.isfinite(signal) & np.isfinite(snr) & ~excluded
             snr_valid = snr[valid_1d]
             signal_valid = signal[valid_1d]
 
@@ -199,7 +202,7 @@ def applySNRThreshold(cube, snr, signal, min_snr, threshold_method, smooth_sigma
             iy = np.searchsorted(y_vals, np.round(cube["y"], 10))
 
             signal_2d = np.full((y_vals.size, x_vals.size), np.nan)
-            signal_2d[iy, ix] = signal
+            signal_2d[iy, ix] = np.where(excluded, np.nan, signal)
 
             # Smooth the 2D flux map.
             mask_2d = np.isfinite(signal_2d)
@@ -241,7 +244,8 @@ def applySNRThreshold(cube, snr, signal, min_snr, threshold_method, smooth_sigma
         x_vals, y_vals, ix, iy = build_spatial_grid(cube)
 
         # Reconstruct the 2D S/N map and smooth it.
-        snr_2d = values_to_2d(snr, x_vals, y_vals, ix, iy)
+        snr_for_smoothing = np.where(excluded, np.nan, snr)
+        snr_2d = values_to_2d(snr_for_smoothing, x_vals, y_vals, ix, iy)
         mask_2d = np.isfinite(snr_2d)
         snr_filled = np.where(mask_2d, snr_2d, 0.0)
 

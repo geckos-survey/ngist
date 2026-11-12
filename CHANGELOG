@@ -6,6 +6,18 @@
 ------------------------------------------------------------------------------------------
 VERSION    DATE          DESCRIPTION
 ------------------------------------------------------------------------------------------
+V7.6.19     2026-11-11 FIXED: In the alphaMC template reader, templates sorted for the 
+		    SFH module were not convolved to match the instrumental resolution. Thanks to 
+		    Michelle Ding for identifying this issue. FIXED: Memory-mapped array cleanup 
+		    in the SFH module. CHANGED: The user-supplied spatial mask is now applied 
+		    before smoothing for the isophote_smooth and actual_smooth S/N thresholds, 
+		    preventing masked sources from influencing neighbouring spaxels. REMOVED: The 
+		    redundant top-level tests/ directory. The automated tests use the files in 
+		    .github/workflows/tests/. ADDED: MEAN_AGE_DEF in the SFH configuration. Set 
+		    it to MEANLOGAGE (the default) to calculate <log Age>, or MEANAGE to calculate 
+		    <Age>. This changes the default from previous versions to match the definition 
+		    used in the pPXF documentation and Cappellari (2023).
+
 V7.6.18     2026-09-07 FIXED: bug in MUSE_WFMAON where the 1/(1+z) correction was not 
 		    applied to the laser mask. As spectrum is in rest-frame wavelength, a 
 		    redshift correctionneeds to be applied. Updated Na-Laser suppression region to 
