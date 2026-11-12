@@ -9,7 +9,8 @@ VERSION    DATE          DESCRIPTION
 V7.6.19     2026-11-11 FIXED: In the alphaMC template reader, templates sorted for the 
 		    SFH module were not convolved to match the instrumental resolution. Thanks to 
 		    Michelle Ding for identifying this issue. FIXED: Memory-mapped array cleanup 
-		    in the SFH module. CHANGED: The user-supplied spatial mask is now applied 
+		    in the SFH module. FIXED: Switch to mumpy >2.0 related issue in LS module
+			with indexing. CHANGED: The user-supplied spatial mask is now applied 
 		    before smoothing for the isophote_smooth and actual_smooth S/N thresholds, 
 		    preventing masked sources from influencing neighbouring spaxels. REMOVED: The 
 		    redundant top-level tests/ directory. The automated tests use the files in 
