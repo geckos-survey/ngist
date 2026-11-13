@@ -196,15 +196,6 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     if polynomial is None or np.size(polynomial) == 0:
         polynomial = np.full(len(x), reference_value, dtype=float)
 
-    #if EBV == None:
-    #    poly_min = np.nanmin(polynomial)
-    #    poly_max = np.nanmax(polynomial)
-    #    padding = 0.25 * max(poly_max - poly_min, 1.0)
-    #    poly_min -= padding
-    #    poly_max += padding
-    #    EBVstring = 0.0
-    #else:
-    #    EBVstring = 0.0
 
     axpoly.plot(x, polynomial, color='orchid', linewidth=0.8,
                 antialiased=False)
@@ -214,7 +205,7 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
 
     axpoly.set_ylabel(poly_label)
     axpoly.set_ylim(poly_min, poly_max)
-    axpoly.set_xlabel('wavelength [Ang]')
+    axpoly.set_xlabel('rest-frame wavelength [Ang]')
     axpoly.tick_params(direction='in', which='both')
     axpoly.minorticks_on()
     axpoly.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
@@ -249,9 +240,8 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     else:
         axdust.set_ylim(0.95, 1.05)
 
-    
     axdust.set_ylabel('dust factor')
-    axpoly.set_xlabel('rest-frame wavelength [Ang]')
+    axdust.set_xlabel('rest-frame wavelength [Ang]')
     axdust.tick_params(direction='in', which='both')
     axdust.minorticks_on()
     axdust.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
@@ -280,7 +270,7 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
                    (f", S/N_resid = {snrResid:.1f}")
 
     if len(mean_results) > 0:
-        plotText += (f", Age [Gyr] = {mean_results[0][0]:.2f}, "
+        plotText += (f", Age = {mean_results[0][0]:.2f}, "
                      f"[M/H] = {mean_results[0][1]:.2f}") + \
                     (f", [alpha/Fe] = {mean_results[0][2]:.2f}")
         if EBV is not None:
@@ -295,7 +285,10 @@ def plot_ppxf_sfh(pp, x, i, outfig_ppxf, snrCubevar=-99, snrResid=-99,
     plt.savefig(outfig_ppxf, bbox_inches='tight', pad_inches=0.3)
     plt.close()
 
-    
+def _close_memmap(arr):
+    mm = getattr(arr, "_mmap", None)
+    if mm is not None:
+        mm.close()    
 
 def clip_outliers(galaxy, bestfit, mask):
     """
@@ -626,7 +619,14 @@ def run_ppxf(
                                 + "_sfh_bin_"+str(i)+"_step4.pdf"))
 
             #calculate mean age, metallicity, and alpha step 1
-            mean_results_step4 = mean_agemetalalpha(w_row, 10**logAge_grid, metal_grid, alpha_grid, 1)
+            #check definition
+            mean_age_def = config["SFH"].get("MEAN_AGE_DEF", "MEANLOGAGE")            
+            if mean_age_def == "MEANAGE":
+                age_grid = 10**logAge_grid
+            elif mean_age_def == "MEANLOGAGE":
+                age_grid = logAge_grid
+            
+            mean_results_step4 = mean_agemetalalpha(w_row, age_grid, metal_grid, alpha_grid, 1)
             
             #produce plots
             tmp_plot1 = plot_ppxf_sfh(pp_step1,np.exp(logLam),i,outfigFile_step1,snrCubevar=snr_prefit,
@@ -678,7 +678,15 @@ def run_ppxf(
             # Calculate mean and error of weights and weighted properties from MC realizations
             w_row_MC_mean         = np.nanmean(w_row_MC, axis=0)
             w_row_MC_err          = (np.nanpercentile(w_row_MC, q=84, axis=0) - np.nanpercentile(w_row_MC, q=16, axis=0))/2
-            mean_results_MC_array = mean_agemetalalpha(w_row_MC, 10**logAge_grid, metal_grid, alpha_grid, nsims)
+
+            # check which definition to use
+            mean_age_def = config["SFH"].get("MEAN_AGE_DEF", "MEANLOGAGE")
+            if mean_age_def == "MEANAGE":
+                age_grid = 10**logAge_grid
+            elif mean_age_def == "MEANLOGAGE":
+                age_grid = logAge_grid
+        
+            mean_results_MC_array = mean_agemetalalpha(w_row_MC, age_grid, metal_grid, alpha_grid, nsims)
             mean_results_MC_mean  = np.nanmean(mean_results_MC_array, axis=0)
             mean_results_MC_err  = (np.nanpercentile(mean_results_MC_array, q=84, axis=0) - np.nanpercentile(mean_results_MC_array, q=16, axis=0))/2
 
@@ -1035,6 +1043,14 @@ def extractStarFormationHistories(config):
     Args:
     - config: dictionary containing configuration parameters
     """
+
+    #check that Age definition is set correctly before we begin
+    mean_age_def = config["SFH"].get("MEAN_AGE_DEF", "MEANLOGAGE")
+    if mean_age_def not in ("MEANAGE", "MEANLOGAGE"):
+        raise ValueError(
+            f"Invalid SFH.MEAN_AGE_DEF: {mean_age_def!r}. "
+            "Use MEANAGE or MEANLOGAGE."
+        )
 
     # Read LSF information
     LSF_Data, LSF_Templates = _auxiliary.getLSF(config, "SFH")
@@ -1487,9 +1503,14 @@ def extractStarFormationHistories(config):
         logging.info("There were no problems in the analysis.")
     print("")
 
-    # Calculate mean age, metallicity and alpha
+    # Calculate mean age, metallicity and alpha, default is < log Age > unless called otherwise
+    if mean_age_def == "MEANAGE":
+        age_grid = 10**logAge_grid
+    elif mean_age_def == "MEANLOGAGE":
+        age_grid = logAge_grid
+
     mean_results = mean_agemetalalpha(
-        w_row, 10**logAge_grid, metal_grid, alpha_grid, nbins
+        w_row, age_grid, metal_grid, alpha_grid, nbins
     )
 
     # Save to file
@@ -1531,14 +1552,13 @@ def extractStarFormationHistories(config):
     )
 
     if config["GENERAL"]["PARALLEL"] == True:
-        templates._mmap.close()
-        bin_data._mmap.close()
-        noise._mmap.close()
+            for arr in (templates, bin_data, noise):
+                _close_memmap(arr)
 
-        if config["SFH"]["OPT_TEMP"] != "default":
-            optimal_template_comb._mmap.close()
+            if config["SFH"]["OPT_TEMP"] != "default":
+                _close_memmap(optimal_template_comb)
 
-        shutil.rmtree(memmap_folder)
+            shutil.rmtree(memmap_folder)
 
     # Return
     return None

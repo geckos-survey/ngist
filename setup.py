@@ -29,7 +29,7 @@ setup(name='ngistPipeline',
       packages=find_packages(),
       install_requires=[
         'astropy',
-        'numpy>=1.26,<2',
+        'numpy',
         'scipy',
         'matplotlib',
         'spectral-cube',
