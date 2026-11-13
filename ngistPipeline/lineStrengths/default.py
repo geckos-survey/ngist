@@ -390,7 +390,7 @@ def measureLineStrengths(config, RESOLUTION="ORIGINAL"):
 
         idx_lam = np.arange(idx_lamMin, idx_lamMax + 1)
         oldspec = np.array(binned_spec_data)
-        oldespec = np.sqrt(np.array(binned_espec_data)[:, idx_lam])
+        oldespec = np.array(binned_espec_data)[:, idx_lam] # already error spec, not variance
         wave = np.array(binned_loglam_data)
 
         nbins = oldspec.shape[0]
